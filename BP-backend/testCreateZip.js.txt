@@ -1,0 +1,83 @@
+// testCreateZip.js
+const fs = require('fs');
+const AdmZip = require('adm-zip');
+
+// Vytvoření nového ZIP archivu
+const zip = new AdmZip();
+
+// Vytvoření ukázkového JSON souboru s produkty
+const productsJson = {
+  appinfo: {
+    version: "2024.2.74",
+    product: "DUNA",
+    license: "FULL",
+    swmodules: 13,
+    protocol: "2.01",
+    developer: false,
+    betauser: true,
+    dealer: false
+  },
+  products: [
+    {
+      id: "001",
+      name: "Cement portlandský CEM I 42,5R, 25kg",
+      price: 129.50,
+      vat: 21,
+      category: "Hrubá stavba",
+      subcategory: "Ztracené bednění",
+      manufacturer: "Českomoravský cement",
+      priceUnit: "balení",
+      storeAmount: 75
+    },
+    {
+      id: "002",
+      name: "Ytong P2-500 300x249x599 mm",
+      price: 93.50,
+      vat: 21,
+      category: "Hrubá stavba",
+      subcategory: "Pojiva",
+      manufacturer: "Ytong",
+      priceUnit: "kus",
+      storeAmount: 120
+    }
+  ]
+};
+
+// Vytvoření ukázkového JSON souboru s kategoriemi
+const categoriesJson = {
+  appinfo: {
+    version: "2024.2.74",
+    product: "DUNA",
+    license: "FULL",
+    swmodules: 13,
+    protocol: "2.01",
+    developer: false,
+    betauser: true,
+    dealer: false
+  },
+  categories: [
+    {
+      id: "001",
+      name: "Stavební materiály",
+      subcategories: [
+        {
+          id: "001_001",
+          name: "Ztracené bednění"
+        },
+        {
+          id: "001_002",
+          name: "Pojiva"
+        }
+      ]
+    }
+  ]
+};
+
+// Přidání JSON souborů do ZIP archivu
+zip.addFile("products.json", Buffer.from(JSON.stringify(productsJson, null, 2), "utf8"));
+zip.addFile("categories.json", Buffer.from(JSON.stringify(categoriesJson, null, 2), "utf8"));
+
+// Uložení ZIP souboru
+zip.writeZip("test_import.zip");
+
+console.log("Testovací ZIP soubor byl vytvořen: test_import.zip");

@@ -1,3 +1,4 @@
+import API_URL from '@/config/api.js';
 <template>
   <div class="verification-container">
     <div class="HeadingStrip">
@@ -50,7 +51,7 @@ export default {
           return
         }
 
-        const response = await axios.get(`http://localhost:5000/api/verify-email/${token}`)
+        const response = await axios.get(`/api/verify-email/${token}`)
 
         this.verified = true
         this.loading = false

@@ -1,3 +1,4 @@
+import API_URL from '@/config/api.js';
 <template>
   <div class="HeadingStrip">
     <h1>Přihlášení</h1>
@@ -164,7 +165,7 @@ export default {
 
       try {
         // Odeslání přihlašovacích údajů na local backend
-        const response = await axios.post('http://localhost:5000/api/login', this.loginData)
+        const response = await axios.post('/api/login', this.loginData)
 
         // Zpracování úspěšné odpovědi ze serveru
         console.log('Odpověď serveru:', response.data)
@@ -203,7 +204,7 @@ export default {
 
       try {
         // Odeslání e-mailu na backend pro obnovu hesla
-        const response = await axios.post('http://localhost:5000/api/forgot-password', {
+        const response = await axios.post('/api/forgot-password', {
           email: this.forgotData.email
         })
 

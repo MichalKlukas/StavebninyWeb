@@ -1,3 +1,4 @@
+import API_URL from '@/config/api.js';
 <template>
   <div class="HeadingStrip">
     <h1>Často kladené otázky</h1>

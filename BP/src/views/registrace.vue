@@ -242,6 +242,7 @@
 
 <script>
 import axios from 'axios'
+import API_URL from '@/config/api.js';
 
 export default {
   name: 'RegistrationPage',
@@ -371,7 +372,7 @@ export default {
         }
 
         // Odeslání registračních údajů na local backend
-        const response = await axios.post('http://localhost:5000/api/register', registrationPayload)
+        const response = await axios.post(`${API_URL}/api/register`, registrationPayload)
 
         // Zpracování úspěšné odpovědi ze serveru
         console.log('Odpověď serveru:', response.data)

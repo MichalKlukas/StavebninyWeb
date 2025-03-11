@@ -1,3 +1,4 @@
+import API_URL from '@/config/api.js';
 <template>
   <div class="HeadingStrip">
     <h1>Změna hesla</h1>
@@ -286,7 +287,7 @@ export default {
       try {
         // Volání API pro změnu hesla
         await axios.post(
-          'http://localhost:5000/api/change-password',
+          '/api/change-password',
           {
             currentPassword: passwordData.value.currentPassword,
             newPassword: passwordData.value.newPassword

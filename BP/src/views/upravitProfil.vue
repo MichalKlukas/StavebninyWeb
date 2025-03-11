@@ -1,3 +1,4 @@
+import API_URL from '@/config/api.js';
 <template>
   <div class="HeadingStrip">
     <h1>Úprava profilu</h1>
@@ -259,7 +260,7 @@ export default {
         }
 
         // Odeslání dat na server
-        const response = await axios.put('http://localhost:5000/api/user/profile', updateData, {
+        const response = await axios.put('/api/user/profile', updateData, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`
           }

@@ -6,7 +6,77 @@ const emailService = require('../utils/emailService');
 const db = require('../config/db');
 
 const authController = {
-  // Registrace nového uživatele
+  // Login method with debugging
+  async login(req, res) {
+    try {
+      const { email, password, remember } = req.body;
+      console.log(`Attempting login for: ${email}`);
+      
+      // Find user in database
+      const user = await userModel.findByEmail(email);
+      if (!user) {
+        console.log(`User not found: ${email}`);
+        return res.status(401).json({ error: 'Neplatný e-mail nebo heslo' });
+      }
+      
+      console.log(`User found: ${email}, verification: ${user.is_verified}`);
+      
+      // Check for Google account
+      if (!user.password_hash) {
+        console.log(`No password hash for: ${email} (Google account)`);
+        return res.status(401).json({
+          error: 'Tento účet používá přihlášení přes Google. Použijte prosím tlačítko pro přihlášení přes Google.'
+        });
+      }
+      
+      // Check verification
+      if (!user.is_verified) {
+        console.log(`Account not verified: ${email}`);
+        return res.status(401).json({
+          error: 'Váš účet není ověřen. Zkontrolujte svůj e-mail a dokončete registraci.'
+        });
+      }
+      
+      // Verify password
+      console.log(`Comparing password for: ${email}`);
+      const validPassword = await bcrypt.compare(password, user.password_hash);
+      console.log(`Password valid: ${validPassword}`);
+      
+      if (!validPassword) {
+        console.log(`Invalid password for: ${email}`);
+        return res.status(401).json({ error: 'Neplatný e-mail nebo heslo' });
+      }
+      
+      // Create token
+      const expiresIn = remember ? '30d' : process.env.JWT_EXPIRES_IN;
+      const token = jwt.sign(
+        { id: user.id, email: user.email },
+        process.env.JWT_SECRET,
+        { expiresIn }
+      );
+      
+      // Update last login
+      await userModel.update(user.id, { last_login: new Date() });
+      
+      console.log(`Login successful for: ${email}`);
+      res.status(200).json({
+        token,
+        user: {
+          id: user.id,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          email: user.email,
+          phone: user.phone,
+          companyName: user.company_name
+        }
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ error: 'Při přihlašování došlo k chybě.' });
+    }
+  },
+
+  // Register
   async register(req, res) {
     try {
       const { 
@@ -14,25 +84,26 @@ const authController = {
         companyName, street, city, zipCode,
         termsAccepted, privacyAccepted, marketingAccepted
       } = req.body;
-	console.log('Kompletní registrační data:', {
-      firstName, lastName, email, 
-      passwordLength: password ? password.length : 0,
-      phoneLength: phone ? phone.length : 0, 
-      companyName, 
-      streetLength: street ? street.length : 0, 
-      city, 
-      zipCodeLength: zipCode ? zipCode.length : 0
-    });
-      // Kontrola, zda e-mail již existuje
+      console.log('Kompletní registrační data:', {
+        firstName, lastName, email, 
+        passwordLength: password ? password.length : 0,
+        phoneLength: phone ? phone.length : 0, 
+        companyName, 
+        streetLength: street ? street.length : 0, 
+        city, 
+        zipCodeLength: zipCode ? zipCode.length : 0
+      });
+      
+      // Check if email exists
       const existingUser = await userModel.findByEmail(email);
       if (existingUser) {
         return res.status(400).json({ error: 'Uživatel s tímto e-mailem již existuje' });
       }
 
-      // Vytvoření verifikačního tokenu
+      // Create verification token
       const verificationToken = uuidv4();
 
-      // Příprava dat pro vytvoření uživatele
+      // Prepare user data
       const userData = {
         first_name: firstName,
         last_name: lastName,
@@ -49,10 +120,10 @@ const authController = {
         verification_token: verificationToken
       };
 
-      // Vytvoření uživatele v databázi
+      // Create user
       const newUser = await userModel.create(userData);
 
-      // Odeslání verifikačního e-mailu
+      // Send verification email
       const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
       await emailService.sendVerificationEmail(email, firstName, verificationUrl);
 
@@ -66,77 +137,17 @@ const authController = {
         }
       });
     } catch (error) {
-      console.error('Chyba při registraci:', error);
-      res.status(500).json({ error: 'Při registraci došlo k chybě. Zkuste to prosím znovu.' });
+      console.error('Registration error:', error);
+      res.status(500).json({ error: 'Při registraci došlo k chybě.' });
     }
   },
 
-  // Přihlášení uživatele
-  async login(req, res) {
-    try {
-      const { email, password, remember } = req.body;
-
-      // Načtení uživatele z databáze
-      const user = await userModel.findByEmail(email);
-      if (!user) {
-        return res.status(401).json({ error: 'Neplatný e-mail nebo heslo' });
-      }
-
-      // Pokud uživatel nemá nastavené heslo (jen Google přihlášení)
-      if (!user.password_hash) {
-        return res.status(401).json({ 
-          error: 'Tento účet používá přihlášení přes Google. Použijte prosím tlačítko pro přihlášení přes Google.' 
-        });
-      }
-
-      // Kontrola, zda byl účet ověřen
-      if (!user.is_verified) {
-        return res.status(401).json({ 
-          error: 'Váš účet není ověřen. Zkontrolujte svůj e-mail a dokončete registraci.' 
-        });
-      }
-
-      // Ověření hesla
-      const validPassword = await bcrypt.compare(password, user.password_hash);
-      if (!validPassword) {
-        return res.status(401).json({ error: 'Neplatný e-mail nebo heslo' });
-      }
-
-      // Vytvoření JWT tokenu
-      const expiresIn = remember ? '30d' : process.env.JWT_EXPIRES_IN;
-      const token = jwt.sign(
-        { id: user.id, email: user.email }, 
-        process.env.JWT_SECRET, 
-        { expiresIn }
-      );
-
-      // Aktualizace data posledního přihlášení
-      await userModel.update(user.id, { last_login: new Date() });
-
-      // Odeslání odpovědi
-      res.status(200).json({
-        token,
-        user: {
-          id: user.id,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          email: user.email,
-          phone: user.phone,
-          companyName: user.company_name
-        }
-      });
-    } catch (error) {
-      console.error('Chyba při přihlašování:', error);
-      res.status(500).json({ error: 'Při přihlašování došlo k chybě. Zkuste to prosím znovu.' });
-    }
-  },
-
-  // Ověření e-mailu
+  // Verify email
   async verifyEmail(req, res) {
     try {
       const { token } = req.params;
       
-      // Nalezení a ověření uživatele
+      // Find and verify user
       const user = await userModel.verifyUser(token);
       
       if (!user) {
@@ -145,34 +156,34 @@ const authController = {
       
       res.status(200).json({ message: 'E-mail byl úspěšně ověřen. Nyní se můžete přihlásit.' });
     } catch (error) {
-      console.error('Chyba při ověřování e-mailu:', error);
-      res.status(500).json({ error: 'Při ověřování e-mailu došlo k chybě. Zkuste to prosím znovu.' });
+      console.error('Email verification error:', error);
+      res.status(500).json({ error: 'Při ověřování e-mailu došlo k chybě.' });
     }
   },
 
-  // Zaslání e-mailu pro reset hesla
+  // Forgot password
   async forgotPassword(req, res) {
     try {
       const { email } = req.body;
       
-      // Nalezení uživatele
+      // Find user
       const user = await userModel.findByEmail(email);
       if (!user) {
-        // Z bezpečnostních důvodů neříkáme, že uživatel neexistuje
+        // Security: don't reveal that user doesn't exist
         return res.status(200).json({ 
           message: 'Pokud je e-mail registrován, pošleme vám instrukce pro reset hesla.' 
         });
       }
       
-      // Vytvoření tokenu pro reset hesla
+      // Create reset token
       const resetToken = uuidv4();
       const resetExpires = new Date();
-      resetExpires.setHours(resetExpires.getHours() + 1); // Token platný 1 hodinu
+      resetExpires.setHours(resetExpires.getHours() + 1); // Valid for 1 hour
       
-      // Uložení tokenu do databáze
+      // Save token
       await userModel.setResetPasswordToken(email, resetToken, resetExpires);
       
-      // Odeslání e-mailu s odkazem pro reset hesla
+      // Send email
       const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
       await emailService.sendPasswordResetEmail(email, user.first_name, resetUrl);
       
@@ -180,20 +191,20 @@ const authController = {
         message: 'Pokud je e-mail registrován, pošleme vám instrukce pro reset hesla.' 
       });
     } catch (error) {
-      console.error('Chyba při žádosti o reset hesla:', error);
+      console.error('Password reset request error:', error);
       res.status(500).json({ 
-        error: 'Při zpracování žádosti o reset hesla došlo k chybě. Zkuste to prosím znovu.' 
+        error: 'Při zpracování žádosti o reset hesla došlo k chybě.' 
       });
     }
   },
 
-  // Reset hesla
+  // Reset password
   async resetPassword(req, res) {
     try {
       const { token } = req.params;
       const { password } = req.body;
       
-      // Nalezení uživatele podle tokenu
+      // Find user by token
       const query = `
         SELECT id, reset_password_expires
         FROM users
@@ -207,45 +218,46 @@ const authController = {
         return res.status(400).json({ error: 'Neplatný nebo expirovaný odkaz pro reset hesla' });
       }
       
-      // Kontrola expirace tokenu
+      // Check expiration
       if (new Date() > new Date(user.reset_password_expires)) {
         return res.status(400).json({ error: 'Odkaz pro reset hesla vypršel' });
       }
       
-      // Aktualizace hesla
+      // Update password
       await userModel.updatePassword(user.id, password);
       
       res.status(200).json({ message: 'Heslo bylo úspěšně změněno. Nyní se můžete přihlásit.' });
     } catch (error) {
-      console.error('Chyba při resetování hesla:', error);
-      res.status(500).json({ error: 'Při resetování hesla došlo k chybě. Zkuste to prosím znovu.' });
+      console.error('Password reset error:', error);
+      res.status(500).json({ error: 'Při resetování hesla došlo k chybě.' });
     }
   },
-// Změna hesla
+
+  // Change password
   async changePassword(req, res) {
     try {
       const { currentPassword, newPassword } = req.body;
-      const userId = req.user.id; // Získáno z auth middleware
+      const userId = req.user.id;
       
-      // Načtení uživatele z databáze
+      // Get user
       const user = await userModel.findById(userId);
       if (!user) {
         return res.status(404).json({ error: 'Uživatel nebyl nalezen' });
       }
       
-      // Ověření současného hesla
+      // Verify current password
       const validPassword = await bcrypt.compare(currentPassword, user.password_hash);
       if (!validPassword) {
         return res.status(401).json({ error: 'Současné heslo není správné' });
       }
       
-      // Aktualizace hesla
+      // Update password
       await userModel.updatePassword(userId, newPassword);
       
       res.status(200).json({ message: 'Heslo bylo úspěšně změněno' });
     } catch (error) {
-      console.error('Chyba při změně hesla:', error);
-      res.status(500).json({ error: 'Při změně hesla došlo k chybě. Zkuste to prosím znovu.' });
+      console.error('Password change error:', error);
+      res.status(500).json({ error: 'Při změně hesla došlo k chybě.' });
     }
   }
 };

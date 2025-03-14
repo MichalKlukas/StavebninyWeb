@@ -159,42 +159,60 @@ export default {
   },
   methods: {
     async submitLogin() {
-      // Nastavení indikátoru odesílání a resetování chybové zprávy
-      this.isSubmitting = true
-      this.errorMessage = ''
+  // Nastavení indikátoru odesílání a resetování chybové zprávy
+  this.isSubmitting = true
+  this.errorMessage = ''
 
-      try {
-        // Odeslání přihlašovacích údajů na local backend
-        const response = await axios.post('/api/login', this.loginData)
+  try {
+    // Sending login credentials to the backend
+    console.log('Attempting login with:', this.loginData.email);
+    
+    // Keep using relative URL (will work with our proxy)
+    const response = await axios.post('/api/login', this.loginData)
+    
+    // Log the complete response for debugging
+    console.log('Login response:', response);
+    console.log('Response status:', response.status);
+    console.log('Response data:', response.data);
+    
+    // Verify we have the expected data structure
+    if (!response.data.token || !response.data.user) {
+      console.error('Invalid response format:', response.data);
+      throw new Error('Invalid response from server');
+    }
 
-        // Zpracování úspěšné odpovědi ze serveru
-        console.log('Odpověď serveru:', response.data)
+    // Save user data and token using Pinia store
+    this.userStore.login(response.data.user, response.data.token)
+    
+    this.formSubmitted = true
 
-        // Použití Pinia store pro uložení uživatele a tokenu
-        this.userStore.login(response.data.user, response.data.token)
-
-        this.formSubmitted = true
-
-        // Přesměrování na hlavní stránku po krátké prodlevě
-        setTimeout(() => {
-          this.$router.push('/')
-        }, 1500)
-      } catch (error) {
-        // Zpracování chyby z API
-        console.error('Chyba při přihlašování:', error)
-
-        if (error.response && error.response.data && error.response.data.error) {
-          // Zobrazení konkrétní chybové zprávy ze serveru
-          this.errorMessage = error.response.data.error
-        } else {
-          // Obecná chybová zpráva
-          this.errorMessage =
-            'Nepodařilo se přihlásit. Zkontrolujte své přihlašovací údaje a zkuste to znovu.'
-        }
-      } finally {
-        this.isSubmitting = false
-      }
-    },
+    // Redirect to home page after a short delay
+    setTimeout(() => {
+      this.$router.push('/')
+    }, 1500)
+  } catch (error) {
+    // Enhanced error logging
+    console.error('Login error:', error);
+    
+    // Log detailed error information
+    if (error.response) {
+      console.error('Error status:', error.response.status);
+      console.error('Error data:', error.response.data);
+    } else if (error.request) {
+      console.error('No response received:', error.request);
+    } else {
+      console.error('Error message:', error.message);
+    }
+    
+    if (error.response && error.response.data && error.response.data.error) {
+      this.errorMessage = error.response.data.error;
+    } else {
+      this.errorMessage = 'Nepodařilo se přihlásit. Zkontrolujte své přihlašovací údaje a zkuste to znovu.';
+    }
+  } finally {
+    this.isSubmitting = false
+  }
+},
 
     async submitForgotPassword() {
       // Nastavení indikátoru odesílání a resetování zpráv

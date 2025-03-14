@@ -163,20 +163,14 @@ export default {
   this.errorMessage = ''
 
   try {
-    // Direct connection to the backend server (bypassing Vercel proxy)
-    const API_URL = 'http://46.28.108.195:3000';
-    
-    console.log('Attempting direct login to:', API_URL + '/api/login');
-    const response = await axios.post(API_URL + '/api/login', this.loginData);
+    // Use relative URL (will work with proxy)
+    console.log('Attempting login');
+    const response = await axios.post('/api/login', this.loginData);
     
     console.log('Login successful:', response.data);
-    
-    // Store the user data and token
     this.userStore.login(response.data.user, response.data.token);
-    
     this.formSubmitted = true;
     
-    // Redirect after successful login
     setTimeout(() => {
       this.$router.push('/');
     }, 1500);

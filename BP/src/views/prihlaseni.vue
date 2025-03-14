@@ -158,51 +158,30 @@ export default {
     }
   },
   methods: {
-    async submitLogin() {
-  // Nastavení indikátoru odesílání a resetování chybové zprávy
+   async submitLogin() {
   this.isSubmitting = true
   this.errorMessage = ''
 
   try {
-    // Sending login credentials to the backend
-    console.log('Attempting login with:', this.loginData.email);
+    // Direct connection to the backend server (bypassing Vercel proxy)
+    const API_URL = 'http://46.28.108.195:3000';
     
-    // Keep using relative URL (will work with our proxy)
-    const response = await axios.post('/api/login', this.loginData)
+    console.log('Attempting direct login to:', API_URL + '/api/login');
+    const response = await axios.post(API_URL + '/api/login', this.loginData);
     
-    // Log the complete response for debugging
-    console.log('Login response:', response);
-    console.log('Response status:', response.status);
-    console.log('Response data:', response.data);
+    console.log('Login successful:', response.data);
     
-    // Verify we have the expected data structure
-    if (!response.data.token || !response.data.user) {
-      console.error('Invalid response format:', response.data);
-      throw new Error('Invalid response from server');
-    }
-
-    // Save user data and token using Pinia store
-    this.userStore.login(response.data.user, response.data.token)
+    // Store the user data and token
+    this.userStore.login(response.data.user, response.data.token);
     
-    this.formSubmitted = true
-
-    // Redirect to home page after a short delay
+    this.formSubmitted = true;
+    
+    // Redirect after successful login
     setTimeout(() => {
-      this.$router.push('/')
-    }, 1500)
+      this.$router.push('/');
+    }, 1500);
   } catch (error) {
-    // Enhanced error logging
     console.error('Login error:', error);
-    
-    // Log detailed error information
-    if (error.response) {
-      console.error('Error status:', error.response.status);
-      console.error('Error data:', error.response.data);
-    } else if (error.request) {
-      console.error('No response received:', error.request);
-    } else {
-      console.error('Error message:', error.message);
-    }
     
     if (error.response && error.response.data && error.response.data.error) {
       this.errorMessage = error.response.data.error;
@@ -210,7 +189,7 @@ export default {
       this.errorMessage = 'Nepodařilo se přihlásit. Zkontrolujte své přihlašovací údaje a zkuste to znovu.';
     }
   } finally {
-    this.isSubmitting = false
+    this.isSubmitting = false;
   }
 },
 

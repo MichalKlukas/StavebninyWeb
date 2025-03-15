@@ -8,22 +8,25 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
+  // Get backend URL from environment variables
+  const BACKEND_URL = process.env.BACKEND_URL || 'http://46.28.108.195:3000';
+  
   // Handle OPTIONS request
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-
+  
   // Only allow POST method for actual login
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
+  
   try {
     console.log('Login request received, forwarding to backend');
     
     // Forward to backend
     const backendResponse = await axios.post(
-      'http://46.28.108.195:3000/api/login', 
+      `${BACKEND_URL}/api/login`, 
       req.body,
       { 
         timeout: 10000,  // 10 second timeout

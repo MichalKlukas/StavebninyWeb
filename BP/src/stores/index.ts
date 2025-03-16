@@ -1,24 +1,29 @@
-// src/stores/index.js
+// src/stores/index.ts
 import { defineStore } from 'pinia'
+
+// Add type definitions
+interface User {
+  firstName?: string
+  lastName?: string
+  [key: string]: any
+}
 
 export const useUserStore = defineStore('user', {
   state: () => ({
-    user: JSON.parse(localStorage.getItem('user') || 'null'),
+    user: JSON.parse(localStorage.getItem('user') || 'null') as User | null,
     token: localStorage.getItem('token') || null
   }),
   getters: {
     isAuthenticated: (state) => !!state.token,
     userInitials: (state) => {
       if (!state.user) return ''
-
       const firstName = state.user.firstName || ''
       const lastName = state.user.lastName || ''
-
       return (firstName.charAt(0) + (lastName ? lastName.charAt(0) : '')).toUpperCase()
     }
   },
   actions: {
-    login(userData, token) {
+    login(userData: User, token: string) {
       this.user = userData
       this.token = token
       localStorage.setItem('user', JSON.stringify(userData))
@@ -29,8 +34,8 @@ export const useUserStore = defineStore('user', {
       this.token = null
       localStorage.removeItem('user')
       localStorage.removeItem('token')
-    }, // <-- Chybí čárka zde po logout() metodě!
-    updateProfile(userData) {
+    },
+    updateProfile(userData: Partial<User>) {
       this.user = {
         ...this.user,
         ...userData

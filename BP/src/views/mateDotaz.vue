@@ -119,25 +119,25 @@ export default {
         {
           question: 'Jaká je otevírací doba vašich poboček?',
           answer:
-            'Naše pobočky jsou otevřeny od pondělí do pátku od 7:00 do 17:00, v sobotu od 8:00 do 12:00. V neděli a o svátcích máme zavřeno.',
+            'Naše pobočky jsou otevřeny od pondělí do pátku od 7:00 do 17:00, v sobotu od 8:00 do 12:00. V neděli a o povinných svátcích máme zavřeno. V zimním období(listopad - únor) od 7:00 do 16:00 a o víkendu od 7:00 do 11:00',
           isOpen: false
         },
         {
           question: 'Nabízíte dopravu materiálu?',
           answer:
-            'Ano, nabízíme dopravu materiálu po celé ČR. Cena dopravy se odvíjí od vzdálenosti a objemu objednávky. Pro více informací nás kontaktujte.',
+            'Ano, nabízíme dopravu materiálu i s možností složení hydraulickou rukou. Cena dopravy se odvíjí od vzdálenosti a objemu objednávky. Pro více informací nás kontaktujte.',
           isOpen: false
         },
         {
           question: 'Je možné vrátit nepoužitý materiál?',
           answer:
-            'Ano, nepoužitý materiál v původním balení můžete vrátit do 14 dnů od nákupu. Je nutné předložit doklad o koupi.',
+            'Ano, nepoužitý a nepoškozený materiál v původním balení můžete standartně vrátit do 14 dnů od nákupu. Je nutné předložit doklad o koupi.',
           isOpen: false
         },
         {
           question: 'Poskytujete odborné poradenství?',
           answer:
-            'Samozřejmě, naši odborníci vám rádi poradí s výběrem vhodného materiálu nebo technologického postupu. Můžete nás navštívit osobně nebo nás kontaktovat telefonicky či e-mailem.',
+            'Samozřejmě, naši odborníci vám rádi poradí s výběrem vhodného materiálu pro váš konkrétní projekt. Můžete nás navštívit osobně nebo nás kontaktovat telefonicky či e-mailem.',
           isOpen: false
         },
         {

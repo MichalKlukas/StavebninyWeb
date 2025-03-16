@@ -8,8 +8,8 @@
       <p>
         Stavebniny Lysá nad Labem působí na trhu od roku 2013 jako specializovaný prodejce
         stavebních materiálů, dřeva a doplňkového vybavení pro profesionály i kutily. Jako firma se
-        zaměřujeme na osobní přístup, konkurenceschopné ceny (až o 20 % nižší než velké řetězce) a
-        dlouhodobé vztahy s lokálními zákazníky.
+        zaměřujeme na osobní přístup, konkurenceschopné ceny a dlouhodobé vztahy s lokálními
+        zákazníky.
       </p>
       <p>
         Sídlíme ve středočeském regionu, kde úzce spolupracujeme s firmou Baroch – okna, s.r.o.,
@@ -22,7 +22,7 @@
         Na prodejně nás přivítají dvě kolegyně, které se postarají o lehký průběh vašeho nákupu.
       </p>
       <p class="margin">Vedoucí prodejny: Jaromíra Hrázská</p>
-      <p class="margin">Asistentka prodeje: Jarmila Hrabalová</p>
+      <p class="margin">Asistentka prodeje: Monika Jůzová</p>
     </div>
     <div class="about-images">
       <img src="@/assets/woman1.jpg" alt="Obrázek ženy 1" />

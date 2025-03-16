@@ -98,18 +98,29 @@ import API_URL from '@/config/api.js';
   </div>
 </template>
 
-<script>
-import axios from 'axios'
-import { ref, computed, onMounted } from 'vue'
+<script lang="ts">
+import { defineComponent, ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 
-export default {
+interface PasswordStrength {
+  percent: number
+  color: string
+  text: string
+}
+
+interface ResetData {
+  password: string
+  confirmPassword: string
+}
+
+export default defineComponent({
   name: 'ResetHesla',
   setup() {
     const router = useRouter()
 
     // State
-    const resetData = ref({
+    const resetData = ref<ResetData>({
       password: '',
       confirmPassword: ''
     })
@@ -123,7 +134,7 @@ export default {
     const showConfirmPassword = ref(false)
 
     // Password strength calculation
-    const passwordStrength = computed(() => {
+    const passwordStrength = computed<PasswordStrength>(() => {
       const password = resetData.value.password
       if (!password) {
         return { percent: 0, color: '#ddd', text: '' }
@@ -143,7 +154,7 @@ export default {
       strength = checks.filter(Boolean).length
 
       // Determine level
-      let level = {
+      let level: PasswordStrength = {
         percent: 0,
         color: '#ddd',
         text: 'Velmi slabé'
@@ -178,10 +189,9 @@ export default {
       )
     })
 
-    // Check token validity
     const verifyToken = async () => {
       try {
-        // Just check if token exists for now
+        // Check if token exists
         if (!token.value) {
           tokenError.value = true
           errorMessage.value = 'Chybí token pro reset hesla.'
@@ -189,12 +199,12 @@ export default {
           return
         }
 
-        // In a real implementation, you might want to verify the token with the backend
-        // const response = await axios.get(`/api/verify-reset-token/${token.value}`)
+        // Verify token with the backend
+        const response = await axios.get(`/api/verify-reset-token/${token.value}`)
 
-        // For now we'll just assume it's valid
+        // If we get here, token is valid
         loading.value = false
-      } catch (error) {
+      } catch (error: any) {
         tokenError.value = true
         loading.value = false
 
@@ -231,7 +241,7 @@ export default {
         })
 
         resetCompleted.value = true
-      } catch (error) {
+      } catch (error: any) {
         if (error.response && error.response.data && error.response.data.error) {
           errorMessage.value = error.response.data.error
         } else {
@@ -244,7 +254,8 @@ export default {
 
     // On component mount
     onMounted(() => {
-      token.value = router.currentRoute.value.params.token
+      const route = router.currentRoute.value
+      token.value = route.params.token as string
       verifyToken()
     })
 
@@ -262,7 +273,7 @@ export default {
       submitResetPassword
     }
   }
-}
+})
 </script>
 
 <style scoped>

@@ -14,6 +14,7 @@ import ZmenaHesla from '@/views/zmenaHesla.vue'
 import UpravitProfil from '@/views/upravitProfil.vue'
 import Kategorie from '@/views/CategoryPage.vue'
 import Kosik from '@/views/kosik.vue'
+import ResetHesla from '@/views/resetHesla.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -22,6 +23,11 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomePage
+    },
+    {
+      path: '/reset-password/:token',
+      name: 'ResetHesla',
+      component: ResetHesla
     },
     {
       path: '/upravit-profil',

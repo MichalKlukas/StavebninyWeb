@@ -15,6 +15,7 @@ import UpravitProfil from '@/views/upravitProfil.vue'
 import Kategorie from '@/views/CategoryPage.vue'
 import Kosik from '@/views/kosik.vue'
 import ResetHesla from '@/views/resetHesla.vue'
+import SearchResults from '@/views/searchResults.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -23,6 +24,11 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomePage
+    },
+    {
+      path: '/search',
+      name: 'SearchResults',
+      component: SearchResults
     },
     {
       path: '/reset-password/:token',

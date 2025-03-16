@@ -14,7 +14,7 @@ import ZmenaHesla from '@/views/zmenaHesla.vue'
 import UpravitProfil from '@/views/upravitProfil.vue'
 import Kategorie from '@/views/CategoryPage.vue'
 import Kosik from '@/views/kosik.vue'
-import ResetHesla from '@/views/ResetHesla.vue'
+import ResetHesla from '@/views/resetHesla.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),

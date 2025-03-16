@@ -29,7 +29,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType } from 'vue'
+import { defineComponent } from 'vue'
+import type { PropType } from 'vue'
 
 // Define the product interface for type safety
 export interface Product {

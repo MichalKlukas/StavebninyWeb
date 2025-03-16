@@ -1,23 +1,27 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-// Vytvoření Nodemailer transportu
+// Create transporter using working Gmail service configuration
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: process.env.EMAIL_PORT === '465', // true pro port 465, false pro ostatní porty
+  service: 'gmail',  // Use the built-in Gmail service which we've confirmed works
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   }
 });
 
+// Log configuration on startup
+console.log('Email service initialized');
+console.log(`Using email address: ${process.env.EMAIL_USER}`);
+
 const emailService = {
-  // Odeslání verifikačního e-mailu
+  // Send verification email
   async sendVerificationEmail(to, name, verificationUrl) {
+    console.log(`Sending verification email to: ${to}`);
+    
     try {
       const mailOptions = {
-        from: `"Stavebniny Baroch" <${process.env.EMAIL_FROM}>`,
+        from: `"Stavebniny Baroch" <${process.env.EMAIL_USER}>`,
         to,
         subject: 'Potvrzení registrace - Stavebniny Baroch',
         html: `
@@ -37,18 +41,22 @@ const emailService = {
         `
       };
 
-      return await transporter.sendMail(mailOptions);
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`Verification email sent: ${info.messageId}`);
+      return info;
     } catch (error) {
       console.error('Chyba při odesílání e-mailu:', error);
       throw error;
     }
   },
 
-  // Odeslání e-mailu pro reset hesla
+  // Send password reset email
   async sendPasswordResetEmail(to, name, resetUrl) {
+    console.log(`Sending password reset email to: ${to}`);
+    
     try {
       const mailOptions = {
-        from: `"Stavebniny Baroch" <${process.env.EMAIL_FROM}>`,
+        from: `"Stavebniny Baroch" <${process.env.EMAIL_USER}>`,
         to,
         subject: 'Reset hesla - Stavebniny Baroch',
         html: `
@@ -68,66 +76,65 @@ const emailService = {
         `
       };
 
-      return await transporter.sendMail(mailOptions);
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`Password reset email sent: ${info.messageId}`);
+      return info;
     } catch (error) {
       console.error('Chyba při odesílání e-mailu:', error);
       throw error;
     }
   },
-// Mail na dotaz nebo poptávku
-async sendContactFormEmail(formData, formType = 'contact') {
-  try {
-    // Determine if it's a contact form or inquiry form
-    const isInquiry = formType === 'inquiry' || formData.formType === 'inquiry' || !!formData.phone;
-    
-    // Set the appropriate title and subject based on form type
-    const formTitle = isInquiry ? 'POPTÁVKA' : 'DOTAZ';
-    const emailSubject = isInquiry ? 'Nová poptávka' : 'Nový dotaz';
-    
-    // Build HTML based on available fields
-    let fieldsHtml = `
-      <p><strong>Jméno:</strong> ${formData.name}</p>
-      <p><strong>E-mail:</strong> ${formData.email}</p>
-    `;
-    
-    // Add phone if present
-    if (formData.phone) {
-      fieldsHtml += `<p><strong>Telefon:</strong> ${formData.phone}</p>`;
+
+  // Contact form email
+  async sendContactFormEmail(formData, formType = 'contact') {
+    try {
+      // Determine if it's a contact form or inquiry form
+      const isInquiry = formType === 'inquiry' || formData.formType === 'inquiry' || !!formData.phone;
+      const formTitle = isInquiry ? 'POPTÁVKA' : 'DOTAZ';
+      const emailSubject = isInquiry ? 'Nová poptávka' : 'Nový dotaz';
+
+      // Build HTML based on available fields
+      let fieldsHtml = `
+        <p><strong>Jméno:</strong> ${formData.name}</p>
+        <p><strong>E-mail:</strong> ${formData.email}</p>
+      `;
+
+      if (formData.phone) {
+        fieldsHtml += `<p><strong>Telefon:</strong> ${formData.phone}</p>`;
+      }
+
+      if (formData.address) {
+        fieldsHtml += `<p><strong>Adresa:</strong> ${formData.address}</p>`;
+      }
+
+      fieldsHtml += `
+        <p><strong>Předmět:</strong> ${formData.subject}</p>
+        <p><strong>Zpráva:</strong></p>
+        <p>${formData.message}</p>
+      `;
+
+      const mailOptions = {
+        from: `"Stavebniny Baroch" <${process.env.EMAIL_USER}>`,
+        to: process.env.CONTACT_EMAIL || 'michalik123456789@seznam.cz',
+        subject: `${emailSubject}: ${formData.subject}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #f5852a; text-align: center; padding: 10px; background-color: ${isInquiry ? '#e6f7ff' : '#fff0e6'}; border-radius: 5px;">
+              ${emailSubject.toUpperCase()} Z WEBU
+            </h2>
+            ${fieldsHtml}
+          </div>
+        `
+      };
+
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`Contact form email sent: ${info.messageId}`);
+      return info;
+    } catch (error) {
+      console.error('Chyba při odesílání formuláře:', error);
+      throw error;
     }
-    
-    // Add address if present
-    if (formData.address) {
-      fieldsHtml += `<p><strong>Adresa:</strong> ${formData.address}</p>`;
-    }
-    
-    // Add subject and message
-    fieldsHtml += `
-      <p><strong>Předmět:</strong> ${formData.subject}</p>
-      <p><strong>Zpráva:</strong></p>
-      <p>${formData.message}</p>
-    `;
-    
-    const mailOptions = {
-      from: `"Stavebniny Baroch" <${process.env.EMAIL_FROM}>`,
-      to: 'michalik123456789@seznam.cz',
-      subject: `${emailSubject}: ${formData.subject}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #f5852a; text-align: center; padding: 10px; background-color: ${isInquiry ? '#e6f7ff' : '#fff0e6'}; border-radius: 5px;">
-            ${emailSubject.toUpperCase()} Z WEBU
-          </h2>
-          ${fieldsHtml}
-        </div>
-      `
-    };
-    return await transporter.sendMail(mailOptions);
-  } catch (error) {
-    console.error('Chyba při odesílání formuláře:', error);
-    throw error;
   }
-}
 };
-
-
 
 module.exports = emailService;

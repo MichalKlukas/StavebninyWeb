@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const userModel = require('../models/userModel');
-
+console.log('Auth middleware loaded');
 // Middleware pro kontrolu autentizace
 const auth = async (req, res, next) => {
   try {
@@ -9,7 +9,8 @@ const auth = async (req, res, next) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'Přístup odepřen. Přihlaste se prosím.' });
     }
-
+console.log('Auth middleware executing');
+console.log('Authorization header:', req.headers.authorization);
     const token = authHeader.replace('Bearer ', '');
     
     // Ověření JWT tokenu

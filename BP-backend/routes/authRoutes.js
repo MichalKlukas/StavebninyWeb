@@ -1,65 +1,48 @@
 const express = require('express');
-const authController = require('../controllers/authController');
-const { body } = require('express-validator');
-const validateRequest = require('../middleware/validateRequest');
-const auth = require('../middleware/auth');
-
 const router = express.Router();
+const authController = require('../controllers/authController');
+const auth = require('../middleware/auth'); // Import the auth middleware
 
-// Validace pro registraci
-const registerValidation = [
-  body('firstName').notEmpty().withMessage('Zadejte prosím jméno'),
-  body('lastName').notEmpty().withMessage('Zadejte prosím příjmení'),
-  body('email').isEmail().withMessage('Zadejte platný e-mail'),
-  body('password')
-    .isLength({ min: 8 })
-    .withMessage('Heslo musí mít alespoň 8 znaků')
-    .matches(/\d/)
-    .withMessage('Heslo musí obsahovat alespoň jedno číslo'),
-  body('phone').notEmpty().withMessage('Zadejte prosím telefonní číslo'),
-  body('termsAccepted').equals('true').withMessage('Musíte souhlasit s obchodními podmínkami'),
-  body('privacyAccepted').equals('true').withMessage('Musíte souhlasit se zpracováním osobních údajů')
-];
+// Login route
+router.post('/login', (req, res) => {
+  console.log('Login route accessed');
+  authController.login(req, res);
+});
+// Verify reset token route
+router.get('/verify-reset-token/:token', (req, res) => {
+  console.log('Verify reset token route accessed');
+  authController.verifyResetToken(req, res);
+});
 
-// Validace pro přihlášení
-const loginValidation = [
-  body('email').isEmail().withMessage('Zadejte platný e-mail'),
-  body('password').notEmpty().withMessage('Zadejte heslo')
-];
 
-// Validace pro reset hesla
-const resetPasswordValidation = [
-  body('password')
-    .isLength({ min: 8 })
-    .withMessage('Heslo musí mít alespoň 8 znaků')
-    .matches(/\d/)
-    .withMessage('Heslo musí obsahovat alespoň jedno číslo')
-];
+// Register route
+router.post('/register', (req, res) => {
+  console.log('Register route accessed');
+  authController.register(req, res);
+});
 
-// Registrace nového uživatele
-router.post('/register', registerValidation, validateRequest, authController.register);
+// Verify email route
+router.get('/verify-email/:token', (req, res) => {
+  console.log('Verify email route accessed');
+  authController.verifyEmail(req, res);
+});
 
-// Přihlášení
-router.post('/login', loginValidation, validateRequest, authController.login);
+// Forgot password route
+router.post('/forgot-password', (req, res) => {
+  console.log('Forgot password route accessed');
+  authController.forgotPassword(req, res);
+});
 
-// Ověření e-mailu
-router.get('/verify-email/:token', authController.verifyEmail);
+// Reset password route
+router.post('/reset-password/:token', (req, res) => {
+  console.log('Reset password route accessed');
+  authController.resetPassword(req, res);
+});
 
-// Zapomenuté heslo
-router.post('/forgot-password', 
-  body('email').isEmail().withMessage('Zadejte platný e-mail'),
-  validateRequest,
-  authController.forgotPassword
-);
-
-// Reset hesla
-router.post('/reset-password/:token', 
-  resetPasswordValidation, 
-  validateRequest,
-  authController.resetPassword
-);
-
-// Změna hesla
-router.post('/change-password', auth, authController.changePassword);
+// Change password route - now with auth middleware
+router.post('/change-password', auth, (req, res) => {
+  console.log('Change password route accessed');
+  authController.changePassword(req, res);
+});
 
 module.exports = router;

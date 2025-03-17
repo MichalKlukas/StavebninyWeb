@@ -134,19 +134,30 @@
     <div class="category-nav">
       <div class="container">
         <nav class="categories">
-          <router-link to="/kategorie/hruba-stavba" class="category-link">Hrubá stavba</router-link>
-          <router-link to="/kategorie/hydroizolace" class="category-link">Hydroizolace</router-link>
-          <router-link to="/kategorie/suche-smesi" class="category-link">Suché směsi</router-link>
-          <router-link to="/kategorie/drevo" class="category-link">Dřevo</router-link>
-          <router-link to="/kategorie/tepelna-izolace" class="category-link"
-            >Tepelná izolace</router-link
+          <router-link to="/kategorie/hruba-stavba-a-zelezo" class="category-link"
+            >Hrubá stavba a železo</router-link
           >
-          <router-link to="/kategorie/strechy" class="category-link">Střechy</router-link>
-          <router-link to="/kategorie/zahradni-vystavba" class="category-link"
-            >Zahradní výstavba</router-link
+          <router-link to="/kategorie/fasada" class="category-link">Fasáda</router-link>
+          <router-link to="/kategorie/drevo-a-strecha" class="category-link"
+            >Dřevo a střecha</router-link
           >
-          <router-link to="/kategorie/naradi" class="category-link">Nářadí</router-link>
-          <router-link to="/kategorie/chemie" class="category-link">Chemie</router-link>
+          <router-link to="/kategorie/sypke-smesi" class="category-link">Sypké směsi</router-link>
+          <router-link to="/kategorie/betonove-vyrobky" class="category-link"
+            >Betonové výrobky</router-link
+          >
+          <router-link to="/kategorie/zdici-materialy" class="category-link"
+            >Zdící materiály</router-link
+          >
+          <router-link to="/kategorie/chemie-a-barvy" class="category-link"
+            >Chemie a barvy</router-link
+          >
+          <router-link to="/kategorie/spojovaci-material" class="category-link"
+            >Spojovací materiál</router-link
+          >
+          <router-link to="/kategorie/elektro-a-naradi" class="category-link"
+            >Elektro a nářadí</router-link
+          >
+          <router-link to="/kategorie/sadrokarton" class="category-link">Sádrokarton</router-link>
           <router-link to="/kategorie/ostatni" class="category-link">Ostatní</router-link>
         </nav>
       </div>

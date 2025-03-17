@@ -344,125 +344,514 @@ export default {
 
       // Simulace dat kategorie s obrázky
       const categories = {
-        'hruba-stavba': {
-          name: 'Hrubá stavba',
+        'hruba-stavba-a-zelezo': {
+          name: 'Hrubá stavba a železo',
           subcategories: [
             {
               id: 'ztracene-bedneni',
               name: 'Ztracené bednění',
-              count: 24,
-              image: ztraceneBedneniImage
+              count: 5,
+              image: '/assets/images/subcategories/ztracene-bedneni.jpg'
             },
             {
-              id: 'zdici-materialy',
-              name: 'Zdící materiály',
-              count: 12,
-              image: '/assets/images/subcategories/zdici-materialy.jpg'
+              id: 'lepenky',
+              name: 'Lepenky',
+              count: 5,
+              image: '/assets/images/subcategories/lepenky.jpg'
             },
             {
-              id: 'stropni-materialy',
-              name: 'Stropní materiály',
-              count: 8,
-              image: '/assets/images/subcategories/stropni-materialy.jpg'
+              id: 'odvodneni-a-zlaby',
+              name: 'Odvodnění a žlaby',
+              count: 5,
+              image: '/assets/images/subcategories/odvodneni-a-zlaby.jpg'
             },
             {
-              id: 'podlahove-tkaniny',
-              name: 'Podlahové tkaniny',
-              count: 15,
-              image: '/assets/images/subcategories/podlahove-tkaniny.jpg'
+              id: 'roxory',
+              name: 'Roxory',
+              count: 5,
+              image: '/assets/images/subcategories/roxory.jpg'
             },
             {
-              id: 'pojiva',
-              name: 'Pojiva',
-              count: 10,
-              image: '/assets/images/subcategories/pojiva.jpg'
+              id: 'kari-site',
+              name: 'Kari sítě',
+              count: 5,
+              image: '/assets/images/subcategories/kari-site.jpg'
             },
             {
-              id: 'suche-smesi',
-              name: 'Suché směsi',
-              count: 7,
-              image: '/assets/images/subcategories/suche-smesi.jpg'
+              id: 'ploche-tyce',
+              name: 'Ploché tyče',
+              count: 5,
+              image: '/assets/images/subcategories/ploche-tyce.jpg'
             },
             {
-              id: 'kominy',
-              name: 'Komíny',
-              count: 6,
-              image: '/assets/images/subcategories/kominy.jpg'
+              id: 'l-uhelniky',
+              name: 'L-úhelníky',
+              count: 5,
+              image: '/assets/images/subcategories/l-uhelniky.jpg'
             },
             {
-              id: 'ocelova-vystuz',
-              name: 'Ocelová výztuž',
-              count: 9,
-              image: '/assets/images/subcategories/ocelova-vystuz.jpg'
+              id: 'jakly',
+              name: 'Jakly',
+              count: 5,
+              image: '/assets/images/subcategories/jakly.jpg'
+            },
+            {
+              id: 'zarubne',
+              name: 'Zárubně',
+              count: 5,
+              image: '/assets/images/subcategories/zarubne.jpg'
             }
           ]
         },
-        hydroizolace: {
-          name: 'Hydroizolace',
+        fasada: {
+          name: 'Fasáda',
           subcategories: [
             {
-              id: 'asfaltove-pasy',
-              name: 'Asfaltové pásy',
-              count: 18,
-              image: '/assets/images/subcategories/asfaltove-pasy.jpg'
+              id: 'fasadni-omitky',
+              name: 'Fasádní omítky',
+              count: 5,
+              image: '/assets/images/subcategories/fasadni-omitky.jpg'
             },
             {
-              id: 'bitumenove-strechy',
-              name: 'Bitumenové střechy',
-              count: 14,
-              image: '/assets/images/subcategories/bitumenove-strechy.jpg'
+              id: 'natery',
+              name: 'Nátěry',
+              count: 5,
+              image: '/assets/images/subcategories/natery.jpg'
             },
             {
-              id: 'folie',
-              name: 'Folie',
-              count: 21,
-              image: '/assets/images/subcategories/folie.jpg'
+              id: 'patni-listy',
+              name: 'Patní lišty',
+              count: 5,
+              image: '/assets/images/subcategories/patni-listy.jpg'
+            },
+            {
+              id: 'polystyreny',
+              name: 'Polystyreny',
+              count: 5,
+              image: '/assets/images/subcategories/polystyreny.jpg'
+            },
+            {
+              id: 'mineralni-vaty',
+              name: 'Minerální vaty',
+              count: 5,
+              image: '/assets/images/subcategories/mineralni-vaty.jpg'
+            },
+            {
+              id: 'perlinka',
+              name: 'Perlinka',
+              count: 5,
+              image: '/assets/images/subcategories/perlinka.jpg'
+            },
+            {
+              id: 'extrudovany-polystyren',
+              name: 'Extrudovaný polystyren',
+              count: 5,
+              image: '/assets/images/subcategories/extrudovany-polystyren.jpg'
             }
           ]
         },
-        'suche-smesi': {
-          name: 'Suché směsi',
+        'drevo-a-strecha': {
+          name: 'Dřevo a střecha',
           subcategories: [
-            {
-              id: 'lepidla',
-              name: 'Lepidla',
-              count: 16,
-              image: '/assets/images/subcategories/lepidla.jpg'
-            },
-            {
-              id: 'omitky',
-              name: 'Omítky',
-              count: 22,
-              image: '/assets/images/subcategories/omitky.jpg'
-            },
-            {
-              id: 'sterky',
-              name: 'Stěrky',
-              count: 9,
-              image: '/assets/images/subcategories/sterky.jpg'
-            }
-          ]
-        },
-        drevo: {
-          name: 'Dřevo',
-          subcategories: [
-            {
-              id: 'rezivo',
-              name: 'Řezivo',
-              count: 32,
-              image: '/assets/images/subcategories/rezivo.jpg'
-            },
-            {
-              id: 'desky',
-              name: 'Desky',
-              count: 27,
-              image: '/assets/images/subcategories/desky.jpg'
-            },
             {
               id: 'prkna',
               name: 'Prkna',
-              count: 18,
+              count: 5,
               image: '/assets/images/subcategories/prkna.jpg'
+            },
+            {
+              id: 'osb-desky',
+              name: 'OSB desky',
+              count: 5,
+              image: '/assets/images/subcategories/osb-desky.jpg'
+            },
+            {
+              id: 'late',
+              name: 'Latě',
+              count: 5,
+              image: '/assets/images/subcategories/late.jpg'
+            },
+            {
+              id: 'hranoly',
+              name: 'Hranoly',
+              count: 5,
+              image: '/assets/images/subcategories/hranoly.jpg'
+            },
+            {
+              id: 'fosny',
+              name: 'Fošny',
+              count: 5,
+              image: '/assets/images/subcategories/fosny.jpg'
+            },
+            {
+              id: 'kvh',
+              name: 'KVH',
+              count: 5,
+              image: '/assets/images/subcategories/kvh.jpg'
+            },
+            {
+              id: 'tasky',
+              name: 'Tašky',
+              count: 5,
+              image: '/assets/images/subcategories/tasky.jpg'
+            },
+            {
+              id: 'sindel',
+              name: 'Šindel',
+              count: 5,
+              image: '/assets/images/subcategories/sindel.jpg'
+            },
+            {
+              id: 'doplnky',
+              name: 'Doplňky',
+              count: 5,
+              image: '/assets/images/subcategories/doplnky.jpg'
+            }
+          ]
+        },
+        'sypke-smesi': {
+          name: 'Sypké směsi',
+          subcategories: [
+            {
+              id: 'malty',
+              name: 'Malty',
+              count: 5,
+              image: '/assets/images/subcategories/malty.jpg'
+            },
+            {
+              id: 'betony',
+              name: 'Betony',
+              count: 5,
+              image: '/assets/images/subcategories/betony.jpg'
+            },
+            {
+              id: 'lepidla',
+              name: 'Lepidla',
+              count: 5,
+              image: '/assets/images/subcategories/lepidla.jpg'
+            },
+            {
+              id: 'nivelacni-hmota',
+              name: 'Nivelační hmota',
+              count: 5,
+              image: '/assets/images/subcategories/nivelacni-hmota.jpg'
+            },
+            {
+              id: 'sadra',
+              name: 'Sádra',
+              count: 5,
+              image: '/assets/images/subcategories/sadra.jpg'
+            },
+            {
+              id: 'stuky',
+              name: 'Štuky',
+              count: 5,
+              image: '/assets/images/subcategories/stuky.jpg'
+            },
+            {
+              id: 'vapno',
+              name: 'Vápno',
+              count: 5,
+              image: '/assets/images/subcategories/vapno.jpg'
+            },
+            {
+              id: 'cement',
+              name: 'Cement',
+              count: 5,
+              image: '/assets/images/subcategories/cement.jpg'
+            },
+            {
+              id: 'multibat',
+              name: 'Multibat',
+              count: 5,
+              image: '/assets/images/subcategories/multibat.jpg'
+            }
+          ]
+        },
+        'betonove-vyrobky': {
+          name: 'Betonové výrobky',
+          subcategories: [
+            {
+              id: 'dlazba-venkovni',
+              name: 'Dlažba venkovní',
+              count: 5,
+              image: '/assets/images/subcategories/dlazba-venkovni.jpg'
+            },
+            {
+              id: 'ploty',
+              name: 'Ploty',
+              count: 5,
+              image: '/assets/images/subcategories/ploty.jpg'
+            },
+            {
+              id: 'prvky-zahradni-architektury',
+              name: 'Prvky zahr. architektury',
+              count: 5,
+              image: '/assets/images/subcategories/prvky-zahradni-architektury.jpg'
+            },
+            {
+              id: 'obrubniky',
+              name: 'Obrubníky',
+              count: 5,
+              image: '/assets/images/subcategories/obrubniky.jpg'
+            }
+          ]
+        },
+        'zdici-materialy': {
+          name: 'Zdící materiály',
+          subcategories: [
+            {
+              id: 'porobetonove-zdici-materialy',
+              name: 'Porobetonové zdící mat.',
+              count: 5,
+              image: '/assets/images/subcategories/porobetonove-zdici-materialy.jpg'
+            },
+            {
+              id: 'keramicke-zdici-materialy',
+              name: 'Keramické zdící mat.',
+              count: 5,
+              image: '/assets/images/subcategories/keramicke-zdici-materialy.jpg'
+            },
+            {
+              id: 'betonove-zdici-materialy',
+              name: 'Betonové zdící mat.',
+              count: 5,
+              image: '/assets/images/subcategories/betonove-zdici-materialy.jpg'
+            },
+            {
+              id: 'plne-cihly',
+              name: 'Plné cihly',
+              count: 5,
+              image: '/assets/images/subcategories/plne-cihly.jpg'
+            }
+          ]
+        },
+        'chemie-a-barvy': {
+          name: 'Chemie a barvy',
+          subcategories: [
+            {
+              id: 'silikony-neutral',
+              name: 'Silikony neutral',
+              count: 5,
+              image: '/assets/images/subcategories/silikony-neutral.jpg'
+            },
+            {
+              id: 'silikony-sanitarni',
+              name: 'Silikony sanitární',
+              count: 5,
+              image: '/assets/images/subcategories/silikony-sanitarni.jpg'
+            },
+            {
+              id: 'sparovaci-hmoty',
+              name: 'Spárovací hmoty',
+              count: 5,
+              image: '/assets/images/subcategories/sparovaci-hmoty.jpg'
+            },
+            {
+              id: 'peny',
+              name: 'Pěny',
+              count: 5,
+              image: '/assets/images/subcategories/peny.jpg'
+            },
+            {
+              id: 'tmely',
+              name: 'Tmely',
+              count: 5,
+              image: '/assets/images/subcategories/tmely.jpg'
+            },
+            {
+              id: 'lepidla-chemie',
+              name: 'Lepidla',
+              count: 5,
+              image: '/assets/images/subcategories/lepidla-chemie.jpg'
+            },
+            {
+              id: 'vnitrni-natery',
+              name: 'Vnitřní nátěry',
+              count: 5,
+              image: '/assets/images/subcategories/vnitrni-natery.jpg'
+            },
+            {
+              id: 'barvy-na-drevo',
+              name: 'Barvy na dřevo',
+              count: 5,
+              image: '/assets/images/subcategories/barvy-na-drevo.jpg'
+            },
+            {
+              id: 'barvy-na-kov',
+              name: 'Barvy na kov',
+              count: 5,
+              image: '/assets/images/subcategories/barvy-na-kov.jpg'
+            },
+            {
+              id: 'barvy-na-podlahu',
+              name: 'Barvy na podlahu',
+              count: 5,
+              image: '/assets/images/subcategories/barvy-na-podlahu.jpg'
+            },
+            {
+              id: 'laky',
+              name: 'Laky',
+              count: 5,
+              image: '/assets/images/subcategories/laky.jpg'
+            },
+            {
+              id: 'spreje',
+              name: 'Spreje',
+              count: 5,
+              image: '/assets/images/subcategories/spreje.jpg'
+            },
+            {
+              id: 'tonovaci-barvy',
+              name: 'Tónovací barvy',
+              count: 5,
+              image: '/assets/images/subcategories/tonovaci-barvy.jpg'
+            }
+          ]
+        },
+        'spojovaci-material': {
+          name: 'Spojovací materiál',
+          subcategories: [
+            {
+              id: 'vruty',
+              name: 'Vruty',
+              count: 5,
+              image: '/assets/images/subcategories/vruty.jpg'
+            },
+            {
+              id: 'srouby',
+              name: 'Šrouby',
+              count: 5,
+              image: '/assets/images/subcategories/srouby.jpg'
+            },
+            {
+              id: 'kotvici-patky',
+              name: 'Kotvící patky',
+              count: 5,
+              image: '/assets/images/subcategories/kotvici-patky.jpg'
+            },
+            {
+              id: 'uhelniky',
+              name: 'Úhelníky',
+              count: 5,
+              image: '/assets/images/subcategories/uhelniky.jpg'
+            },
+            {
+              id: 'zavitove-tyce',
+              name: 'Závitové tyče',
+              count: 5,
+              image: '/assets/images/subcategories/zavitove-tyce.jpg'
+            },
+            {
+              id: 'hrebiky',
+              name: 'Hřebíky',
+              count: 5,
+              image: '/assets/images/subcategories/hrebiky.jpg'
+            }
+          ]
+        },
+        'elektro-a-naradi': {
+          name: 'Elektro a nářadí',
+          subcategories: [
+            {
+              id: 'kabely',
+              name: 'Kabely',
+              count: 5,
+              image: '/assets/images/subcategories/kabely.jpg'
+            },
+            {
+              id: 'spinace-zasuvky',
+              name: 'Spínače, zásuvky',
+              count: 5,
+              image: '/assets/images/subcategories/spinace-zasuvky.jpg'
+            },
+            {
+              id: 'halogeny',
+              name: 'Halogeny',
+              count: 5,
+              image: '/assets/images/subcategories/halogeny.jpg'
+            },
+            {
+              id: 'krabice',
+              name: 'Krabice',
+              count: 5,
+              image: '/assets/images/subcategories/krabice.jpg'
+            },
+            {
+              id: 'elektro-naradi',
+              name: 'Elektro nářadí',
+              count: 5,
+              image: '/assets/images/subcategories/elektro-naradi.jpg'
+            },
+            {
+              id: 'aku-naradi',
+              name: 'Aku nářadí',
+              count: 5,
+              image: '/assets/images/subcategories/aku-naradi.jpg'
+            },
+            {
+              id: 'rucni-naradi',
+              name: 'Ruční nářadí',
+              count: 5,
+              image: '/assets/images/subcategories/rucni-naradi.jpg'
+            },
+            {
+              id: 'kotouce',
+              name: 'Kotouče',
+              count: 5,
+              image: '/assets/images/subcategories/kotouce.jpg'
+            }
+          ]
+        },
+        sadrokarton: {
+          name: 'Sádrokarton',
+          subcategories: [
+            {
+              id: 'sadrokarton-materialy',
+              name: 'Sádrokarton',
+              count: 5,
+              image: '/assets/images/subcategories/sadrokarton-materialy.jpg'
+            },
+            {
+              id: 'vruty-sadrokarton',
+              name: 'Vruty',
+              count: 5,
+              image: '/assets/images/subcategories/vruty-sadrokarton.jpg'
+            },
+            {
+              id: 'pasky',
+              name: 'Pásky',
+              count: 5,
+              image: '/assets/images/subcategories/pasky.jpg'
+            },
+            {
+              id: 'tesneni',
+              name: 'Těsnění',
+              count: 5,
+              image: '/assets/images/subcategories/tesneni.jpg'
+            },
+            {
+              id: 'profily',
+              name: 'Profily',
+              count: 5,
+              image: '/assets/images/subcategories/profily.jpg'
+            }
+          ]
+        },
+        ostatni: {
+          name: 'Ostatní',
+          subcategories: [
+            {
+              id: 'obleceni-a-ochranne-pomucky',
+              name: 'Oblečení a ochranné pomůcky',
+              count: 5,
+              image: '/assets/images/subcategories/obleceni-a-ochranne-pomucky.jpg'
+            },
+            {
+              id: 'auto-moto',
+              name: 'Auto-moto',
+              count: 5,
+              image: '/assets/images/subcategories/auto-moto.jpg'
             }
           ]
         }

@@ -8,12 +8,14 @@ const state = reactive({
 })
 
 // Vyčistit localStorage pro košík (jednorázový reset)
-localStorage.removeItem('kosik')
+//localStorage.removeItem('kosik')
 
 // Inicializace košíku z localStorage pokud existuje
 const inicializovatKosik = () => {
+  console.log('Inicializuji košík z localStorage')
   try {
     const ulozenyKosik = localStorage.getItem('kosik')
+    console.log('Načtený košík:', ulozenyKosik)
     if (ulozenyKosik) {
       const parsovanyKosik = JSON.parse(ulozenyKosik)
       state.items = parsovanyKosik.items || []

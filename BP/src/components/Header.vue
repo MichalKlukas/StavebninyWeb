@@ -74,9 +74,29 @@
           </div>
 
           <div class="search-bar-container">
-            <div class="search-bar">
-              <input type="text" placeholder="Hledat..." class="search-input" />
-            </div>
+            <form @submit.prevent="handleSearch" class="search-bar">
+              <input
+                type="text"
+                placeholder="Hledat..."
+                class="search-input"
+                v-model="searchQuery"
+              />
+              <button type="submit" class="search-button">
+                <svg
+                  class="search-icon"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </button>
+            </form>
           </div>
 
           <div class="user-actions">
@@ -104,7 +124,7 @@
             <router-link to="/cart" class="user-action cart-btn">
               <span class="icon">🛒</span>
               <span class="action-text">{{ formatCartTotal }}</span>
-              <span v-if="cart.itemCount > 0" class="cart-badge">{{ cart.itemCount }}</span>
+              <span v-if="cartItemCount > 0" class="cart-badge">{{ cartItemCount }}</span>
             </router-link>
           </div>
         </div>
@@ -114,19 +134,30 @@
     <div class="category-nav">
       <div class="container">
         <nav class="categories">
-          <router-link to="/kategorie/hruba-stavba" class="category-link">Hrubá stavba</router-link>
-          <router-link to="/kategorie/hydroizolace" class="category-link">Hydroizolace</router-link>
-          <router-link to="/kategorie/suche-smesi" class="category-link">Suché směsi</router-link>
-          <router-link to="/kategorie/drevo" class="category-link">Dřevo</router-link>
-          <router-link to="/kategorie/tepelna-izolace" class="category-link"
-            >Tepelná izolace</router-link
+          <router-link to="/kategorie/hruba-stavba-a-zelezo" class="category-link"
+            >Hrubá stavba a železo</router-link
           >
-          <router-link to="/kategorie/strechy" class="category-link">Střechy</router-link>
-          <router-link to="/kategorie/zahradni-vystavba" class="category-link"
-            >Zahradní výstavba</router-link
+          <router-link to="/kategorie/fasada" class="category-link">Fasáda</router-link>
+          <router-link to="/kategorie/drevo-a-strecha" class="category-link"
+            >Dřevo a střecha</router-link
           >
-          <router-link to="/kategorie/naradi" class="category-link">Nářadí</router-link>
-          <router-link to="/kategorie/chemie" class="category-link">Chemie</router-link>
+          <router-link to="/kategorie/sypke-smesi" class="category-link">Sypké směsi</router-link>
+          <router-link to="/kategorie/betonove-vyrobky" class="category-link"
+            >Betonové výrobky</router-link
+          >
+          <router-link to="/kategorie/zdici-materialy" class="category-link"
+            >Zdící materiály</router-link
+          >
+          <router-link to="/kategorie/chemie-a-barvy" class="category-link"
+            >Chemie a barvy</router-link
+          >
+          <router-link to="/kategorie/spojovaci-material" class="category-link"
+            >Spojovací materiál</router-link
+          >
+          <router-link to="/kategorie/elektro-a-naradi" class="category-link"
+            >Elektro a nářadí</router-link
+          >
+          <router-link to="/kategorie/sadrokarton" class="category-link">Sádrokarton</router-link>
           <router-link to="/kategorie/ostatni" class="category-link">Ostatní</router-link>
         </nav>
       </div>
@@ -138,7 +169,7 @@
 import { defineComponent, ref, onMounted, onUnmounted, computed } from 'vue'
 import { useUserStore } from '../stores'
 import { useRouter } from 'vue-router'
-import { useCart } from '@/stores/stavKosiku'
+import { useCart } from '@/stores/stavKosiku.js'
 
 export default defineComponent({
   name: 'Header',
@@ -147,6 +178,19 @@ export default defineComponent({
     const router = useRouter()
     const dropdownOpen = ref(false)
     const cart = useCart()
+    const searchQuery = ref('')
+    const cartItemCount = computed(() => cart.itemCount.value)
+
+    const handleSearch = () => {
+      if (searchQuery.value.trim()) {
+        // Encode the search query for URL
+        const query = encodeURIComponent(searchQuery.value.trim())
+        // Navigate to search results page with the query
+        router.push(`/search?q=${query}`)
+        // Clear the search input
+        searchQuery.value = ''
+      }
+    }
 
     // Formátovaná celková cena košíku
     const formatCartTotal = computed(() => {
@@ -193,7 +237,10 @@ export default defineComponent({
       toggleDropdown,
       logout,
       cart,
-      formatCartTotal
+      formatCartTotal,
+      searchQuery,
+      handleSearch,
+      cartItemCount
     }
   }
 })
@@ -338,6 +385,7 @@ header {
 .search-bar {
   width: 100%;
   position: relative;
+  display: flex;
 }
 
 .search-input {
@@ -355,6 +403,28 @@ header {
   outline: none;
   border-color: #f5852a;
   box-shadow: 0 0 0 2px rgba(245, 133, 42, 0.2);
+}
+.search-button {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.search-button:hover .search-icon {
+  stroke: #f5852a;
+}
+.search-icon {
+  width: 18px;
+  height: 18px;
+  stroke: #777;
+  transition: stroke 0.2s;
 }
 
 .user-actions {

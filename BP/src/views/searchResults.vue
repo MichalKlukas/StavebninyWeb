@@ -1,37 +1,22 @@
 <template>
-  <div class="subcategory-tiles-container">
-    <div class="subcategory-tiles">
-      <div
-        v-for="subcategory in categoryData.subcategories"
-        :key="subcategory.id"
-        class="subcategory-tile"
-        :class="{ active: selectedSubcategory === subcategory.id }"
-        @click="selectSubcategory(subcategory.id)"
-      >
-        <div class="subcategory-image">
-          <img :src="subcategory.image || '/placeholder-image.jpg'" :alt="subcategory.name" />
-        </div>
-        <div class="subcategory-content">
-          {{ subcategory.name }}
-        </div>
-      </div>
-    </div>
+  <div class="HeadingStrip">
+    <h1>Výsledky vyhledávání</h1>
   </div>
 
-  <div class="category-container">
+  <div class="search-results-container">
     <!-- Drobečková navigace -->
     <div class="breadcrumbs">
       <router-link to="/" class="breadcrumb-item">Domů</router-link>
       <span class="separator">›</span>
-      <span class="breadcrumb-item active">{{ categoryData.name }}</span>
+      <span class="breadcrumb-item active">Výsledky vyhledávání: "{{ searchQuery }}"</span>
     </div>
 
     <!-- Hlavní obsah -->
-    <div class="category-content">
-      <!-- Levý panel s filtry a podkategoriemi -->
+    <div class="search-content">
+      <!-- Levý panel s filtry -->
       <div class="sidebar" :class="{ 'sidebar-open': showSidebar }">
         <div class="sidebar-header mobile-only">
-          <h3>Filtry a kategorie</h3>
+          <h3>Filtry</h3>
           <button @click="showSidebar = false" class="close-sidebar">×</button>
         </div>
 
@@ -126,8 +111,13 @@
       <div class="product-section">
         <!-- Mobilní tlačítko pro zobrazení filtrů -->
         <button class="show-filters-btn mobile-only" @click="showSidebar = true">
-          <span class="filter-icon">🔍</span> Filtry a kategorie
+          <span class="filter-icon">🔍</span> Filtry
         </button>
+
+        <!-- Search Summary -->
+        <div class="search-summary">
+          <h2 v-if="searchQuery">Výsledky pro: "{{ searchQuery }}"</h2>
+        </div>
 
         <!-- Horní lišta se sortem a počtem produktů -->
         <div class="product-toolbar">
@@ -159,8 +149,18 @@
           </div>
 
           <div v-else-if="filteredProducts.length === 0" class="no-products">
-            <p>Pro zvolené filtry nebyly nalezeny žádné produkty.</p>
-            <button @click="resetFilters" class="reset-filters">Zrušit filtry</button>
+            <p>Pro vyhledávání "{{ searchQuery }}" nebyly nalezeny žádné produkty.</p>
+            <div class="search-suggestions">
+              <h3>Zkuste:</h3>
+              <ul>
+                <li>Zkontrolovat pravopis</li>
+                <li>Použít jiná klíčová slova</li>
+                <li>Použít obecnější výrazy</li>
+              </ul>
+            </div>
+            <button @click="resetFilters" class="reset-filters" v-if="filtersApplied">
+              Zrušit filtry
+            </button>
           </div>
 
           <div v-else class="product-items">
@@ -256,11 +256,11 @@
 <script>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import ztraceneBedneniImage from '@/assets/images/ztracene-bedneni.jpg'
 import { useCart } from '@/stores/stavKosiku'
+import axios from 'axios'
 
 export default {
-  name: 'CategoryPage',
+  name: 'SearchResults',
   setup() {
     const route = useRoute()
     const router = useRouter()
@@ -268,16 +268,13 @@ export default {
     const showNotification = ref(false) // Stav notifikace
 
     // Stav
-    const categoryId = ref(null)
-    const categoryData = ref({ name: '', subcategories: [] })
-    const selectedSubcategory = ref(null)
+    const searchQuery = ref('')
     const allProducts = ref([])
     const filteredProducts = ref([])
     const isLoading = ref(true)
     const currentPage = ref(1)
     const itemsPerPage = 12
     const showSidebar = ref(false)
-    const showPriceFilter = ref(true) // Možnost skrýt filtr ceny, pokud není relevantní
     const sortOption = ref('name-asc')
 
     // Filtry
@@ -297,583 +294,89 @@ export default {
       }
     })
 
-    // Načtení kategorie z URL parametru
+    // Kontrola, zda jsou použity filtry
+    const filtersApplied = computed(() => {
+      return (
+        filters.value.price.min != null ||
+        filters.value.price.max != null ||
+        filters.value.manufacturer.options.some((m) => m.selected) ||
+        filters.value.availability.inStock
+      )
+    })
+
+    // Načtení hledaného výrazu z URL parametru
     onMounted(async () => {
-      categoryId.value = route.params.id
-      selectedSubcategory.value = route.query.subcategory
+      searchQuery.value = route.query.q || ''
 
-      // Načtení dat kategorie - simulace API volání
-      await loadCategoryData()
+      if (searchQuery.value) {
+        // Načtení výsledků vyhledávání - API volání
+        await fetchSearchResults()
+      } else {
+        isLoading.value = false
+        allProducts.value = []
+        filteredProducts.value = []
+      }
+    })
 
-      // Načtení produktů - simulace API volání
-      await loadProducts()
+    // Sledování změny hledaného výrazu
+    watch(
+      () => route.query.q,
+      async (newQuery) => {
+        if (newQuery !== searchQuery.value) {
+          searchQuery.value = newQuery || ''
+          isLoading.value = true
+          currentPage.value = 1
+          resetFilters()
+
+          if (searchQuery.value) {
+            await fetchSearchResults()
+          } else {
+            isLoading.value = false
+            allProducts.value = []
+            filteredProducts.value = []
+          }
+        }
+      }
+    )
+
+    // Načtení výsledků vyhledávání
+    const fetchSearchResults = async () => {
+      isLoading.value = true
+
+      try {
+        // Skutečné API volání
+        const response = await axios.get(`/api/search?q=${encodeURIComponent(searchQuery.value)}`)
+
+        // Zpracování výsledků
+        if (response.data && response.data.products) {
+          allProducts.value = response.data.products
+        } else {
+          // Fallback pokud API selže nebo vrátí neočekávaný formát
+          allProducts.value = []
+        }
+      } catch (error) {
+        console.error('Chyba při načítání výsledků vyhledávání:', error)
+
+        // Simulace dat pro vývoj a testování (jen když API selže)
+        // V produkci by toto bylo nahrazeno vhodnějším zpracováním chyb
+        allProducts.value = generateDummyProducts()
+      }
+
+      // Naplnění filtrů
+      populateFilters()
 
       // Počáteční filtrace
       filterProducts()
-    })
 
-    // Sledování změny kategorie nebo podkategorie
-    watch(
-      () => route.params.id,
-      async (newId) => {
-        if (newId !== categoryId.value) {
-          categoryId.value = newId
-          isLoading.value = true
-          currentPage.value = 1
-          await loadCategoryData()
-          await loadProducts()
-          filterProducts()
-        }
-      }
-    )
-
-    watch(
-      () => route.query.subcategory,
-      (newSubcategory) => {
-        selectedSubcategory.value = newSubcategory
-        filterProducts()
-        currentPage.value = 1
-      }
-    )
-
-    // Simulace načtení dat kategorie
-    // Update your loadCategoryData function to include images for subcategories
-    const loadCategoryData = async () => {
-      // Toto by bylo nahrazeno API voláním
-      await new Promise((resolve) => setTimeout(resolve, 300))
-
-      // Simulace dat kategorie s obrázky
-      const categories = {
-        'hruba-stavba-a-zelezo': {
-          name: 'Hrubá stavba a železo',
-          subcategories: [
-            {
-              id: 'ztracene-bedneni',
-              name: 'Ztracené bednění',
-              count: 5,
-              image: '/assets/images/subcategories/ztracene-bedneni.jpg'
-            },
-            {
-              id: 'lepenky',
-              name: 'Lepenky',
-              count: 5,
-              image: '/assets/images/subcategories/lepenky.jpg'
-            },
-            {
-              id: 'odvodneni-a-zlaby',
-              name: 'Odvodnění a žlaby',
-              count: 5,
-              image: '/assets/images/subcategories/odvodneni-a-zlaby.jpg'
-            },
-            {
-              id: 'roxory',
-              name: 'Roxory',
-              count: 5,
-              image: '/assets/images/subcategories/roxory.jpg'
-            },
-            {
-              id: 'kari-site',
-              name: 'Kari sítě',
-              count: 5,
-              image: '/assets/images/subcategories/kari-site.jpg'
-            },
-            {
-              id: 'ploche-tyce',
-              name: 'Ploché tyče',
-              count: 5,
-              image: '/assets/images/subcategories/ploche-tyce.jpg'
-            },
-            {
-              id: 'l-uhelniky',
-              name: 'L-úhelníky',
-              count: 5,
-              image: '/assets/images/subcategories/l-uhelniky.jpg'
-            },
-            {
-              id: 'jakly',
-              name: 'Jakly',
-              count: 5,
-              image: '/assets/images/subcategories/jakly.jpg'
-            },
-            {
-              id: 'zarubne',
-              name: 'Zárubně',
-              count: 5,
-              image: '/assets/images/subcategories/zarubne.jpg'
-            }
-          ]
-        },
-        fasada: {
-          name: 'Fasáda',
-          subcategories: [
-            {
-              id: 'fasadni-omitky',
-              name: 'Fasádní omítky',
-              count: 5,
-              image: '/assets/images/subcategories/fasadni-omitky.jpg'
-            },
-            {
-              id: 'natery',
-              name: 'Nátěry',
-              count: 5,
-              image: '/assets/images/subcategories/natery.jpg'
-            },
-            {
-              id: 'patni-listy',
-              name: 'Patní lišty',
-              count: 5,
-              image: '/assets/images/subcategories/patni-listy.jpg'
-            },
-            {
-              id: 'polystyreny',
-              name: 'Polystyreny',
-              count: 5,
-              image: '/assets/images/subcategories/polystyreny.jpg'
-            },
-            {
-              id: 'mineralni-vaty',
-              name: 'Minerální vaty',
-              count: 5,
-              image: '/assets/images/subcategories/mineralni-vaty.jpg'
-            },
-            {
-              id: 'perlinka',
-              name: 'Perlinka',
-              count: 5,
-              image: '/assets/images/subcategories/perlinka.jpg'
-            },
-            {
-              id: 'extrudovany-polystyren',
-              name: 'Extrudovaný polystyren',
-              count: 5,
-              image: '/assets/images/subcategories/extrudovany-polystyren.jpg'
-            }
-          ]
-        },
-        'drevo-a-strecha': {
-          name: 'Dřevo a střecha',
-          subcategories: [
-            {
-              id: 'prkna',
-              name: 'Prkna',
-              count: 5,
-              image: '/assets/images/subcategories/prkna.jpg'
-            },
-            {
-              id: 'osb-desky',
-              name: 'OSB desky',
-              count: 5,
-              image: '/assets/images/subcategories/osb-desky.jpg'
-            },
-            {
-              id: 'late',
-              name: 'Latě',
-              count: 5,
-              image: '/assets/images/subcategories/late.jpg'
-            },
-            {
-              id: 'hranoly',
-              name: 'Hranoly',
-              count: 5,
-              image: '/assets/images/subcategories/hranoly.jpg'
-            },
-            {
-              id: 'fosny',
-              name: 'Fošny',
-              count: 5,
-              image: '/assets/images/subcategories/fosny.jpg'
-            },
-            {
-              id: 'kvh',
-              name: 'KVH',
-              count: 5,
-              image: '/assets/images/subcategories/kvh.jpg'
-            },
-            {
-              id: 'tasky',
-              name: 'Tašky',
-              count: 5,
-              image: '/assets/images/subcategories/tasky.jpg'
-            },
-            {
-              id: 'sindel',
-              name: 'Šindel',
-              count: 5,
-              image: '/assets/images/subcategories/sindel.jpg'
-            },
-            {
-              id: 'doplnky',
-              name: 'Doplňky',
-              count: 5,
-              image: '/assets/images/subcategories/doplnky.jpg'
-            }
-          ]
-        },
-        'sypke-smesi': {
-          name: 'Sypké směsi',
-          subcategories: [
-            {
-              id: 'malty',
-              name: 'Malty',
-              count: 5,
-              image: '/assets/images/subcategories/malty.jpg'
-            },
-            {
-              id: 'betony',
-              name: 'Betony',
-              count: 5,
-              image: '/assets/images/subcategories/betony.jpg'
-            },
-            {
-              id: 'lepidla',
-              name: 'Lepidla',
-              count: 5,
-              image: '/assets/images/subcategories/lepidla.jpg'
-            },
-            {
-              id: 'nivelacni-hmota',
-              name: 'Nivelační hmota',
-              count: 5,
-              image: '/assets/images/subcategories/nivelacni-hmota.jpg'
-            },
-            {
-              id: 'sadra',
-              name: 'Sádra',
-              count: 5,
-              image: '/assets/images/subcategories/sadra.jpg'
-            },
-            {
-              id: 'stuky',
-              name: 'Štuky',
-              count: 5,
-              image: '/assets/images/subcategories/stuky.jpg'
-            },
-            {
-              id: 'vapno',
-              name: 'Vápno',
-              count: 5,
-              image: '/assets/images/subcategories/vapno.jpg'
-            },
-            {
-              id: 'cement',
-              name: 'Cement',
-              count: 5,
-              image: '/assets/images/subcategories/cement.jpg'
-            },
-            {
-              id: 'multibat',
-              name: 'Multibat',
-              count: 5,
-              image: '/assets/images/subcategories/multibat.jpg'
-            }
-          ]
-        },
-        'betonove-vyrobky': {
-          name: 'Betonové výrobky',
-          subcategories: [
-            {
-              id: 'dlazba-venkovni',
-              name: 'Dlažba venkovní',
-              count: 5,
-              image: '/assets/images/subcategories/dlazba-venkovni.jpg'
-            },
-            {
-              id: 'ploty',
-              name: 'Ploty',
-              count: 5,
-              image: '/assets/images/subcategories/ploty.jpg'
-            },
-            {
-              id: 'prvky-zahradni-architektury',
-              name: 'Prvky zahr. architektury',
-              count: 5,
-              image: '/assets/images/subcategories/prvky-zahradni-architektury.jpg'
-            },
-            {
-              id: 'obrubniky',
-              name: 'Obrubníky',
-              count: 5,
-              image: '/assets/images/subcategories/obrubniky.jpg'
-            }
-          ]
-        },
-        'zdici-materialy': {
-          name: 'Zdící materiály',
-          subcategories: [
-            {
-              id: 'porobetonove-zdici-materialy',
-              name: 'Porobetonové zdící mat.',
-              count: 5,
-              image: '/assets/images/subcategories/porobetonove-zdici-materialy.jpg'
-            },
-            {
-              id: 'keramicke-zdici-materialy',
-              name: 'Keramické zdící mat.',
-              count: 5,
-              image: '/assets/images/subcategories/keramicke-zdici-materialy.jpg'
-            },
-            {
-              id: 'betonove-zdici-materialy',
-              name: 'Betonové zdící mat.',
-              count: 5,
-              image: '/assets/images/subcategories/betonove-zdici-materialy.jpg'
-            },
-            {
-              id: 'plne-cihly',
-              name: 'Plné cihly',
-              count: 5,
-              image: '/assets/images/subcategories/plne-cihly.jpg'
-            }
-          ]
-        },
-        'chemie-a-barvy': {
-          name: 'Chemie a barvy',
-          subcategories: [
-            {
-              id: 'silikony-neutral',
-              name: 'Silikony neutral',
-              count: 5,
-              image: '/assets/images/subcategories/silikony-neutral.jpg'
-            },
-            {
-              id: 'silikony-sanitarni',
-              name: 'Silikony sanitární',
-              count: 5,
-              image: '/assets/images/subcategories/silikony-sanitarni.jpg'
-            },
-            {
-              id: 'sparovaci-hmoty',
-              name: 'Spárovací hmoty',
-              count: 5,
-              image: '/assets/images/subcategories/sparovaci-hmoty.jpg'
-            },
-            {
-              id: 'peny',
-              name: 'Pěny',
-              count: 5,
-              image: '/assets/images/subcategories/peny.jpg'
-            },
-            {
-              id: 'tmely',
-              name: 'Tmely',
-              count: 5,
-              image: '/assets/images/subcategories/tmely.jpg'
-            },
-            {
-              id: 'lepidla-chemie',
-              name: 'Lepidla',
-              count: 5,
-              image: '/assets/images/subcategories/lepidla-chemie.jpg'
-            },
-            {
-              id: 'vnitrni-natery',
-              name: 'Vnitřní nátěry',
-              count: 5,
-              image: '/assets/images/subcategories/vnitrni-natery.jpg'
-            },
-            {
-              id: 'barvy-na-drevo',
-              name: 'Barvy na dřevo',
-              count: 5,
-              image: '/assets/images/subcategories/barvy-na-drevo.jpg'
-            },
-            {
-              id: 'barvy-na-kov',
-              name: 'Barvy na kov',
-              count: 5,
-              image: '/assets/images/subcategories/barvy-na-kov.jpg'
-            },
-            {
-              id: 'barvy-na-podlahu',
-              name: 'Barvy na podlahu',
-              count: 5,
-              image: '/assets/images/subcategories/barvy-na-podlahu.jpg'
-            },
-            {
-              id: 'laky',
-              name: 'Laky',
-              count: 5,
-              image: '/assets/images/subcategories/laky.jpg'
-            },
-            {
-              id: 'spreje',
-              name: 'Spreje',
-              count: 5,
-              image: '/assets/images/subcategories/spreje.jpg'
-            },
-            {
-              id: 'tonovaci-barvy',
-              name: 'Tónovací barvy',
-              count: 5,
-              image: '/assets/images/subcategories/tonovaci-barvy.jpg'
-            }
-          ]
-        },
-        'spojovaci-material': {
-          name: 'Spojovací materiál',
-          subcategories: [
-            {
-              id: 'vruty',
-              name: 'Vruty',
-              count: 5,
-              image: '/assets/images/subcategories/vruty.jpg'
-            },
-            {
-              id: 'srouby',
-              name: 'Šrouby',
-              count: 5,
-              image: '/assets/images/subcategories/srouby.jpg'
-            },
-            {
-              id: 'kotvici-patky',
-              name: 'Kotvící patky',
-              count: 5,
-              image: '/assets/images/subcategories/kotvici-patky.jpg'
-            },
-            {
-              id: 'uhelniky',
-              name: 'Úhelníky',
-              count: 5,
-              image: '/assets/images/subcategories/uhelniky.jpg'
-            },
-            {
-              id: 'zavitove-tyce',
-              name: 'Závitové tyče',
-              count: 5,
-              image: '/assets/images/subcategories/zavitove-tyce.jpg'
-            },
-            {
-              id: 'hrebiky',
-              name: 'Hřebíky',
-              count: 5,
-              image: '/assets/images/subcategories/hrebiky.jpg'
-            }
-          ]
-        },
-        'elektro-a-naradi': {
-          name: 'Elektro a nářadí',
-          subcategories: [
-            {
-              id: 'kabely',
-              name: 'Kabely',
-              count: 5,
-              image: '/assets/images/subcategories/kabely.jpg'
-            },
-            {
-              id: 'spinace-zasuvky',
-              name: 'Spínače, zásuvky',
-              count: 5,
-              image: '/assets/images/subcategories/spinace-zasuvky.jpg'
-            },
-            {
-              id: 'halogeny',
-              name: 'Halogeny',
-              count: 5,
-              image: '/assets/images/subcategories/halogeny.jpg'
-            },
-            {
-              id: 'krabice',
-              name: 'Krabice',
-              count: 5,
-              image: '/assets/images/subcategories/krabice.jpg'
-            },
-            {
-              id: 'elektro-naradi',
-              name: 'Elektro nářadí',
-              count: 5,
-              image: '/assets/images/subcategories/elektro-naradi.jpg'
-            },
-            {
-              id: 'aku-naradi',
-              name: 'Aku nářadí',
-              count: 5,
-              image: '/assets/images/subcategories/aku-naradi.jpg'
-            },
-            {
-              id: 'rucni-naradi',
-              name: 'Ruční nářadí',
-              count: 5,
-              image: '/assets/images/subcategories/rucni-naradi.jpg'
-            },
-            {
-              id: 'kotouce',
-              name: 'Kotouče',
-              count: 5,
-              image: '/assets/images/subcategories/kotouce.jpg'
-            }
-          ]
-        },
-        sadrokarton: {
-          name: 'Sádrokarton',
-          subcategories: [
-            {
-              id: 'sadrokarton-materialy',
-              name: 'Sádrokarton',
-              count: 5,
-              image: '/assets/images/subcategories/sadrokarton-materialy.jpg'
-            },
-            {
-              id: 'vruty-sadrokarton',
-              name: 'Vruty',
-              count: 5,
-              image: '/assets/images/subcategories/vruty-sadrokarton.jpg'
-            },
-            {
-              id: 'pasky',
-              name: 'Pásky',
-              count: 5,
-              image: '/assets/images/subcategories/pasky.jpg'
-            },
-            {
-              id: 'tesneni',
-              name: 'Těsnění',
-              count: 5,
-              image: '/assets/images/subcategories/tesneni.jpg'
-            },
-            {
-              id: 'profily',
-              name: 'Profily',
-              count: 5,
-              image: '/assets/images/subcategories/profily.jpg'
-            }
-          ]
-        },
-        ostatni: {
-          name: 'Ostatní',
-          subcategories: [
-            {
-              id: 'obleceni-a-ochranne-pomucky',
-              name: 'Oblečení a ochranné pomůcky',
-              count: 5,
-              image: '/assets/images/subcategories/obleceni-a-ochranne-pomucky.jpg'
-            },
-            {
-              id: 'auto-moto',
-              name: 'Auto-moto',
-              count: 5,
-              image: '/assets/images/subcategories/auto-moto.jpg'
-            }
-          ]
-        }
-      }
-
-      categoryData.value = categories[categoryId.value] || {
-        name: 'Kategorie nenalezena',
-        subcategories: []
-      }
+      isLoading.value = false
     }
 
-    // Simulace načtení produktů
-    const loadProducts = async () => {
-      isLoading.value = true
-
-      // Toto by bylo nahrazeno API voláním
-      await new Promise((resolve) => setTimeout(resolve, 500))
-
+    // Simulace dat pro vývoj a testování
+    const generateDummyProducts = () => {
       // Vytvoření náhodných produktů pro ukázku
-      const dummyProducts = Array.from({ length: 50 }, (_, i) => ({
+      return Array.from({ length: 20 }, (_, i) => ({
         id: i + 1,
-        name: `Produkt ${i + 1}`,
+        name: `Výsledek pro "${searchQuery.value}" ${i + 1}`,
         manufacturer: ['DEK', 'Velux', 'Wienerberger', 'Porotherm', 'Ytong'][
           Math.floor(Math.random() * 5)
         ],
@@ -883,30 +386,8 @@ export default {
         price: Math.floor(Math.random() * 10000) + 500,
         discount: Math.random() > 0.7 ? Math.floor(Math.random() * 30) + 5 : 0,
         image: null, // URL obrázku by zde bylo
-        availability: Math.floor(Math.random() * 4), // 0-skladem, 1-málo kusů, 2-na objednání, 3-nedostupné
-        subcategoryId:
-          categoryData.value.subcategories[
-            Math.floor(Math.random() * categoryData.value.subcategories.length)
-          ]?.id
+        availability: Math.floor(Math.random() * 4) // 0-skladem, 1-málo kusů, 2-na objednání, 3-nedostupné
       }))
-
-      // Přidání vypočítaných hodnot
-      dummyProducts.forEach((product) => {
-        if (product.discount) {
-          product.originalPrice = product.price
-          product.price = Math.round((product.price * (100 - product.discount)) / 100)
-        }
-      })
-
-      allProducts.value = dummyProducts
-
-      // Naplnění filtrů
-      populateFilters()
-
-      isLoading.value = false
-
-      // Počáteční filtrace
-      filterProducts()
     }
 
     // Naplnění filtrů z produktů
@@ -931,11 +412,6 @@ export default {
     // Filtrace produktů
     const filterProducts = () => {
       let result = [...allProducts.value]
-
-      // Filtrování podle podkategorie
-      if (selectedSubcategory.value) {
-        result = result.filter((product) => product.subcategoryId === selectedSubcategory.value)
-      }
 
       // Filtrování podle ceny
       if (filters.value.price.min) {
@@ -969,16 +445,6 @@ export default {
       currentPage.value = 1
     }
 
-    // Function to handle subcategory selection from tiles
-    const selectSubcategory = (subcategoryId) => {
-      router.push({
-        path: route.path,
-        query: {
-          ...route.query,
-          subcategory: subcategoryId
-        }
-      })
-    }
     // Řazení produktů
     const sortProducts = () => {
       sortProductsList(filteredProducts.value)
@@ -1010,9 +476,11 @@ export default {
       filters.value.price.min = null
       filters.value.price.max = null
 
-      filters.value.manufacturer.options.forEach((option) => {
-        option.selected = false
-      })
+      if (filters.value.manufacturer.options) {
+        filters.value.manufacturer.options.forEach((option) => {
+          option.selected = false
+        })
+      }
 
       filters.value.availability.inStock = false
 
@@ -1106,8 +574,7 @@ export default {
     }
 
     return {
-      categoryData,
-      selectedSubcategory,
+      searchQuery,
       allProducts,
       filteredProducts,
       paginatedProducts,
@@ -1116,8 +583,8 @@ export default {
       totalPages,
       filters,
       showSidebar,
-      showPriceFilter,
       sortOption,
+      filtersApplied,
       formatPrice,
       getAvailabilityText,
       getAvailabilityClass,
@@ -1127,7 +594,6 @@ export default {
       toggleFilter,
       sortProducts,
       viewProductDetail,
-      selectSubcategory,
       addToCart,
       showNotification
     }
@@ -1137,117 +603,12 @@ export default {
 
 <style scoped>
 .HeadingStrip {
-  display: none;
-}
-.subcategory-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
-  margin: 30px 0;
-}
-.subcategory-tile.active {
-  background-color: #f5852a;
-  border-color: #e67722;
-}
-.subcategory-tile.active .subcategory-content {
-  color: white;
-  font-weight: 600;
-}
-.subcategory-tile.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
   width: 100%;
-  height: 3px;
-  background-color: #e67722;
-}
-.subcategory-tile.active:hover {
-  background-color: #e67722; /* Darker orange for better contrast */
-  border-color: #d86316;
-  color: white;
-}
-.subcategory-tile:hover:not(.active) {
-  background-color: #f5f5f5;
-  border-color: #f5852a;
-}
-.subcategory-tile.active:hover .subcategory-content {
-  color: white;
-}
-.subcategory-tile {
-  position: relative;
-}
-.subcategory-tile {
+  height: 150px;
+  background-color: #f0f0f0;
   display: flex;
-  align-items: center;
-  background-color: #f9f9f9;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  padding: 10px 15px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  width: calc(25% - 15px);
-  min-width: 200px;
-  max-width: 280px;
-  height: 60px; /* Fixed height */
-  box-sizing: border-box; /* Important */
-  overflow: hidden; /* Prevent content from expanding the box */
-}
-
-.subcategory-tile:hover {
-  background-color: #f5f5f5;
-  border-color: #f5852a;
-}
-
-.subcategory-content h3 {
-  margin: 0 0 5px 0;
-  font-size: 18px;
-}
-.subcategory-tiles-container {
-  max-width: 1200px;
-  margin: 0 auto 30px;
-  padding: 0 20px;
-}
-
-.subcategory-tiles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-  justify-content: flex-start;
-  margin: 20px 0;
-}
-.subcategory-content {
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-  white-space: nowrap; /* Prevent text wrapping */
-  overflow: hidden;
-  text-overflow: ellipsis; /* Add ellipsis for text that overflows */
-}
-.subcategory-image {
-  width: 50px;
-  height: 50px;
-  min-width: 50px;
-  flex: 0 0 50px; /* Don't grow, don't shrink, stay at 50px */
-  display: flex;
-  align-items: center;
   justify-content: center;
-  margin-right: 15px;
-}
-
-.subcategory-image img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-.tile-product-count {
-  font-size: 14px;
-  color: #666;
-}
-
-.subcategory-tile:hover .tile-product-count {
-  color: rgba(255, 255, 255, 0.8);
+  align-items: center;
 }
 
 h1 {
@@ -1257,11 +618,21 @@ h1 {
   font-size: 42px;
 }
 
-.category-container {
+.search-results-container {
   max-width: 1200px;
   margin: 0 auto 80px;
   padding: 0 20px;
   font-family: Arial, sans-serif;
+}
+
+.search-summary {
+  margin-bottom: 20px;
+}
+
+.search-summary h2 {
+  font-size: 24px;
+  color: #333;
+  margin-bottom: 10px;
 }
 
 /* Drobečková navigace */
@@ -1294,7 +665,7 @@ h1 {
 }
 
 /* Hlavní obsah */
-.category-content {
+.search-content {
   display: flex;
   gap: 30px;
 }
@@ -1340,40 +711,6 @@ h1 {
   margin-bottom: 15px;
   padding-bottom: 10px;
   border-bottom: 1px solid #eee;
-}
-
-/* Podkategorie */
-.subcategory-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.subcategory-list li {
-  margin-bottom: 12px;
-}
-
-.subcategory-list a {
-  display: flex;
-  justify-content: space-between;
-  color: #555;
-  text-decoration: none;
-  transition: color 0.2s;
-  font-size: 15px;
-}
-
-.subcategory-list a:hover {
-  color: #f5852a;
-}
-
-.subcategory-list a.active {
-  color: #f5852a;
-  font-weight: 600;
-}
-
-.product-count {
-  color: #999;
-  font-size: 13px;
 }
 
 /* Filtry */
@@ -1575,6 +912,31 @@ h1 {
   margin: 0 auto 20px;
 }
 
+.search-suggestions {
+  max-width: 500px;
+  margin: 20px auto;
+  text-align: left;
+  padding: 20px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+}
+
+.search-suggestions h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.search-suggestions ul {
+  list-style-type: disc;
+  padding-left: 20px;
+}
+
+.search-suggestions li {
+  margin-bottom: 8px;
+  color: #555;
+}
+
 @keyframes spin {
   0% {
     transform: rotate(0deg);
@@ -1668,12 +1030,6 @@ h1 {
   gap: 8px;
   margin-bottom: 8px;
   flex-wrap: wrap;
-}
-
-.old-price {
-  font-size: 14px;
-  color: #999;
-  text-decoration: line-through;
 }
 
 .current-price {
@@ -1820,7 +1176,7 @@ h1 {
 
 /* Responzivní design */
 @media (max-width: 950px) {
-  .category-content {
+  .search-content {
     flex-direction: column;
   }
 
@@ -1837,9 +1193,6 @@ h1 {
     transform: translateX(-100%);
     transition: transform 0.3s ease-in-out;
     overflow-y: auto;
-  }
-  .subcategory-tile {
-    width: calc(33.33% - 15px);
   }
 
   .sidebar-open {
@@ -1866,8 +1219,9 @@ h1 {
     font-size: 32px;
     margin: 60px auto 40px auto;
   }
-  .subcategory-tiles {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+
+  .HeadingStrip {
+    height: 120px;
   }
 
   .product-toolbar {
@@ -1879,9 +1233,7 @@ h1 {
     width: 100%;
     justify-content: space-between;
   }
-  .subcategory-tile {
-    width: calc(50% - 15px);
-  }
+
   .sort-select {
     flex: 1;
   }
@@ -1910,16 +1262,14 @@ h1 {
     margin: 40px auto 30px auto;
   }
 
-  .subcategory-tiles {
-    grid-template-columns: repeat(2, 1fr);
+  .HeadingStrip {
+    height: 100px;
   }
 
   .product-items {
     grid-template-columns: 1fr;
   }
-  .subcategory-tile {
-    width: 100%;
-  }
+
   .pagination {
     flex-direction: column;
     gap: 10px;

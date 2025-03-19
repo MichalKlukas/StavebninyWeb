@@ -12,6 +12,7 @@ const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const dunaApiRoutes = require('./routes/dunaApiRoutes');
+const googleAuthRoutes = require('./routes/googleAuthRoutes');
 
 // Initialize Express app
 const app = express();
@@ -124,6 +125,7 @@ app.use('/api', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api', contactRoutes);
 app.use('/api', dunaApiRoutes);
+app.use('/api', googleAuthRoutes);
 
 // Basic route for checking if server is running
 app.get('/', (req, res) => {

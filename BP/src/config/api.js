@@ -58,5 +58,6 @@ api.interceptors.response.use(
   }
 )
 
+// Make sure we export both the API_URL and the api object
 export { api }
 export default API_URL

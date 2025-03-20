@@ -1,7 +1,6 @@
 // src/stores/stavKosiku.js
 import { reactive, computed } from 'vue'
-import axios from 'axios'
-import API_URL from '@/config/api'
+import API_URL, { api } from '@/config/api' // Import both API_URL and api
 
 // Generátor UUID
 function simpleUuidv4() {
@@ -15,24 +14,20 @@ function simpleUuidv4() {
 // Reaktivní stav košíku
 const state = reactive({
   items: [],
-  shippingMethod: 'pickup',
+  shippingMethod: 'pickup', // Nastavíme výchozí metodu na osobní odběr (zdarma)
   isLoading: false,
-  anonymousId: null,
-  initialized: false,
-  lastError: null // Track the last error for debugging
+  anonymousId: null, // ID pro anonymní košík
+  initialized: false, // Flag to prevent multiple initializations
+  lastError: null // For debugging
 })
 
 // Získání JWT tokenu a kontrola, zda je uživatel přihlášen
 const getAuthToken = () => {
-  const token = localStorage.getItem('token')
-  console.log('[CartStore] Auth token:', token ? 'Found' : 'Not found')
-  return token
+  return localStorage.getItem('token')
 }
 
 const isUserLoggedIn = () => {
-  const isLoggedIn = !!getAuthToken()
-  console.log('[CartStore] User logged in:', isLoggedIn)
-  return isLoggedIn
+  return !!getAuthToken()
 }
 
 // Uložení košíku do localStorage
@@ -55,6 +50,7 @@ const ulozitKosik = () => {
 
 // Načtení košíku z localStorage
 const inicializovatLokalniKosik = () => {
+  console.log('[CartStore] Initializing cart from localStorage')
   try {
     const ulozenyKosik = localStorage.getItem('kosik')
     if (ulozenyKosik) {
@@ -62,7 +58,7 @@ const inicializovatLokalniKosik = () => {
       state.items = parsovanyKosik.items || []
       state.shippingMethod = parsovanyKosik.shippingMethod || 'pickup'
       state.anonymousId = parsovanyKosik.anonymousId
-      console.log('[CartStore] Cart loaded from localStorage, items:', state.items.length)
+      console.log('[CartStore] Loaded cart from localStorage, items:', state.items.length)
     } else {
       console.log('[CartStore] No cart found in localStorage')
     }
@@ -89,10 +85,9 @@ const nacistKosikZServeru = async () => {
 
   try {
     state.isLoading = true
-    console.log('[CartStore] Fetching cart from server:', `${API_URL}/user/cart`)
+    console.log('[CartStore] Fetching cart from server: /api/user/cart')
 
     const response = await api.get('/api/user/cart')
-
     console.log('[CartStore] Server response:', response.data)
 
     if (response.data && response.data.items) {
@@ -135,7 +130,7 @@ const synchronizovatKosikNaServer = async () => {
 
   try {
     state.isLoading = true
-    console.log('[CartStore] Syncing cart to server:', `${API_URL}/user/cart`)
+    console.log('[CartStore] Syncing cart to server: /api/user/cart')
     console.log('[CartStore] Items being sent:', state.items.length)
 
     const response = await api.post('/api/user/cart', {
@@ -408,6 +403,6 @@ export const useCart = () => {
     clearCart,
     handleLogin,
     handleLogout,
-    getStatus // New debug method
+    getStatus // Debug method
   }
 }

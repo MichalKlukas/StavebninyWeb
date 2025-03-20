@@ -158,34 +158,35 @@ export default {
     }
   },
   methods: {
-   async submitLogin() {
-  this.isSubmitting = true
-  this.errorMessage = ''
+    async submitLogin() {
+      this.isSubmitting = true
+      this.errorMessage = ''
 
-  try {
-    // Use relative URL (will work with proxy)
-    console.log('Attempting login');
-    const response = await axios.post('/api/login', this.loginData);
-    
-    console.log('Login successful:', response.data);
-    this.userStore.login(response.data.user, response.data.token);
-    this.formSubmitted = true;
-    
-    setTimeout(() => {
-      this.$router.push('/');
-    }, 1500);
-  } catch (error) {
-    console.error('Login error:', error);
-    
-    if (error.response && error.response.data && error.response.data.error) {
-      this.errorMessage = error.response.data.error;
-    } else {
-      this.errorMessage = 'Nepodařilo se přihlásit. Zkontrolujte své přihlašovací údaje a zkuste to znovu.';
-    }
-  } finally {
-    this.isSubmitting = false;
-  }
-},
+      try {
+        // Use relative URL (will work with proxy)
+        console.log('Attempting login')
+        const response = await axios.post('/api/login', this.loginData)
+
+        console.log('Login successful:', response.data)
+        this.userStore.login(response.data.user, response.data.token)
+        this.formSubmitted = true
+
+        setTimeout(() => {
+          this.$router.push('/')
+        }, 1500)
+      } catch (error) {
+        console.error('Login error:', error)
+
+        if (error.response && error.response.data && error.response.data.error) {
+          this.errorMessage = error.response.data.error
+        } else {
+          this.errorMessage =
+            'Nepodařilo se přihlásit. Zkontrolujte své přihlašovací údaje a zkuste to znovu.'
+        }
+      } finally {
+        this.isSubmitting = false
+      }
+    },
 
     async submitForgotPassword() {
       // Nastavení indikátoru odesílání a resetování zpráv
@@ -224,18 +225,55 @@ export default {
     },
 
     loginWithGoogle() {
-      // Zde by byla implementace přihlášení přes Google OAuth
-      // Pro kompletní implementaci je potřeba využít knihovnu jako je vue-google-oauth2
+      // Clear any existing authentication
+      localStorage.removeItem('token')
 
-      // Simulace pro ukázku
+      // Log for debugging
+      console.log('Starting Google login flow')
+
+      // Prevent multiple clicks
+      if (this.isSubmitting) return
       this.isSubmitting = true
-      setTimeout(() => {
+
+      try {
+        // Get Google client ID from environment variables
+        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+        console.log('Client ID available:', !!clientId)
+
+        if (!clientId) {
+          this.errorMessage = 'Chyba konfigurace Google přihlášení. Kontaktujte prosím správce.'
+          this.isSubmitting = false
+          return
+        }
+
+        // Create redirect URI
+        const redirectUri = `${window.location.origin}/auth/google/callback`
+
+        // Store return URL for after login
+        localStorage.setItem('returnUrl', this.$route.query.returnUrl || '/')
+
+        // Build Google OAuth URL
+        const googleAuthUrl = 'https://accounts.google.com/o/oauth2/v2/auth'
+        const scope = 'profile email'
+
+        const params = new URLSearchParams({
+          client_id: clientId,
+          redirect_uri: redirectUri,
+          response_type: 'code',
+          scope,
+          access_type: 'offline',
+          prompt: 'consent'
+        })
+
+        console.log('Redirecting to Google authentication')
+
+        // Redirect to Google authentication
+        window.location.href = `${googleAuthUrl}?${params.toString()}`
+      } catch (error) {
+        console.error('Error initiating Google login:', error)
+        this.errorMessage = 'Při přihlašování přes Google došlo k chybě.'
         this.isSubmitting = false
-        this.formSubmitted = true
-        setTimeout(() => {
-          this.$router.push('/')
-        }, 1500)
-      }, 1000)
+      }
     }
   }
 }

@@ -3,9 +3,7 @@ import { reactive, computed } from 'vue'
 import axios from 'axios'
 import API_URL from '@/config/api'
 
-// Importujeme uuid (budete muset nainstalovat: npm install uuid)
-// import { v4 as uuidv4 } from 'uuid'
-// Pokud nechcete přidávat novou závislost, můžeme použít jednoduchý náhradní generátor UUID
+// Generátor UUID
 function simpleUuidv4() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = (Math.random() * 16) | 0,
@@ -17,19 +15,24 @@ function simpleUuidv4() {
 // Reaktivní stav košíku
 const state = reactive({
   items: [],
-  shippingMethod: 'pickup', // Nastavíme výchozí metodu na osobní odběr (zdarma)
+  shippingMethod: 'pickup',
   isLoading: false,
-  anonymousId: null, // ID pro anonymní košík
-  initialized: false // Flag to prevent multiple initializations
+  anonymousId: null,
+  initialized: false,
+  lastError: null // Track the last error for debugging
 })
 
 // Získání JWT tokenu a kontrola, zda je uživatel přihlášen
 const getAuthToken = () => {
-  return localStorage.getItem('token')
+  const token = localStorage.getItem('token')
+  console.log('[CartStore] Auth token:', token ? 'Found' : 'Not found')
+  return token
 }
 
 const isUserLoggedIn = () => {
-  return !!getAuthToken()
+  const isLoggedIn = !!getAuthToken()
+  console.log('[CartStore] User logged in:', isLoggedIn)
+  return isLoggedIn
 }
 
 // Uložení košíku do localStorage
@@ -43,162 +46,214 @@ const ulozitKosik = () => {
         anonymousId: state.anonymousId
       })
     )
+    console.log('[CartStore] Cart saved to localStorage, items:', state.items.length)
   } catch (error) {
-    console.error('Chyba při ukládání košíku do úložiště:', error)
+    console.error('[CartStore] Error saving cart to localStorage:', error)
+    state.lastError = error.message
   }
 }
 
 // Načtení košíku z localStorage
 const inicializovatLokalniKosik = () => {
-  console.log('Inicializuji košík z localStorage')
   try {
     const ulozenyKosik = localStorage.getItem('kosik')
-    console.log('Načtený košík:', ulozenyKosik)
     if (ulozenyKosik) {
       const parsovanyKosik = JSON.parse(ulozenyKosik)
       state.items = parsovanyKosik.items || []
       state.shippingMethod = parsovanyKosik.shippingMethod || 'pickup'
       state.anonymousId = parsovanyKosik.anonymousId
+      console.log('[CartStore] Cart loaded from localStorage, items:', state.items.length)
+    } else {
+      console.log('[CartStore] No cart found in localStorage')
     }
 
     // Pokud nemáme anonymousId, vytvoříme ho
     if (!state.anonymousId) {
-      state.anonymousId = simpleUuidv4() // or uuidv4() if installed
+      state.anonymousId = simpleUuidv4()
       ulozitKosik()
+      console.log('[CartStore] Generated new anonymousId:', state.anonymousId)
     }
   } catch (error) {
-    console.error('Chyba při načítání košíku z úložiště:', error)
+    console.error('[CartStore] Error loading cart from localStorage:', error)
+    state.lastError = error.message
   }
 }
 
 // Načtení košíku z API (pro přihlášené uživatele)
 const nacistKosikZServeru = async () => {
   const token = getAuthToken()
-  if (!token) return false
+  if (!token) {
+    console.log('[CartStore] No auth token available, skipping server load')
+    return false
+  }
 
   try {
     state.isLoading = true
-    const response = await axios.get(`${API_URL}/user/cart`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    console.log('[CartStore] Fetching cart from server:', `${API_URL}/user/cart`)
+
+    const response = await api.get('/api/user/cart')
+
+    console.log('[CartStore] Server response:', response.data)
 
     if (response.data && response.data.items) {
-      // Pokud máme položky v lokálním košíku a server vrátil prázdný košík,
-      // tak synchronizujeme lokální košík na server
       if (state.items.length > 0 && response.data.items.length === 0) {
+        console.log('[CartStore] Local items exist, server cart empty. Syncing to server.')
         await synchronizovatKosikNaServer()
-      }
-      // Pokud máme položky v lokálním košíku a server také má položky,
-      // nabídneme sloučení (nebo automaticky sloučíme)
-      else if (state.items.length > 0 && response.data.items.length > 0) {
+      } else if (state.items.length > 0 && response.data.items.length > 0) {
+        console.log('[CartStore] Local and server items exist. Merging carts.')
         await sloucitKosiky()
-      }
-      // Jinak prostě použijeme serverový košík
-      else {
+      } else {
+        console.log('[CartStore] Using server cart. Items:', response.data.items.length)
         state.items = response.data.items
         if (response.data.shippingMethod) {
           state.shippingMethod = response.data.shippingMethod
         }
-        ulozitKosik() // Uložíme i do localStorage pro offline použití
+        ulozitKosik()
       }
       return true
+    } else {
+      console.log('[CartStore] Server returned no items or invalid format')
+      return false
     }
   } catch (error) {
-    console.error('Chyba při načítání košíku ze serveru:', error)
+    console.error('[CartStore] Error loading cart from server:', error)
+    console.error('[CartStore] Error details:', error.response?.data || error.message)
+    state.lastError = error.response?.data?.error || error.message
+    return false
   } finally {
     state.isLoading = false
   }
-  return false
 }
 
 // Synchronizace košíku na server
 const synchronizovatKosikNaServer = async () => {
   const token = getAuthToken()
-  if (!token) return false
+  if (!token) {
+    console.log('[CartStore] No auth token available, skipping server sync')
+    return false
+  }
 
   try {
     state.isLoading = true
-    await axios.post(
-      `${API_URL}/user/cart`,
-      {
-        items: state.items,
-        shippingMethod: state.shippingMethod
-      },
-      {
-        headers: { Authorization: `Bearer ${token}` }
-      }
-    )
+    console.log('[CartStore] Syncing cart to server:', `${API_URL}/user/cart`)
+    console.log('[CartStore] Items being sent:', state.items.length)
+
+    const response = await api.post('/api/user/cart', {
+      items: state.items,
+      shippingMethod: state.shippingMethod
+    })
+
+    console.log('[CartStore] Sync response:', response.data)
     return true
   } catch (error) {
-    console.error('Chyba při synchronizaci košíku na server:', error)
+    console.error('[CartStore] Error syncing cart to server:', error)
+    console.error('[CartStore] Error details:', error.response?.data || error.message)
+    state.lastError = error.response?.data?.error || error.message
+    return false
   } finally {
     state.isLoading = false
   }
-  return false
 }
 
 // Sloučení lokálního a serverového košíku
 const sloucitKosiky = async () => {
   const token = getAuthToken()
-  if (!token) return false
+  if (!token) {
+    console.log('[CartStore] No auth token available, skipping cart merge')
+    return false
+  }
 
   try {
     state.isLoading = true
-    const response = await axios.post(
-      `${API_URL}/user/cart/merge`,
-      {
-        anonymousCartId: state.anonymousId,
-        items: state.items,
-        shippingMethod: state.shippingMethod
-      },
-      {
-        headers: { Authorization: `Bearer ${token}` }
-      }
-    )
+    console.log('[CartStore] Merging carts. Local items:', state.items.length)
+
+    const response = await api.post('/api/user/cart/merge', {
+      anonymousCartId: state.anonymousId,
+      items: state.items,
+      shippingMethod: state.shippingMethod
+    })
 
     if (response.data && response.data.items) {
+      console.log('[CartStore] Merge successful. New item count:', response.data.items.length)
       state.items = response.data.items
       if (response.data.shippingMethod) {
         state.shippingMethod = response.data.shippingMethod
       }
       ulozitKosik()
       return true
+    } else {
+      console.log('[CartStore] Merge response has no items')
+      return false
     }
   } catch (error) {
-    console.error('Chyba při slučování košíků:', error)
+    console.error('[CartStore] Error merging carts:', error)
+    console.error('[CartStore] Error details:', error.response?.data || error.message)
+    state.lastError = error.response?.data?.error || error.message
+    return false
   } finally {
     state.isLoading = false
   }
-  return false
 }
 
 // Funkce pro práci s košíkem
 export const useCart = () => {
   // Inicializace košíku - musí být volána po mounted
   const initCart = async () => {
+    console.log('[CartStore] Initializing cart. Already initialized:', state.initialized)
+
     if (state.initialized) return
 
-    // Nejprve načteme košík z localStorage (pro rychlé zobrazení)
-    inicializovatLokalniKosik()
+    try {
+      // Nejprve načteme košík z localStorage (pro rychlé zobrazení)
+      inicializovatLokalniKosik()
 
-    // Pak zkusíme načíst košík ze serveru, pokud je uživatel přihlášen
-    if (isUserLoggedIn()) {
-      await nacistKosikZServeru()
+      // Pak zkusíme načíst košík ze serveru, pokud je uživatel přihlášen
+      if (isUserLoggedIn()) {
+        console.log('[CartStore] User is logged in, attempting to load from server')
+
+        // Add retry logic
+        let attempts = 0
+        let success = false
+
+        while (attempts < 3 && !success) {
+          attempts++
+          console.log(`[CartStore] Server load attempt ${attempts}`)
+
+          success = await nacistKosikZServeru()
+
+          if (!success && attempts < 3) {
+            // Wait before retry
+            await new Promise((resolve) => setTimeout(resolve, 1000))
+          }
+        }
+
+        if (success) {
+          console.log('[CartStore] Successfully loaded cart from server')
+        } else {
+          console.log('[CartStore] Failed to load cart from server after retries')
+        }
+      } else {
+        console.log('[CartStore] User not logged in, using local cart only')
+      }
+
+      state.initialized = true
+      console.log('[CartStore] Cart initialization complete')
+    } catch (error) {
+      console.error('[CartStore] Error in cart initialization:', error)
+      state.lastError = error.message
     }
-
-    state.initialized = true
   }
 
   // Přidání produktu do košíku
   const addToCart = async (product) => {
+    console.log('[CartStore] Adding product to cart:', product)
+
     // Kontrola, zda produkt již je v košíku
     const existujiciPolozka = state.items.find((item) => item.id === product.id)
 
     if (existujiciPolozka) {
-      // Pokud produkt už v košíku je, zvýšíme množství
       existujiciPolozka.quantity++
     } else {
-      // Přidání nového produktu do košíku s množstvím 1
       state.items.push({
         ...product,
         quantity: 1
@@ -283,17 +338,32 @@ export const useCart = () => {
     }
   }
 
-  // Obsluha přihlášení uživatele - zavolejte tuto funkci po úspěšném přihlášení
+  // Obsluha přihlášení uživatele
   const handleLogin = async () => {
-    await nacistKosikZServeru()
+    console.log('[CartStore] User logged in, handling cart')
+    state.initialized = false // Reset initialization so we reinitialize
+    await initCart() // Reinitialize cart with user's data
   }
 
-  // Obsluha odhlášení uživatele - zavolejte tuto funkci po odhlášení
+  // Obsluha odhlášení uživatele
   const handleLogout = () => {
-    // Když se uživatel odhlásí, zachováme košík v localStorage,
-    // ale vymažeme anonymousId, aby se vygeneroval nový
-    state.anonymousId = simpleUuidv4() // or uuidv4() if installed
+    console.log('[CartStore] User logged out, handling cart')
+    // Generate new anonymous ID
+    state.anonymousId = simpleUuidv4()
+    // Keep items but mark as needing reinitialization on next login
+    state.initialized = false
     ulozitKosik()
+  }
+
+  // Debug function to check cart status
+  const getStatus = () => {
+    return {
+      initialized: state.initialized,
+      itemCount: state.items.length,
+      isLoggedIn: isUserLoggedIn(),
+      anonymousId: state.anonymousId,
+      lastError: state.lastError
+    }
   }
 
   // Výpočet celkové ceny zboží (bez dopravy)
@@ -337,6 +407,7 @@ export const useCart = () => {
     setShippingMethod,
     clearCart,
     handleLogin,
-    handleLogout
+    handleLogout,
+    getStatus // New debug method
   }
 }

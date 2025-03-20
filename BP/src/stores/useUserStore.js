@@ -1,4 +1,3 @@
-// src/stores/useUserStore.js
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
@@ -17,44 +16,68 @@ export const useUserStore = defineStore('user', () => {
 
   // Actions
   function init() {
+    console.log('[UserStore] Initializing user store')
     // Načtení uživatele z localStorage
     const userData = localStorage.getItem('user')
     if (userData) {
       try {
         user.value = JSON.parse(userData)
+        console.log('[UserStore] User loaded from localStorage:', user.value.email)
       } catch (e) {
-        console.error('Chyba při parsování dat uživatele:', e)
+        console.error('[UserStore] Error parsing user data:', e)
       }
+    } else {
+      console.log('[UserStore] No user data in localStorage')
     }
   }
 
   async function login(userData, authToken) {
+    console.log('[UserStore] Login called with user:', userData)
     user.value = userData
     token.value = authToken
 
     // Uložení do localStorage
     localStorage.setItem('user', JSON.stringify(userData))
     localStorage.setItem('token', authToken)
+    console.log('[UserStore] User data saved to localStorage')
 
-    // Aktualizace košíku po přihlášení
-    const { useCart } = await import('./stavKosiku')
-    const cartStore = useCart()
-    await cartStore.handleLogin()
+    try {
+      // Correctly await the dynamic import
+      console.log('[UserStore] Loading cart store module...')
+      const cartModule = await import('./stavKosiku')
+      const cartStore = cartModule.useCart()
+      console.log('[UserStore] Calling cart handleLogin method')
+      await cartStore.handleLogin()
+      console.log('[UserStore] Cart handleLogin completed')
+    } catch (error) {
+      console.error('[UserStore] Error in cart handling during login:', error)
+    }
   }
 
-  function logout() {
-    // Aktualizace košíku před odhlášením
-    const { useCart } = import('./stavKosiku')
-    const cartStore = useCart()
-    cartStore.handleLogout()
+  async function logout() {
+    console.log('[UserStore] Logout called')
+
+    try {
+      // Correctly await the dynamic import
+      console.log('[UserStore] Loading cart store module...')
+      const cartModule = await import('./stavKosiku')
+      const cartStore = cartModule.useCart()
+      console.log('[UserStore] Calling cart handleLogout method')
+      cartStore.handleLogout()
+      console.log('[UserStore] Cart handleLogout completed')
+    } catch (error) {
+      console.error('[UserStore] Error in cart handling during logout:', error)
+    }
 
     // Odstranění dat uživatele
     user.value = null
     token.value = null
+    console.log('[UserStore] User data cleared from state')
 
     // Odstranění z localStorage
     localStorage.removeItem('user')
     localStorage.removeItem('token')
+    console.log('[UserStore] User data removed from localStorage')
   }
 
   return {

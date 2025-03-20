@@ -9,7 +9,12 @@
         @click="selectSubcategory(subcategory.id)"
       >
         <div class="subcategory-image">
-          <img :src="subcategory.image || '/placeholder-image.jpg'" :alt="subcategory.name" />
+          <img
+            :src="subcategory.image"
+            :alt="subcategory.name"
+            @error="handleImageError"
+            data-placeholder="/images/placeholder.jpg"
+          />
         </div>
         <div class="subcategory-content">
           {{ subcategory.name }}
@@ -256,7 +261,6 @@
 <script>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import ztraceneBedneniImage from '@/assets/images/subcategories/ztracene-bedneni.jpg'
 import { useCart } from '@/stores/stavKosiku'
 import categoriesJson from '@/data/categories.json'
 
@@ -337,8 +341,13 @@ export default {
       }
     )
 
+    // Handle image loading errors
+    const handleImageError = (event) => {
+      // Replace with placeholder when image fails to load
+      event.target.src = event.target.getAttribute('data-placeholder') || '/images/placeholder.jpg'
+    }
+
     // Simulace načtení dat kategorie
-    // Update your loadCategoryData function to include images for subcategories
     const loadCategoryData = async () => {
       // Simulate API call delay
       await new Promise((resolve) => setTimeout(resolve, 300))
@@ -471,6 +480,7 @@ export default {
         }
       })
     }
+
     // Řazení produktů
     const sortProducts = () => {
       sortProductsList(filteredProducts.value)
@@ -581,7 +591,7 @@ export default {
         id: product.id,
         name: product.name,
         price: product.price.toString(),
-        image: product.image || '/placeholder-image.jpg',
+        image: product.image || '/images/placeholder.jpg',
         priceUnit: 'kus' // nebo jiná jednotka, pokud je k dispozici
       }
 
@@ -621,12 +631,12 @@ export default {
       viewProductDetail,
       selectSubcategory,
       addToCart,
-      showNotification
+      showNotification,
+      handleImageError
     }
   }
 }
 </script>
-
 <style scoped>
 .HeadingStrip {
   display: none;

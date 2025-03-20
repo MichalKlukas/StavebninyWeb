@@ -78,8 +78,13 @@ const inicializovatLokalniKosik = () => {
 // Načtení košíku z API (pro přihlášené uživatele)
 const nacistKosikZServeru = async () => {
   const token = getAuthToken()
+  console.log(
+    '[CartStore] Auth token for cart request:',
+    token ? token.substring(0, 15) + '...' : 'MISSING'
+  )
   if (!token) {
     console.log('[CartStore] No auth token available, skipping server load')
+    alert('No authentication token found! Please try logging in again.')
     return false
   }
 

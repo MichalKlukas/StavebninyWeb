@@ -82,7 +82,7 @@ export default {
     try {
       // Exchange the authorization code for tokens
       console.log('[GoogleCallback] Sending request to:', `${API_URL}/api/auth/google/callback`)
-      const response = await axios.post(`${API_URL}/api/auth/google/callback`, { code })
+      const response = await axios.post(`${API_URL}/auth/google/callback`, { code })
 
       console.log('[GoogleCallback] Token response received:', {
         userReceived: !!response.data.user,

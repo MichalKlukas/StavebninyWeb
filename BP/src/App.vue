@@ -5,9 +5,38 @@ import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
 import CartDebug from '@/components/debug/CartDebug.vue'
 import StoreDebug from '@/components/debug/StoreDebug.vue'
+import { useUserStore } from '@/stores/useUserStore.js'
+import { useCart } from '@/stores/stavKosiku.js'
 
-// Development mode check
+// Development mode check - force to true for now
 const isDev = ref(true)
+
+// Force fix token format and reinitialize stores
+onMounted(async () => {
+  console.log('[App] Mounted, checking token format')
+
+  // Fix token format
+  const token = localStorage.getItem('token')
+  if (token && !token.startsWith('Bearer ')) {
+    console.log('[App] Fixing token format')
+    const fixedToken = `Bearer ${token}`
+    localStorage.setItem('token', fixedToken)
+
+    // Force re-initialize user store
+    const userStore = useUserStore()
+    if (typeof userStore.init === 'function') {
+      userStore.init()
+    }
+
+    // Force re-initialize cart
+    const cartStore = useCart()
+    if (typeof cartStore.initCart === 'function') {
+      await cartStore.initCart()
+    }
+
+    console.log('[App] Token format fixed and stores reinitialized')
+  }
+})
 
 // Toggle store debugger
 const showStoreDebug = ref(true)

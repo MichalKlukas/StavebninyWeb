@@ -100,7 +100,7 @@ const nacistKosikZServeru = async () => {
     state.isLoading = true
     console.log('[CartStore] Fetching cart from server: /api/user/cart')
 
-    const response = await api.get('/api/user/cart')
+    const response = await api.get('/user/cart')
     console.log('[CartStore] Server response:', response.data)
 
     if (response.data && response.data.items) {
@@ -146,7 +146,7 @@ const synchronizovatKosikNaServer = async () => {
     console.log('[CartStore] Syncing cart to server: /api/user/cart')
     console.log('[CartStore] Items being sent:', state.items.length)
 
-    const response = await api.post('/api/user/cart', {
+    const response = await api.post('/user/cart', {
       items: state.items,
       shippingMethod: state.shippingMethod
     })
@@ -175,7 +175,7 @@ const sloucitKosiky = async () => {
     state.isLoading = true
     console.log('[CartStore] Merging carts. Local items:', state.items.length)
 
-    const response = await api.post('/api/user/cart/merge', {
+    const response = await api.post('/user/cart/merge', {
       anonymousCartId: state.anonymousId,
       items: state.items,
       shippingMethod: state.shippingMethod

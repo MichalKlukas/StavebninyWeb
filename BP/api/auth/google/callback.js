@@ -1,4 +1,4 @@
-// Proxy serverless function with improved error handling
+// Mock Google auth callback - for testing until backend is available
 export default async function handler(req, res) {
   // Only allow POST requests
   if (req.method !== 'POST') {
@@ -6,52 +6,36 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('Serverless: Received Google callback request')
-    console.log('Request body:', JSON.stringify(req.body))
+    console.log('Mock serverless: Received Google callback request')
 
-    // Check if code is present
-    if (!req.body.code) {
-      console.error('Serverless: No authorization code provided')
-      return res.status(400).json({ error: 'No authorization code provided' })
+    // Log the authorization code
+    const { code } = req.body
+    console.log('Authorization code received:', code ? 'Yes' : 'No')
+
+    if (!code) {
+      return res.status(400).json({ error: 'Missing authorization code' })
     }
 
-    // Forward the request to your actual backend
-    const backendUrl = 'https://stavebninylysa.cz/api/auth/google/callback'
-    console.log('Serverless: Forwarding to backend at:', backendUrl)
+    // Mock user data
+    const mockUser = {
+      id: 123,
+      firstName: 'Testovací',
+      lastName: 'Uživatel',
+      email: 'test@example.com',
+      phone: null,
+      companyName: null
+    }
 
-    const response = await fetch(backendUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(req.body)
+    // Generate a mock token
+    const mockToken = 'mock_jwt_token_' + Math.random().toString(36).substring(2)
+
+    // Return successful response with mock data
+    return res.status(200).json({
+      user: mockUser,
+      token: mockToken
     })
-
-    // Check if response is ok
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error(`Serverless: Backend returned error ${response.status}:`, errorText)
-      return res.status(response.status).json({
-        error: 'Backend API error',
-        status: response.status,
-        details: errorText
-      })
-    }
-
-    // Get the response data
-    const data = await response.json()
-    console.log('Serverless: Response from backend received successfully')
-
-    // Return the same status and data that your backend returned
-    return res.status(200).json(data)
   } catch (error) {
-    console.error('Serverless: Exception caught:', error.message)
-    console.error('Serverless: Error stack:', error.stack)
-
-    return res.status(500).json({
-      error: 'Při přihlašování přes Google došlo k chybě',
-      details: error.message,
-      suggestion: 'Backend server might be unavailable or CORS issue'
-    })
+    console.error('Mock serverless error:', error.message)
+    return res.status(500).json({ error: 'Při přihlašování přes Google došlo k chybě' })
   }
 }

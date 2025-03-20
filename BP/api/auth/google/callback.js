@@ -1,4 +1,4 @@
-// Proxy serverless function that forwards requests to your backend API
+// Proxy serverless function with improved error handling
 export default async function handler(req, res) {
   // Only allow POST requests
   if (req.method !== 'POST') {
@@ -6,10 +6,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('Vercel serverless: Received Google callback, forwarding to backend')
+    console.log('Serverless: Received Google callback request')
+    console.log('Request body:', JSON.stringify(req.body))
+
+    // Check if code is present
+    if (!req.body.code) {
+      console.error('Serverless: No authorization code provided')
+      return res.status(400).json({ error: 'No authorization code provided' })
+    }
 
     // Forward the request to your actual backend
-    const response = await fetch('https://stavebninylysa.cz/api/auth/google/callback', {
+    const backendUrl = 'https://stavebninylysa.cz/api/auth/google/callback'
+    console.log('Serverless: Forwarding to backend at:', backendUrl)
+
+    const response = await fetch(backendUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -17,18 +27,31 @@ export default async function handler(req, res) {
       body: JSON.stringify(req.body)
     })
 
+    // Check if response is ok
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`Serverless: Backend returned error ${response.status}:`, errorText)
+      return res.status(response.status).json({
+        error: 'Backend API error',
+        status: response.status,
+        details: errorText
+      })
+    }
+
     // Get the response data
     const data = await response.json()
-
-    console.log('Vercel serverless: Response from backend received')
+    console.log('Serverless: Response from backend received successfully')
 
     // Return the same status and data that your backend returned
-    return res.status(response.status).json(data)
+    return res.status(200).json(data)
   } catch (error) {
-    console.error('Vercel serverless: Error communicating with backend:', error)
+    console.error('Serverless: Exception caught:', error.message)
+    console.error('Serverless: Error stack:', error.stack)
+
     return res.status(500).json({
       error: 'Při přihlašování přes Google došlo k chybě',
-      details: 'Could not connect to backend API'
+      details: error.message,
+      suggestion: 'Backend server might be unavailable or CORS issue'
     })
   }
 }

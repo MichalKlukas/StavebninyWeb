@@ -17,13 +17,17 @@ declare module '@/stores/stavKosiku.js' {
     cartTotal: ComputedRef<number>
     shipping: ComputedRef<number>
     shippingMethod: ComputedRef<string>
-    addToCart: (product: any) => void
-    removeFromCart: (index: number) => void
-    updateQuantity: (index: number, quantity: number) => void
-    increaseQuantity: (index: number) => void
-    decreaseQuantity: (index: number) => void
-    setShippingMethod: (method: string) => void
-    clearCart: () => void
+    isLoading: ComputedRef<boolean>
+    addToCart: (product: any) => Promise<void>
+    removeFromCart: (index: number) => Promise<void>
+    updateQuantity: (index: number, quantity: number) => Promise<void>
+    increaseQuantity: (index: number) => Promise<void>
+    decreaseQuantity: (index: number) => Promise<void>
+    setShippingMethod: (method: string) => Promise<void>
+    clearCart: () => Promise<void>
+    initCart: () => Promise<void>
+    handleLogin: () => Promise<void>
+    handleLogout: () => void
   }
 
   export function useCart(): CartStore

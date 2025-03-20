@@ -18,6 +18,10 @@ import ResetHesla from '@/views/resetHesla.vue'
 import SearchResults from '@/views/searchResults.vue'
 import GoogleCallback from '@/views/googleCallback.vue'
 
+// Import stores for initialization
+import { useUserStore } from '@/stores/useUserStore.js'
+import { useCart } from '@/stores/stavKosiku.js'
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -122,6 +126,33 @@ const router = createRouter({
       props: true
     }
   ]
+})
+
+// Store initialization - add before exporting the router
+let initialized = false
+
+router.beforeEach(async (to, from, next) => {
+  // Only initialize once
+  if (!initialized) {
+    console.log('Initializing stores...')
+
+    try {
+      // Initialize user store
+      const userStore = useUserStore()
+      userStore.init()
+
+      // Initialize cart store
+      const cartStore = useCart()
+      await cartStore.initCart()
+
+      initialized = true
+      console.log('Stores initialized successfully')
+    } catch (error) {
+      console.error('Error initializing stores:', error)
+    }
+  }
+
+  next()
 })
 
 export default router

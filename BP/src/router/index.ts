@@ -137,13 +137,24 @@ router.beforeEach(async (to, from, next) => {
     console.log('Initializing stores...')
 
     try {
-      // Initialize user store
+      // Initialize user store - call init() only if it exists
       const userStore = useUserStore()
-      userStore.init()
+      if (typeof userStore.init === 'function') {
+        userStore.init()
+        console.log('User store initialized')
+      } else {
+        // Just access the store to initialize it
+        console.log('User store accessed:', userStore.isLoggedIn ? 'Logged in' : 'Not logged in')
+      }
 
       // Initialize cart store
       const cartStore = useCart()
-      await cartStore.initCart()
+      if (typeof cartStore.initCart === 'function') {
+        await cartStore.initCart()
+        console.log('Cart store initialized')
+      } else {
+        console.log('Cart store accessed, but initCart method not found')
+      }
 
       initialized = true
       console.log('Stores initialized successfully')

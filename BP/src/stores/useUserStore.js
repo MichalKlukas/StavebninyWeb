@@ -25,46 +25,57 @@ export const useUserStore = defineStore('user', () => {
   // Actions
   function init() {
     console.log('[UserStore] Initializing user store')
-    // Load user from localStorage
-    const userData = localStorage.getItem('user')
-    const storedToken = localStorage.getItem('token')
 
-    if (userData) {
-      try {
+    try {
+      // Load user from localStorage
+      const userData = localStorage.getItem('user')
+      const storedToken = localStorage.getItem('token')
+
+      if (userData && storedToken) {
+        // Parse user data
         user.value = JSON.parse(userData)
-        console.log('[UserStore] User loaded from localStorage:', user.value.email)
+        // Set token
+        token.value = storedToken
 
-        // Ensure token is properly formatted
-        if (storedToken) {
-          token.value = formatToken(storedToken)
-          if (token.value !== storedToken) {
-            // If token needed reformatting, update localStorage
-            console.log('[UserStore] Reformatting token with Bearer prefix')
-            localStorage.setItem('token', token.value)
-          }
+        console.log('[UserStore] User restored from localStorage:', user.value.email)
+        console.log('[UserStore] Token restored:', token.value ? 'Present' : 'Missing')
+
+        // Ensure token has Bearer prefix
+        if (token.value && !token.value.startsWith('Bearer ')) {
+          token.value = `Bearer ${token.value}`
+          localStorage.setItem('token', token.value)
+          console.log('[UserStore] Added Bearer prefix to token')
         }
-      } catch (e) {
-        console.error('[UserStore] Error parsing user data:', e)
-        lastError.value = e.message
 
-        // Clear invalid data
-        localStorage.removeItem('user')
-        localStorage.removeItem('token')
-        user.value = null
-        token.value = null
+        loading.value = false
+        return true
+      } else {
+        console.log('[UserStore] No complete user data in localStorage')
+
+        // Clear partial data if present
+        if (userData || storedToken) {
+          console.log('[UserStore] Clearing incomplete user data')
+          localStorage.removeItem('user')
+          localStorage.removeItem('token')
+          user.value = null
+          token.value = null
+        }
+
+        loading.value = false
+        return false
       }
-    } else {
-      console.log('[UserStore] No user data in localStorage')
-      // Clear token if user data doesn't exist
-      if (storedToken) {
-        console.log('[UserStore] Found token but no user data, clearing token')
-        localStorage.removeItem('token')
-        token.value = null
-      }
+    } catch (error) {
+      console.error('[UserStore] Error during user initialization:', error)
+
+      // Clear potentially corrupted data
+      localStorage.removeItem('user')
+      localStorage.removeItem('token')
+      user.value = null
+      token.value = null
+
+      loading.value = false
+      return false
     }
-
-    // Return login status
-    return isLoggedIn.value
   }
 
   async function login(userData, authToken) {

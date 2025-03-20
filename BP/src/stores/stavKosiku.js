@@ -372,11 +372,21 @@ export const useCart = () => {
   // Obsluha odhlášení uživatele
   const handleLogout = () => {
     console.log('[CartStore] User logged out, handling cart')
+
+    // Clear cart items on logout
+    state.items = []
+
     // Generate new anonymous ID
     state.anonymousId = simpleUuidv4()
-    // Keep items but mark as needing reinitialization on next login
+    console.log('[CartStore] Generated new anonymousId after logout:', state.anonymousId)
+
+    // Reset initialization state
     state.initialized = false
+
+    // Save the empty cart with new anonymousId
     ulozitKosik()
+
+    console.log('[CartStore] Cart cleared after logout')
   }
 
   // Debug function to check cart status

@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
+import CartDebug from '@/components/debug/CartDebug.vue'
+
+// Development mode check
+const isDev = computed(() => {
+  return import.meta.env.DEV || import.meta.env.MODE === 'development'
+})
 </script>
 
 <template>
@@ -11,6 +18,9 @@ import Footer from '@/components/Footer.vue'
       <RouterView />
     </main>
     <Footer></Footer>
+
+    <!-- Debug component (only shown in development) -->
+    <CartDebug v-if="isDev" />
   </div>
 </template>
 

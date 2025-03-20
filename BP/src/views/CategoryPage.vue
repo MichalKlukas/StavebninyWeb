@@ -341,10 +341,28 @@ export default {
       }
     )
 
-    // Handle image loading errors
+    // Updated handleImageError function to prevent infinite loops
     const handleImageError = (event) => {
-      // Replace with placeholder when image fails to load
-      event.target.src = event.target.getAttribute('data-placeholder') || '/images/placeholder.jpg'
+      // Check if this is already the placeholder to prevent loops
+      const currentSrc = event.target.src
+      const placeholderPath = '/images/placeholder.jpg'
+
+      // If the current source is already the placeholder or contains "placeholder",
+      // don't try to replace it again
+      if (currentSrc.includes('placeholder')) {
+        // Just stop trying to load images for this element
+        console.warn('Placeholder also failed to load')
+        return
+      }
+
+      // Set a flag on the element to indicate we've handled the error
+      event.target.setAttribute('data-error-handled', 'true')
+
+      // Replace with placeholder
+      event.target.src = placeholderPath
+
+      // Log for debugging
+      console.log(`Image failed to load: ${currentSrc}, replaced with placeholder`)
     }
 
     // Simulace načtení dat kategorie

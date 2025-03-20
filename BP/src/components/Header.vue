@@ -134,31 +134,14 @@
     <div class="category-nav">
       <div class="container">
         <nav class="categories">
-          <router-link to="/kategorie/hruba-stavba-a-zelezo" class="category-link"
-            >Hrubá stavba a železo</router-link
+          <router-link
+            v-for="category in categoriesData"
+            :key="category.id"
+            :to="`/kategorie/${category.id}`"
+            class="category-link"
           >
-          <router-link to="/kategorie/fasada" class="category-link">Fasáda</router-link>
-          <router-link to="/kategorie/drevo-a-strecha" class="category-link"
-            >Dřevo a střecha</router-link
-          >
-          <router-link to="/kategorie/sypke-smesi" class="category-link">Sypké směsi</router-link>
-          <router-link to="/kategorie/betonove-vyrobky" class="category-link"
-            >Betonové výrobky</router-link
-          >
-          <router-link to="/kategorie/zdici-materialy" class="category-link"
-            >Zdící materiály</router-link
-          >
-          <router-link to="/kategorie/chemie-a-barvy" class="category-link"
-            >Chemie a barvy</router-link
-          >
-          <router-link to="/kategorie/spojovaci-material" class="category-link"
-            >Spojovací materiál</router-link
-          >
-          <router-link to="/kategorie/elektro-a-naradi" class="category-link"
-            >Elektro a nářadí</router-link
-          >
-          <router-link to="/kategorie/sadrokarton" class="category-link">Sádrokarton</router-link>
-          <router-link to="/kategorie/ostatni" class="category-link">Ostatní</router-link>
+            {{ category.displayName }}
+          </router-link>
         </nav>
       </div>
     </div>
@@ -170,6 +153,7 @@ import { defineComponent, ref, onMounted, onUnmounted, computed } from 'vue'
 import { useUserStore } from '../stores'
 import { useRouter } from 'vue-router'
 import { useCart } from '@/stores/stavKosiku.js'
+import categoriesJson from '@/data/categories.json'
 
 export default defineComponent({
   name: 'Header',
@@ -180,6 +164,9 @@ export default defineComponent({
     const cart = useCart()
     const searchQuery = ref('')
     const cartItemCount = computed(() => cart.itemCount.value)
+
+    // Import categories from JSON file
+    const categoriesData = computed(() => categoriesJson.categories)
 
     const handleSearch = () => {
       if (searchQuery.value.trim()) {
@@ -240,7 +227,8 @@ export default defineComponent({
       formatCartTotal,
       searchQuery,
       handleSearch,
-      cartItemCount
+      cartItemCount,
+      categoriesData
     }
   }
 })

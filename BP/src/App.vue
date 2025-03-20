@@ -7,9 +7,7 @@ import CartDebug from '@/components/debug/CartDebug.vue'
 import StoreDebug from '@/components/debug/StoreDebug.vue'
 
 // Development mode check
-const isDev = computed(() => {
-  return import.meta.env.DEV || import.meta.env.MODE === 'development'
-})
+const isDev = ref(true)
 
 // Toggle store debugger
 const showStoreDebug = ref(true)

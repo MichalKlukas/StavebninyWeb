@@ -23,7 +23,15 @@ const state = reactive({
 
 // Získání JWT tokenu a kontrola, zda je uživatel přihlášen
 const getAuthToken = () => {
-  return localStorage.getItem('token')
+  const token = localStorage.getItem('token')
+  // Format token if it exists but doesn't have Bearer prefix
+  if (token && !token.startsWith('Bearer ')) {
+    console.log('[CartStore] Adding Bearer prefix to token')
+    const formattedToken = `Bearer ${token}`
+    localStorage.setItem('token', formattedToken)
+    return formattedToken
+  }
+  return token
 }
 
 const isUserLoggedIn = () => {
@@ -341,8 +349,24 @@ export const useCart = () => {
   // Obsluha přihlášení uživatele
   const handleLogin = async () => {
     console.log('[CartStore] User logged in, handling cart')
-    state.initialized = false // Reset initialization so we reinitialize
-    await initCart() // Reinitialize cart with user's data
+
+    // Clear the current cart from memory but keep local storage
+    // until we fetch from server
+    state.items = []
+
+    // Force complete reinitialization
+    state.initialized = false
+
+    // Wait for server to sync
+    const success = await nacistKosikZServeru()
+
+    if (!success) {
+      // If server sync failed, reload from localStorage
+      // as a fallback only
+      inicializovatLokalniKosik()
+    }
+
+    state.initialized = true
   }
 
   // Obsluha odhlášení uživatele

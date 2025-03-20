@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     }
 
     // Generate a mock token
-    const mockToken = 'mock_jwt_token_' + Math.random().toString(36).substring(2)
+    const mockToken = 'Bearer mock_jwt_token_' + Math.random().toString(36).substring(2)
 
     // Return successful response with mock data
     return res.status(200).json({

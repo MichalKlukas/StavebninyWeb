@@ -14,6 +14,8 @@ const api = axios.create({
 // Add request interceptor to set auth token and ensure API prefix
 api.interceptors.request.use(
   (config) => {
+    console.log('[API] Full request URL:', config.baseURL + config.url)
+    console.log('[API] Headers:', config.headers)
     // Add /api prefix if not present and not an absolute URL
     if (!config.url.startsWith('/api') && !config.url.startsWith('http')) {
       config.url = `/api${config.url}`

@@ -30,7 +30,7 @@ export const useUserStore = defineStore('user', () => {
       // Load user from localStorage
       const userData = localStorage.getItem('user')
       const storedToken = localStorage.getItem('token')
-
+      verifyTokenFormat()
       if (userData && storedToken) {
         // Parse user data
         user.value = JSON.parse(userData)
@@ -76,6 +76,22 @@ export const useUserStore = defineStore('user', () => {
       loading.value = false
       return false
     }
+  }
+  function verifyTokenFormat() {
+    const storedToken = localStorage.getItem('token')
+    console.log('[UserStore] Token verification:')
+    console.log('- Token in state:', token.value ? 'Present' : 'Missing')
+    console.log('- Token in localStorage:', storedToken ? 'Present' : 'Missing')
+
+    if (storedToken && !storedToken.startsWith('Bearer ')) {
+      console.log('- Fixing token format in localStorage')
+      const fixedToken = `Bearer ${storedToken}`
+      localStorage.setItem('token', fixedToken)
+      token.value = fixedToken
+      return fixedToken
+    }
+
+    return storedToken
   }
 
   async function login(userData, authToken) {

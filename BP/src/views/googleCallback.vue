@@ -124,7 +124,11 @@ export default {
             timestamp: new Date().toISOString()
           }
 
-          response = await axios.post(`${API_URL}/auth/google/callback`, { code }, requestConfig)
+          response = await axios.post(
+            `${API_URL}/api/auth/google/callback`,
+            { code },
+            requestConfig
+          )
 
           console.log('[GoogleCallback] Response status:', response.status)
           console.log('[GoogleCallback] Response headers:', response.headers)

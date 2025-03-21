@@ -373,20 +373,29 @@ export const useCart = () => {
   const handleLogout = () => {
     console.log('[CartStore] User logged out, handling cart')
 
-    // Clear cart items on logout
+    // Complete reset of cart state
     state.items = []
-
-    // Generate new anonymous ID
+    state.shippingMethod = 'pickup'
     state.anonymousId = simpleUuidv4()
-    console.log('[CartStore] Generated new anonymousId after logout:', state.anonymousId)
-
-    // Reset initialization state
     state.initialized = false
+    state.lastError = null
 
-    // Save the empty cart with new anonymousId
-    ulozitKosik()
+    console.log('[CartStore] Cart completely reset after logout')
 
-    console.log('[CartStore] Cart cleared after logout')
+    // Save the empty cart
+    try {
+      localStorage.setItem(
+        'kosik',
+        JSON.stringify({
+          items: [],
+          shippingMethod: 'pickup',
+          anonymousId: state.anonymousId
+        })
+      )
+      console.log('[CartStore] Empty cart saved to localStorage')
+    } catch (error) {
+      console.error('[CartStore] Error saving empty cart:', error)
+    }
   }
 
   // Debug function to check cart status

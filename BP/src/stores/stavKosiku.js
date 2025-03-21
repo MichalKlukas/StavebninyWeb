@@ -1,6 +1,6 @@
 // src/stores/stavKosiku.js
 import { reactive, computed } from 'vue'
-import API_URL, { api } from '@/config/api' // Import both API_URL and api
+import api, { API_URL } from '@/config/api' // Import both API_URL and api
 
 // Generátor UUID
 function simpleUuidv4() {

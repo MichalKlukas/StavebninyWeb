@@ -11,12 +11,20 @@ const api = axios.create({
   withCredentials: true // Include credentials
 })
 
-// Add request interceptor to set auth token
+// Add request interceptor to set auth token and ensure API prefix
 api.interceptors.request.use(
   (config) => {
+    // Add /api prefix if not present and not an absolute URL
+    if (!config.url.startsWith('/api') && !config.url.startsWith('http')) {
+      config.url = `/api${config.url}`
+      console.log('[API] Added /api prefix to URL:', config.url)
+    }
+
     const token = localStorage.getItem('token')
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      // Fix the potential Bearer duplication by extracting just the token if needed
+      const tokenValue = token.startsWith('Bearer ') ? token.substring(7) : token
+      config.headers.Authorization = `Bearer ${tokenValue}`
       console.log('[API] Adding auth token to request:', config.url)
     } else {
       console.log('[API] No auth token available for request:', config.url)
@@ -29,7 +37,7 @@ api.interceptors.request.use(
   }
 )
 
-// Add response interceptor to handle errors consistently
+// Response interceptor remains the same
 api.interceptors.response.use(
   (response) => {
     console.log(`[API] Response from ${response.config.url}:`, response.status)
@@ -51,13 +59,12 @@ api.interceptors.response.use(
     // Handle authentication errors
     if (error.response && error.response.status === 401) {
       console.error('[API] Authentication error - consider redirecting to login')
-      // You could add code here to redirect to login or clear user session
     }
 
     return Promise.reject(error)
   }
 )
 
-// Make sure we export both the API_URL and the api object
-export { api }
-export default API_URL
+// Switch the exports to make api the default export
+export { API_URL }
+export default api

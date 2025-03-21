@@ -30,7 +30,7 @@ import { ref } from 'vue'
 import { useUserStore } from '../stores'
 import { useCart } from '../stores/stavKosiku'
 import axios from 'axios'
-import API_URL from '../config/api'
+import api from '../config/api'
 
 export default {
   name: 'GoogleCallback',
@@ -124,8 +124,8 @@ export default {
             timestamp: new Date().toISOString()
           }
 
-          response = await axios.post(
-            `${API_URL}/api/auth/google/callback`,
+          response = await api.post(
+            '/auth/google/callback', // The /api prefix will be added automatically by the interceptor
             { code },
             requestConfig
           )

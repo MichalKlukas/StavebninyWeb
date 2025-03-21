@@ -121,10 +121,10 @@
               <span class="action-text">Přihlásit</span>
             </router-link>
 
-            <router-link to="/cart" class="user-action cart-btn">
+            <router-link to="/cart" class="user-action cart-btn" @mouseenter="updateCartInfo">
               <span class="icon">🛒</span>
               <span class="action-text">{{ formatCartTotal }}</span>
-              <span v-if="cartItemCount > 0" class="cart-badge">{{ cartItemCount }}</span>
+              <span v-if="cartCounter > 0" class="cart-badge">{{ cartCounter }}</span>
             </router-link>
           </div>
         </div>
@@ -152,7 +152,8 @@
 import { defineComponent, ref, onMounted, onUnmounted, computed } from 'vue'
 import { useUserStore } from '../stores'
 import { useRouter } from 'vue-router'
-import { useCart } from '@/stores/stavKosiku.js'
+// Import the store type along with the function
+import { useCartStore } from '@/stores/cartStore'
 import categoriesJson from '@/data/categories.json'
 
 export default defineComponent({
@@ -161,57 +162,70 @@ export default defineComponent({
     const userStore = useUserStore()
     const router = useRouter()
     const dropdownOpen = ref(false)
-    const cart = useCart()
+    const cartStore = useCartStore()
     const searchQuery = ref('')
-    const cartItemCount = computed(() => cart.itemCount.value)
 
-    // Import categories from JSON file
+    // We'll keep a local reactive reference that's TypeScript-safe
+    const cartCounter = ref(0)
+    const cartTotalAmount = ref(0)
+
+    // Update local refs - call this whenever needed
+    const updateCartInfo = () => {
+      try {
+        // Access the cart store values and provide fallbacks
+        cartCounter.value = Number(cartStore?.itemCount) || 0
+        cartTotalAmount.value = Number(cartStore?.cartTotal) || 0
+      } catch (error) {
+        console.error('Error updating cart info:', error)
+        cartCounter.value = 0
+        cartTotalAmount.value = 0
+      }
+    }
+
+    // Format the cart total for display
+    const formatCartTotal = computed(() => {
+      // Update before formatting
+      updateCartInfo()
+
+      return `${cartTotalAmount.value.toLocaleString('cs-CZ', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })} Kč`
+    })
+
     const categoriesData = computed(() => categoriesJson.categories)
 
     const handleSearch = () => {
       if (searchQuery.value.trim()) {
-        // Encode the search query for URL
         const query = encodeURIComponent(searchQuery.value.trim())
-        // Navigate to search results page with the query
         router.push(`/search?q=${query}`)
-        // Clear the search input
         searchQuery.value = ''
       }
     }
 
-    // Formátovaná celková cena košíku
-    const formatCartTotal = computed(() => {
-      const total = cart.cartTotal.value || 0
-      return (
-        total.toLocaleString('cs-CZ', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        }) + ' Kč'
-      )
-    })
-
-    // Funkce pro přepínání dropdown menu
     const toggleDropdown = () => {
       dropdownOpen.value = !dropdownOpen.value
     }
 
-    // Funkce pro odhlášení
     const logout = () => {
+      if (typeof cartStore.handleLogout === 'function') {
+        cartStore.handleLogout()
+      }
       userStore.logout()
       dropdownOpen.value = false
       router.push('/')
     }
 
-    // Funkce pro zavření dropdown po kliknutí mimo
     const closeDropdown = (e: MouseEvent) => {
       if (!e.target || !(e.target as HTMLElement).closest('.user-dropdown')) {
         dropdownOpen.value = false
       }
     }
 
-    // Nastavení a odstranění event listenerů
+    // Update cart info on component mount
     onMounted(() => {
       document.addEventListener('click', closeDropdown)
+      updateCartInfo()
     })
 
     onUnmounted(() => {
@@ -223,11 +237,11 @@ export default defineComponent({
       dropdownOpen,
       toggleDropdown,
       logout,
-      cart,
       formatCartTotal,
       searchQuery,
       handleSearch,
-      cartItemCount,
+      cartCounter,
+      updateCartInfo,
       categoriesData
     }
   }

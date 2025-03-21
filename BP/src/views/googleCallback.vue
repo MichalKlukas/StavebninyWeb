@@ -1,3 +1,4 @@
+<!-- src/views/googleCallback.vue -->
 <template>
   <div class="callback-container">
     <div class="processing-message" v-if="loading">
@@ -26,134 +27,83 @@
 </template>
 
 <script>
-import { ref } from 'vue'
-import { useUserStore } from '../stores'
-import { useCart } from '../stores/stavKosiku'
-import axios from 'axios'
-import api, { API_URL } from '../config/api'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUserStore } from '../stores/useUserStore'
+import { useCartStore } from '../stores/cartStore'
+import api from '../config/api'
 
 export default {
   name: 'GoogleCallback',
   setup() {
     const userStore = useUserStore()
-    const cartStore = useCart()
-    const debugInfo = ref(null)
+    const cartStore = useCartStore()
+    const router = useRouter()
 
-    return { userStore, cartStore, debugInfo }
-  },
-  data() {
-    return {
-      loading: true,
-      error: false,
-      errorMessage: '',
-      redirectDelay: 3000, // delay before redirect to see debug info
-      authCode: null, // Store code for retry functionality
-      returnUrl: '/'
-    }
-  },
-  async mounted() {
-    console.log('[GoogleCallback] Component mounted')
-    await this.processAuthCode()
-  },
-  methods: {
-    async processAuthCode() {
+    // State
+    const loading = ref(true)
+    const error = ref(false)
+    const errorMessage = ref('')
+    const debugInfo = ref(null)
+    const authCode = ref(null)
+    const returnUrl = ref('/')
+
+    // Initialize component
+    onMounted(async () => {
+      console.log('[GoogleCallback] Component mounted')
+      await processAuthCode()
+    })
+
+    const processAuthCode = async () => {
       // Get the authorization code from URL
       const urlParams = new URLSearchParams(window.location.search)
       const code = urlParams.get('code')
-      const error = urlParams.get('error')
+      const googleError = urlParams.get('error')
 
       // Store for potential retry
-      this.authCode = code
+      authCode.value = code
 
       // Retrieve return URL from localStorage
-      this.returnUrl = localStorage.getItem('returnUrl') || '/'
-      console.log('[GoogleCallback] Return URL:', this.returnUrl)
+      returnUrl.value = localStorage.getItem('returnUrl') || '/'
+      console.log('[GoogleCallback] Return URL:', returnUrl.value)
 
       // Handle errors from Google
-      if (error) {
-        console.error('[GoogleCallback] Google returned error:', error)
-        this.loading = false
-        this.error = true
-        this.errorMessage = 'Přihlášení přes Google bylo zrušeno nebo zamítnuto.'
+      if (googleError) {
+        console.error('[GoogleCallback] Google returned error:', googleError)
+        loading.value = false
+        error.value = true
+        errorMessage.value = 'Přihlášení přes Google bylo zrušeno nebo zamítnuto.'
         return
       }
 
       // If no code is present, redirect to login
       if (!code) {
         console.error('[GoogleCallback] No authorization code present')
-        this.loading = false
-        this.error = true
-        this.errorMessage = 'Chybí autorizační kód. Zkuste prosím přihlášení znovu.'
+        loading.value = false
+        error.value = true
+        errorMessage.value = 'Chybí autorizační kód. Zkuste prosím přihlášení znovu.'
         return
       }
 
       console.log('[GoogleCallback] Authorization code received')
-      this.debugInfo = {
+      debugInfo.value = {
         step: 'Authorization code received',
         code: `${code.substring(0, 10)}...`,
         timestamp: new Date().toISOString()
       }
 
       try {
-        // Enhanced debugging information
-        console.log('[GoogleCallback] Authorization code:', code.substring(0, 10) + '...')
-        console.log('[GoogleCallback] Full request URL:', `${API_URL}/auth/google/callback`)
-
-        // Log the current environment
-        console.log('[GoogleCallback] Environment variables:')
-        console.log('API_URL:', API_URL)
-        console.log('import.meta.env.DEV:', import.meta.env.DEV)
-
-        // Use explicit parameters for better debugging
-        const requestConfig = {
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          withCredentials: true
+        // Make request to backend to exchange code for token
+        debugInfo.value = {
+          ...debugInfo.value,
+          step: 'Sending request to server',
+          timestamp: new Date().toISOString()
         }
 
-        console.log('[GoogleCallback] Request config:', JSON.stringify(requestConfig))
+        const response = await api.post('/auth/google/callback', { code })
 
-        // Make the request with explicit error handling
-        let response
-        try {
-          this.debugInfo = {
-            ...this.debugInfo,
-            step: 'Sending request to server',
-            endpoint: `${API_URL}/auth/google/callback`,
-            timestamp: new Date().toISOString()
-          }
-
-          response = await api.post('/auth/google/callback', { code }, requestConfig)
-
-          console.log('[GoogleCallback] Response status:', response.status)
-          console.log('[GoogleCallback] Response headers:', response.headers)
-        } catch (requestError) {
-          console.error('[GoogleCallback] Request failed:')
-          console.error('Status:', requestError.response?.status)
-          console.error('Response data:', requestError.response?.data)
-          console.error('Error message:', requestError.message)
-
-          this.debugInfo = {
-            ...this.debugInfo,
-            step: 'Request error',
-            status: requestError.response?.status,
-            data: requestError.response?.data,
-            message: requestError.message,
-            timestamp: new Date().toISOString()
-          }
-
-          throw requestError // Re-throw to be caught by the outer try/catch
-        }
-
-        console.log('[GoogleCallback] Token response received:', {
-          userReceived: !!response.data.user,
-          tokenReceived: !!response.data.token,
-          tokenPreview: response.data.token ? `${response.data.token.substring(0, 15)}...` : 'none'
-        })
-
-        this.debugInfo = {
-          ...this.debugInfo,
+        debugInfo.value = {
+          ...debugInfo.value,
           step: 'Token received',
           success: true,
           userEmail: response.data.user?.email,
@@ -166,111 +116,65 @@ export default {
           throw new Error('Server returned incomplete authentication data')
         }
 
-        // Format token if needed (ensure it has 'Bearer ' prefix)
+        // Format token if needed
         const formattedToken = response.data.token.startsWith('Bearer ')
           ? response.data.token
           : `Bearer ${response.data.token}`
 
         // Set user state in store
         console.log('[GoogleCallback] Calling userStore.login')
-        await this.userStore.login(response.data.user, formattedToken)
+        await userStore.login(response.data.user, formattedToken)
         console.log('[GoogleCallback] userStore.login completed')
 
-        // Verify token storage
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        // Initialize cart and merge
+        console.log('[GoogleCallback] Merging cart after Google login')
 
-        const storedToken = localStorage.getItem('token')
-        const storedUser = localStorage.getItem('user')
-
-        console.log('[GoogleCallback] Verification after login:')
-        console.log(
-          '- Token stored:',
-          storedToken ? `${storedToken.substring(0, 15)}...` : 'MISSING'
-        )
-        console.log('- User stored:', storedUser ? 'YES' : 'MISSING')
-        console.log('- User logged in according to store:', this.userStore.isLoggedIn)
-
-        this.debugInfo = {
-          ...this.debugInfo,
-          step: 'Login verification',
-          tokenStored: !!storedToken,
-          userStored: !!storedUser,
-          isLoggedIn: this.userStore.isLoggedIn,
-          timestamp: new Date().toISOString()
-        }
-
-        // Verify login success
-        if (!storedToken || !storedUser || !this.userStore.isLoggedIn) {
-          throw new Error('Login appears to have failed despite successful server response')
-        }
-
-        // Force cart initialization
-        console.log('[GoogleCallback] Manually initializing cart')
         try {
-          await this.cartStore.initCart()
-          console.log('[GoogleCallback] Cart manually initialized')
+          await cartStore.handleLogin()
+          console.log('[GoogleCallback] Cart merged successfully')
 
-          this.debugInfo = {
-            ...this.debugInfo,
-            step: 'Cart initialized',
+          debugInfo.value = {
+            ...debugInfo.value,
+            step: 'Cart merged',
+            itemCount: cartStore.itemCount,
             timestamp: new Date().toISOString()
           }
         } catch (cartError) {
-          console.error('[GoogleCallback] Cart initialization error:', cartError)
+          console.error('[GoogleCallback] Cart merge error:', cartError)
           // Continue anyway - cart issue shouldn't prevent login
         }
 
         // Remove returnUrl from localStorage
         localStorage.removeItem('returnUrl')
 
-        // Redirect after delay to ensure all processes complete
-        this.debugInfo = {
-          ...this.debugInfo,
-          step: 'Redirecting to ' + this.returnUrl,
+        // Redirect to the return URL
+        debugInfo.value = {
+          ...debugInfo.value,
+          step: 'Redirecting to ' + returnUrl.value,
           timestamp: new Date().toISOString()
         }
 
-        console.log('[GoogleCallback] Redirecting to:', this.returnUrl)
+        console.log('[GoogleCallback] Redirecting to:', returnUrl.value)
+
+        // Short delay to ensure everything is processed
         setTimeout(() => {
-          this.$router.push(this.returnUrl)
+          router.push(returnUrl.value)
         }, 1000)
       } catch (error) {
-        this.loading = false
-        this.error = true
+        loading.value = false
+        error.value = true
 
         console.error('[GoogleCallback] Google authentication error:', error)
-        console.error('[GoogleCallback] Error details:', error.response?.data || error.message)
-
-        // Try to test the API endpoint connectivity
-        try {
-          const healthCheck = await axios.get(`${API_URL}/health`)
-          console.log('[GoogleCallback] Health check response:', healthCheck.data)
-
-          this.debugInfo = {
-            ...this.debugInfo,
-            step: 'Health check',
-            healthStatus: healthCheck.data,
-            timestamp: new Date().toISOString()
-          }
-        } catch (healthError) {
-          console.error('[GoogleCallback] Health check failed:', healthError)
-          this.debugInfo = {
-            ...this.debugInfo,
-            step: 'Health check failed',
-            error: healthError.message,
-            timestamp: new Date().toISOString()
-          }
-        }
 
         if (error.response && error.response.data && error.response.data.error) {
-          this.errorMessage = error.response.data.error
+          errorMessage.value = error.response.data.error
         } else {
-          this.errorMessage =
+          errorMessage.value =
             'Při přihlašování přes Google došlo k neočekávané chybě. Zkuste to prosím znovu.'
         }
 
-        this.debugInfo = {
-          ...this.debugInfo,
+        debugInfo.value = {
+          ...debugInfo.value,
           step: 'Error occurred',
           message: error.message,
           responseStatus: error.response?.status,
@@ -278,22 +182,29 @@ export default {
           timestamp: new Date().toISOString()
         }
       }
-    },
+    }
 
-    // Method to allow retry of authentication
-    async retryAuth() {
-      if (this.authCode) {
-        this.loading = true
-        this.error = false
-        this.debugInfo = {
+    const retryAuth = async () => {
+      if (authCode.value) {
+        loading.value = true
+        error.value = false
+        debugInfo.value = {
           step: 'Retrying authentication',
           timestamp: new Date().toISOString()
         }
-        await this.processAuthCode()
+        await processAuthCode()
       } else {
         // No auth code available, redirect to login
-        this.$router.push('/prihlaseni')
+        router.push('/prihlaseni')
       }
+    }
+
+    return {
+      loading,
+      error,
+      errorMessage,
+      debugInfo,
+      retryAuth
     }
   }
 }

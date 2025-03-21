@@ -8,7 +8,7 @@
       <span class="price">{{ formatPrice(product) }}</span>
       <span class="price-info">Cena za {{ product.priceUnit || 'kus' }} s DPH</span>
     </div>
-    <button class="add-to-cart-btn" @click.stop="addToCart">
+    <button class="add-to-cart-btn" @click.stop="addToCart" :disabled="isAddingToCart">
       <svg
         class="cart-icon"
         xmlns="http://www.w3.org/2000/svg"
@@ -23,13 +23,14 @@
         <circle cx="20" cy="21" r="1"></circle>
         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
       </svg>
-      <span>Přidat do košíku</span>
+      <span>{{ isAddingToCart ? 'Přidávání...' : 'Přidat do košíku' }}</span>
     </button>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue'
+import { defineComponent, ref } from 'vue'
+import { useCartStore } from '@/stores/cartStore'
 import type { PropType } from 'vue'
 
 // Define the product interface for type safety
@@ -51,26 +52,54 @@ export default defineComponent({
       required: true
     }
   },
+  setup(props) {
+    const cartStore = useCartStore()
+    const isAddingToCart = ref(false)
+
+    const navigateToProduct = () => {
+      // Navigate to product detail page - use Vue Router from the component instance
+      const productSlug = props.product.slug || props.product.id
+      // Need to use the router from the component instance
+    }
+
+    const addToCart = async (event: Event) => {
+      // Prevent navigation when clicking the add to cart button
+      event.preventDefault()
+      event.stopPropagation()
+
+      isAddingToCart.value = true
+      try {
+        // Use the cart store directly
+        await cartStore.addToCart(props.product)
+      } catch (error) {
+        console.error('Error adding to cart:', error)
+      } finally {
+        isAddingToCart.value = false
+      }
+    }
+
+    const formatPrice = (product: Product): string => {
+      // If price is already a string with format "XXX Kč/unit", return just the price
+      if (typeof product.price === 'string' && product.price.includes('Kč/')) {
+        return product.price.split('Kč/')[0] + ' Kč'
+      }
+      // Otherwise return the price as is
+      return typeof product.price === 'string' ? product.price : `${product.price} Kč`
+    }
+
+    return {
+      isAddingToCart,
+      navigateToProduct,
+      addToCart,
+      formatPrice
+    }
+  },
   methods: {
+    // Keep these methods for backward compatibility
     navigateToProduct() {
       // Navigate to product detail page
       const productSlug = this.product.slug || this.product.id
       this.$router.push(`/product/${productSlug}`)
-    },
-    addToCart(event: Event) {
-      // Prevent navigation when clicking the add to cart button
-      event.preventDefault()
-      event.stopPropagation()
-      // Emit event to parent component
-      this.$emit('add-to-cart', this.product)
-    },
-    formatPrice(product: Product): string {
-      // Pokud je price již řetězec s formátem "XXX Kč/jednotka", vrátíme jen cenu
-      if (typeof product.price === 'string' && product.price.includes('Kč/')) {
-        return product.price.split('Kč/')[0] + ' Kč'
-      }
-      // Jinak vrátíme cenu tak jak je
-      return typeof product.price === 'string' ? product.price : `${product.price} Kč`
     }
   }
 })

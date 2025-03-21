@@ -1,4 +1,4 @@
-import API_URL from '@/config/api.js';
+<!-- src/views/prihlaseni.vue -->
 <template>
   <div class="HeadingStrip">
     <h1>Přihlášení</h1>
@@ -11,7 +11,7 @@ import API_URL from '@/config/api.js';
       </p>
 
       <div class="login-options">
-        <!-- Hlavní přihlašovací formulář -->
+        <!-- Main login form -->
         <form @submit.prevent="submitLogin" class="login-form" v-if="!formSubmitted">
           <div class="form-group">
             <label for="email">E-mail *</label>
@@ -21,7 +21,7 @@ import API_URL from '@/config/api.js';
               v-model="loginData.email"
               required
               class="form-input"
-              placeholder="vás@email.cz"
+              placeholder="váš@email.cz"
             />
           </div>
 
@@ -62,7 +62,7 @@ import API_URL from '@/config/api.js';
           </div>
         </form>
 
-        <!-- Formulář pro zapomenuté heslo -->
+        <!-- Password reset form -->
         <form @submit.prevent="submitForgotPassword" class="forgot-form" v-if="showForgotPassword">
           <h3>Obnovení hesla</h3>
           <p>Zadejte svůj e-mail a my vám zašleme odkaz pro obnovení hesla.</p>
@@ -92,20 +92,20 @@ import API_URL from '@/config/api.js';
           <p v-if="forgotErrorMessage" class="error-message">{{ forgotErrorMessage }}</p>
         </form>
 
-        <!-- Separator pro sociální přihlášení -->
+        <!-- Separator for social login -->
         <div class="social-separator" v-if="!showForgotPassword && !formSubmitted">
           <span>nebo</span>
         </div>
 
-        <!-- Přihlášení přes Google -->
+        <!-- Google login button -->
         <div class="social-login" v-if="!showForgotPassword && !formSubmitted">
-          <button @click="loginWithGoogle" class="google-button">
+          <button @click="loginWithGoogle" class="google-button" :disabled="isSubmitting">
             <span class="google-icon">G</span>
             <span>Přihlásit přes Google</span>
           </button>
         </div>
 
-        <!-- Potvrzení úspěšného přihlášení -->
+        <!-- Login success message -->
         <div v-if="formSubmitted" class="success-message">
           <div class="success-content">
             <h3>Úspěšně jste se přihlásili!</h3>
@@ -114,7 +114,7 @@ import API_URL from '@/config/api.js';
         </div>
       </div>
 
-      <!-- Sekce pro registraci nového účtu -->
+      <!-- Registration section -->
       <div class="register-section" v-if="!showForgotPassword && !formSubmitted">
         <h3>Ještě nemáte účet?</h3>
         <p>
@@ -128,121 +128,129 @@ import API_URL from '@/config/api.js';
 </template>
 
 <script>
+import { ref } from 'vue'
 import axios from 'axios'
-import { useUserStore } from '../stores'
+import { useRouter, useRoute } from 'vue-router'
+import { useUserStore } from '../stores/useUserStore'
+import { useCartStore } from '../stores/cartStore'
 
 export default {
   name: 'LoginPage',
   setup() {
-    // Inicializace Pinia store
+    const router = useRouter()
+    const route = useRoute()
     const userStore = useUserStore()
-    return { userStore }
-  },
-  data() {
-    return {
-      loginData: {
-        email: '',
-        password: '',
-        remember: false
-      },
-      forgotData: {
-        email: ''
-      },
-      isSubmitting: false,
-      formSubmitted: false,
-      errorMessage: '',
-      forgotErrorMessage: '',
-      forgotSuccessMessage: '',
-      showPassword: false,
-      showForgotPassword: false
-    }
-  },
-  methods: {
-    async submitLogin() {
-      this.isSubmitting = true
-      this.errorMessage = ''
+    const cartStore = useCartStore()
+
+    // Form data
+    const loginData = ref({
+      email: '',
+      password: '',
+      remember: false
+    })
+
+    const forgotData = ref({
+      email: ''
+    })
+
+    // UI state
+    const isSubmitting = ref(false)
+    const formSubmitted = ref(false)
+    const errorMessage = ref('')
+    const forgotErrorMessage = ref('')
+    const forgotSuccessMessage = ref('')
+    const showPassword = ref(false)
+    const showForgotPassword = ref(false)
+
+    // Handle regular login
+    const submitLogin = async () => {
+      isSubmitting.value = true
+      errorMessage.value = ''
 
       try {
-        // Use relative URL (will work with proxy)
-        console.log('Attempting login')
-        const response = await axios.post('/api/login', this.loginData)
+        console.log('[Login] Attempting login with email:', loginData.value.email)
+        const response = await axios.post('/api/login', loginData.value)
 
-        console.log('Login successful:', response.data)
-        this.userStore.login(response.data.user, response.data.token)
-        this.formSubmitted = true
+        console.log('[Login] Login successful, user:', response.data.user.email)
 
+        // Set user in store
+        await userStore.login(response.data.user, response.data.token)
+
+        // Once logged in, merge the cart
+        console.log('[Login] Initializing cart after login')
+        await cartStore.handleLogin()
+
+        // Show success message
+        formSubmitted.value = true
+
+        // Redirect after delay
         setTimeout(() => {
-          this.$router.push('/')
+          const returnUrl = route.query.returnUrl || '/'
+          router.push(returnUrl)
         }, 1500)
       } catch (error) {
-        console.error('Login error:', error)
+        console.error('[Login] Login error:', error)
 
         if (error.response && error.response.data && error.response.data.error) {
-          this.errorMessage = error.response.data.error
+          errorMessage.value = error.response.data.error
         } else {
-          this.errorMessage =
+          errorMessage.value =
             'Nepodařilo se přihlásit. Zkontrolujte své přihlašovací údaje a zkuste to znovu.'
         }
       } finally {
-        this.isSubmitting = false
+        isSubmitting.value = false
       }
-    },
+    }
 
-    async submitForgotPassword() {
-      // Nastavení indikátoru odesílání a resetování zpráv
-      this.isSubmitting = true
-      this.forgotErrorMessage = ''
-      this.forgotSuccessMessage = ''
+    // Handle password reset request
+    const submitForgotPassword = async () => {
+      isSubmitting.value = true
+      forgotErrorMessage.value = ''
+      forgotSuccessMessage.value = ''
 
       try {
-        // Odeslání e-mailu na backend pro obnovu hesla
         const response = await axios.post('/api/forgot-password', {
-          email: this.forgotData.email
+          email: forgotData.value.email
         })
 
-        // Zobrazení úspěšné zprávy
-        this.forgotSuccessMessage = 'Instrukce pro obnovení hesla byly odeslány na váš e-mail.'
+        forgotSuccessMessage.value = 'Instrukce pro obnovení hesla byly odeslány na váš e-mail.'
 
-        // Automatické přepnutí zpět na přihlašovací formulář po 3 sekundách
+        // Switch back to login form after delay
         setTimeout(() => {
-          this.showForgotPassword = false
-          this.forgotData.email = ''
-          this.forgotSuccessMessage = ''
+          showForgotPassword.value = false
+          forgotData.value.email = ''
+          forgotSuccessMessage.value = ''
         }, 3000)
       } catch (error) {
-        // Zpracování chyby
-        console.error('Chyba při odesílání požadavku na obnovení hesla:', error)
+        console.error('[Login] Password reset error:', error)
 
         if (error.response && error.response.data && error.response.data.error) {
-          this.forgotErrorMessage = error.response.data.error
+          forgotErrorMessage.value = error.response.data.error
         } else {
-          this.forgotErrorMessage =
+          forgotErrorMessage.value =
             'Při odesílání požadavku došlo k chybě. Zkuste to prosím znovu později.'
         }
       } finally {
-        this.isSubmitting = false
+        isSubmitting.value = false
       }
-    },
+    }
 
-    loginWithGoogle() {
-      // Clear any existing authentication
-      localStorage.removeItem('token')
-
-      // Log for debugging
-      console.log('Starting Google login flow')
-
+    // Handle Google login
+    const loginWithGoogle = () => {
       // Prevent multiple clicks
-      if (this.isSubmitting) return
-      this.isSubmitting = true
+      if (isSubmitting.value) return
+      isSubmitting.value = true
 
       try {
-        // Get Google client ID from environment variables
+        console.log('[Login] Starting Google login flow')
+
+        // Get Google client ID from environment
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
-        console.log('Client ID available:', !!clientId)
+        console.log('[Login] Client ID available:', !!clientId)
 
         if (!clientId) {
-          this.errorMessage = 'Chyba konfigurace Google přihlášení. Kontaktujte prosím správce.'
-          this.isSubmitting = false
+          errorMessage.value = 'Chyba konfigurace Google přihlášení. Kontaktujte prosím správce.'
+          isSubmitting.value = false
           return
         }
 
@@ -250,7 +258,8 @@ export default {
         const redirectUri = `${window.location.origin}/auth/google/callback`
 
         // Store return URL for after login
-        localStorage.setItem('returnUrl', this.$route.query.returnUrl || '/')
+        const returnUrl = route.query.returnUrl || '/'
+        localStorage.setItem('returnUrl', returnUrl)
 
         // Build Google OAuth URL
         const googleAuthUrl = 'https://accounts.google.com/o/oauth2/v2/auth'
@@ -265,15 +274,30 @@ export default {
           prompt: 'consent'
         })
 
-        console.log('Redirecting to Google authentication')
+        console.log('[Login] Redirecting to Google authentication')
 
         // Redirect to Google authentication
         window.location.href = `${googleAuthUrl}?${params.toString()}`
       } catch (error) {
-        console.error('Error initiating Google login:', error)
-        this.errorMessage = 'Při přihlašování přes Google došlo k chybě.'
-        this.isSubmitting = false
+        console.error('[Login] Error initiating Google login:', error)
+        errorMessage.value = 'Při přihlašování přes Google došlo k chybě.'
+        isSubmitting.value = false
       }
+    }
+
+    return {
+      loginData,
+      forgotData,
+      isSubmitting,
+      formSubmitted,
+      errorMessage,
+      forgotErrorMessage,
+      forgotSuccessMessage,
+      showPassword,
+      showForgotPassword,
+      submitLogin,
+      submitForgotPassword,
+      loginWithGoogle
     }
   }
 }
@@ -520,6 +544,11 @@ label {
   border-color: #ccc;
 }
 
+.google-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .google-icon {
   background-color: #fff;
   color: #4285f4;
@@ -591,7 +620,7 @@ label {
   line-height: 1.6;
 }
 
-/* Responsivní design */
+/* Responsive design */
 @media (max-width: 768px) {
   h1 {
     font-size: 32px;

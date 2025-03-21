@@ -1,210 +1,258 @@
+<!-- src/views/kosik.vue -->
 <template>
-  <div class="HeadingStrip">
-    <h1>Nákupní košík</h1>
-  </div>
-  <div class="cart-container">
-    <div v-if="cartItems.length > 0">
-      <div class="cart-content">
-        <div class="cart-items">
-          <div class="cart-header">
-            <div class="header-product">Produkt</div>
-            <div class="header-price">Cena za jednotku</div>
-            <div class="header-quantity">Množství</div>
-            <div class="header-total">Celkem</div>
-            <div class="header-actions"></div>
-          </div>
+  <div class="cart-page">
+    <div class="HeadingStrip">
+      <h1>Košík</h1>
+    </div>
 
-          <div v-for="(item, index) in cartItems" :key="index" class="cart-item">
-            <div class="item-product">
-              <img :src="item.image" :alt="item.name" class="item-image" />
+    <div class="cart-container">
+      <!-- Loading state -->
+      <div class="cart-loading" v-if="isLoading">
+        <div class="spinner"></div>
+        <p>Načítání košíku...</p>
+      </div>
+
+      <!-- Empty cart -->
+      <div class="empty-cart" v-else-if="!items.length">
+        <div class="empty-cart-content">
+          <h2>Váš košík je prázdný</h2>
+          <p>Přidejte si zboží do košíku a pokračujte v nákupu.</p>
+          <router-link to="/" class="continue-shopping">Pokračovat v nákupu</router-link>
+        </div>
+      </div>
+
+      <!-- Cart with items -->
+      <div class="cart-content" v-else>
+        <div class="cart-items-container">
+          <h2>Položky v košíku</h2>
+
+          <!-- List of cart items -->
+          <div class="cart-items">
+            <div class="cart-item" v-for="(item, index) in items" :key="item.id">
+              <div class="item-image">
+                <img :src="item.image" :alt="item.name" />
+              </div>
+
               <div class="item-details">
                 <h3 class="item-name">{{ item.name }}</h3>
-                <p class="item-unit">Jednotka: {{ item.priceUnit || 'kus' }}</p>
+                <p class="item-price">
+                  {{ formatPrice(item.price) }} / {{ item.priceUnit || 'ks' }}
+                </p>
               </div>
-            </div>
-            <div class="item-price">{{ formatPrice(item.price) }}</div>
-            <div class="item-quantity">
-              <button @click="decreaseQuantity(index)" class="quantity-btn">-</button>
-              <input
-                type="number"
-                v-model.number="item.quantity"
-                min="1"
-                @change="updateCartItem(index)"
-                class="quantity-input"
-              />
-              <button @click="increaseQuantity(index)" class="quantity-btn">+</button>
-            </div>
-            <div class="item-total">
-              {{ formatPrice(parseFloat(item.price) * item.quantity) }}
-            </div>
-            <div class="item-actions">
-              <button @click="removeFromCart(index)" class="remove-btn">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
+
+              <div class="item-quantity">
+                <button
+                  class="quantity-btn decrease"
+                  @click="decreaseQuantity(index)"
+                  :disabled="isLoading"
                 >
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path
-                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                  ></path>
-                  <line x1="10" y1="11" x2="10" y2="17"></line>
-                  <line x1="14" y1="11" x2="14" y2="17"></line>
-                </svg>
+                  -
+                </button>
+                <span class="quantity-value">{{ item.quantity }}</span>
+                <button
+                  class="quantity-btn increase"
+                  @click="increaseQuantity(index)"
+                  :disabled="isLoading"
+                >
+                  +
+                </button>
+              </div>
+
+              <div class="item-subtotal">
+                {{ formatPrice(item.price * item.quantity) }}
+              </div>
+
+              <button class="remove-item" @click="removeFromCart(index)" :disabled="isLoading">
+                ×
               </button>
             </div>
+          </div>
+
+          <div class="cart-actions">
+            <router-link to="/" class="continue-shopping">Pokračovat v nákupu</router-link>
+            <button class="clear-cart" @click="clearCart" :disabled="isLoading">
+              Vyprázdnit košík
+            </button>
           </div>
         </div>
 
         <div class="cart-summary">
-          <h2>Shrnutí objednávky</h2>
+          <h2>Souhrn objednávky</h2>
+
           <div class="summary-row">
             <span>Mezisoučet:</span>
             <span>{{ formatPrice(cartTotal) }}</span>
           </div>
-          <div class="summary-row">
-            <span>DPH (21%):</span>
-            <span>{{ formatPrice(cartTotal * 0.21) }}</span>
-          </div>
-          <div class="summary-row shipping">
-            <span>Doprava:</span>
-            <span v-if="currentShippingCost > 0">{{ formatPrice(currentShippingCost) }}</span>
-            <span v-else class="free-shipping">Zdarma</span>
-          </div>
-          <div class="summary-row total">
-            <span>Celková cena:</span>
-            <span>{{ formatPrice(cartTotal + currentShippingCost) }}</span>
-          </div>
 
           <div class="shipping-options">
-            <h3>Způsob dopravy</h3>
-            <div class="option-wrapper">
+            <h3>Způsob doručení:</h3>
+
+            <div class="shipping-option">
               <input
                 type="radio"
                 id="pickup"
-                name="shipping"
                 value="pickup"
-                v-model="selectedShippingMethod"
+                v-model="shippingMethod"
+                @change="updateShippingMethod"
               />
-              <label for="pickup">Osobní odběr (zdarma)</label>
+              <label for="pickup">
+                <strong>Osobní odběr</strong>
+                <span>Zdarma</span>
+              </label>
             </div>
-            <div class="option-wrapper">
+
+            <div class="shipping-option">
               <input
                 type="radio"
                 id="delivery"
-                name="shipping"
                 value="delivery"
-                v-model="selectedShippingMethod"
+                v-model="shippingMethod"
+                @change="updateShippingMethod"
               />
-              <label for="delivery">Doručení na adresu (150 Kč)</label>
+              <label for="delivery">
+                <strong>Doručení na adresu</strong>
+                <span v-if="cartTotal > 2000">Zdarma</span>
+                <span v-else>200 Kč</span>
+              </label>
             </div>
           </div>
 
-          <button @click="proceedToCheckout" class="checkout-btn">Závazně objednat</button>
-          <button @click="continueShopping" class="continue-shopping-btn">
-            Pokračovat v nákupu
-          </button>
+          <div class="summary-row total">
+            <span>Celkem:</span>
+            <span>{{ formatPrice(cartTotal + shipping) }}</span>
+          </div>
+
+          <button class="checkout-button" @click="proceedToCheckout">Pokračovat k pokladně</button>
+
+          <div class="login-prompt" v-if="!isAuthenticated">
+            <p>
+              Pro dokončení objednávky se prosím
+              <router-link to="/prihlaseni">přihlaste</router-link> nebo
+              <router-link to="/registrace">zaregistrujte</router-link>.
+            </p>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div v-else class="empty-cart">
-      <svg
-        class="empty-cart-icon"
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <circle cx="9" cy="21" r="1"></circle>
-        <circle cx="20" cy="21" r="1"></circle>
-        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-      </svg>
-      <h2>Váš košík je prázdný</h2>
-      <p>Vypadá to, že jste do košíku ještě nic nepřidali.</p>
-      <button @click="continueShopping" class="continue-shopping-btn">Přejít do obchodu</button>
+      <!-- Error message -->
+      <div class="error-message" v-if="error">
+        <p>{{ error }}</p>
+        <button @click="initCart">Zkusit znovu</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import { useCart } from '@/stores/stavKosiku'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { useCartStore } from '../stores/cartStore'
+import { useUserStore } from '../stores/useUserStore'
 
 export default {
-  name: 'CartView',
+  name: 'CartPage',
   setup() {
-    const cart = useCart()
+    const router = useRouter()
+    const cartStore = useCartStore()
+    const userStore = useUserStore()
 
-    // Vytvoříme lokální stav pro vybranou metodu dopravy
-    const selectedShippingMethod = ref(cart.shippingMethod.value)
+    // Local copy of cart state for reactivity
+    const items = computed(() => cartStore.items)
+    const shippingMethod = ref(cartStore.shippingMethod)
+    const isLoading = computed(() => cartStore.isLoading)
+    const error = computed(() => cartStore.error)
+    const cartTotal = computed(() => cartStore.cartTotal)
+    const shipping = computed(() => cartStore.shipping)
+    const isAuthenticated = computed(() => userStore.isAuthenticated)
 
-    // Aktuální cena dopravy
-    const currentShippingCost = computed(() => {
-      return selectedShippingMethod.value === 'delivery' ? 150 : 0
-    })
-
-    // Sledujme změny v selectedShippingMethod a aktualizujme stav v košíku
-    watch(selectedShippingMethod, (newValue) => {
-      cart.setShippingMethod(newValue)
-    })
-
-    // Sledujme změny v cart.shippingMethod.value a aktualizujme lokální stav
+    // Watch for changes in cart store shipping method
     watch(
-      () => cart.shippingMethod.value,
+      () => cartStore.shippingMethod,
       (newValue) => {
-        selectedShippingMethod.value = newValue
+        shippingMethod.value = newValue
       }
     )
 
-    const updateCartItem = (index) => {
-      const item = cart.items.value[index]
-      cart.updateQuantity(index, item.quantity)
+    // Initialize cart on mount
+    onMounted(async () => {
+      await cartStore.initCart()
+    })
+
+    // Format price
+    const formatPrice = (price) => {
+      return new Intl.NumberFormat('cs-CZ', {
+        style: 'currency',
+        currency: 'CZK',
+        minimumFractionDigits: 0
+      }).format(price)
     }
 
-    // Funkce pro formátování ceny
-    const formatPrice = (price) => {
-      return (
-        price.toLocaleString('cs-CZ', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        }) + ' Kč'
-      )
+    // Cart actions
+    const removeFromCart = (index) => {
+      cartStore.removeFromCart(index)
+    }
+
+    const increaseQuantity = (index) => {
+      cartStore.increaseQuantity(index)
+    }
+
+    const decreaseQuantity = (index) => {
+      cartStore.decreaseQuantity(index)
+    }
+
+    const clearCart = () => {
+      if (confirm('Opravdu chcete vyprázdnit košík?')) {
+        cartStore.clearCart()
+      }
+    }
+
+    const updateShippingMethod = () => {
+      cartStore.setShippingMethod(shippingMethod.value)
+    }
+
+    const proceedToCheckout = () => {
+      if (isAuthenticated.value) {
+        // Proceed to checkout
+        router.push('/pokladna')
+      } else {
+        // Redirect to login with return URL
+        router.push({
+          path: '/prihlaseni',
+          query: { returnUrl: '/pokladna' }
+        })
+      }
+    }
+
+    const initCart = () => {
+      cartStore.initCart()
     }
 
     return {
-      cartItems: cart.items,
-      cartTotal: cart.cartTotal,
-      currentShippingCost,
-      selectedShippingMethod,
-      removeFromCart: cart.removeFromCart,
-      updateCartItem,
-      increaseQuantity: cart.increaseQuantity,
-      decreaseQuantity: cart.decreaseQuantity,
-      formatPrice
-    }
-  },
-  methods: {
-    proceedToCheckout() {
-      // Navigate to order confirmation page
-      this.$router.push('/order-confirmation')
-    },
-    continueShopping() {
-      // Navigate back to products
-      this.$router.push('/')
+      items,
+      shippingMethod,
+      isLoading,
+      error,
+      cartTotal,
+      shipping,
+      isAuthenticated,
+      formatPrice,
+      removeFromCart,
+      increaseQuantity,
+      decreaseQuantity,
+      clearCart,
+      updateShippingMethod,
+      proceedToCheckout,
+      initCart
     }
   }
 }
 </script>
 
 <style scoped>
+.cart-page {
+  min-height: 70vh;
+}
+
 .HeadingStrip {
   width: 100%;
   height: 150px;
@@ -223,276 +271,341 @@ h1 {
 
 .cart-container {
   max-width: 1200px;
+  margin: 0 auto 80px auto;
+  padding: 0 20px;
+}
+
+.cart-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 50px 0;
+}
+
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #f5852a;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.empty-cart {
+  text-align: center;
+  padding: 50px 0;
+}
+
+.empty-cart-content {
+  background-color: #f9f9f9;
+  padding: 40px;
+  border-radius: 8px;
+  max-width: 600px;
   margin: 0 auto;
-  padding: 20px;
-  font-family: Arial, sans-serif;
+}
+
+.empty-cart h2 {
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.empty-cart p {
+  margin-bottom: 30px;
+  color: #666;
+}
+
+.continue-shopping {
+  display: inline-block;
+  background-color: #f5852a;
+  color: white;
+  text-decoration: none;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.continue-shopping:hover {
+  background-color: #e67722;
 }
 
 .cart-content {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 350px;
   gap: 30px;
 }
 
-.cart-items {
-  flex: 1 1 65%;
-  min-width: 300px;
-  background: #fff;
+.cart-items-container {
+  background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+  padding: 30px;
 }
 
-.cart-header {
-  display: grid;
-  grid-template-columns: 3fr 1fr 1fr 1fr 0.5fr;
-  padding: 15px;
-  background-color: #f9f9f9;
-  font-weight: 600;
+.cart-items-container h2 {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
   border-bottom: 1px solid #eee;
+  color: #333;
+}
+
+.cart-items {
+  margin-bottom: 30px;
 }
 
 .cart-item {
   display: grid;
-  grid-template-columns: 3fr 1fr 1fr 1fr 0.5fr;
-  padding: 15px;
+  grid-template-columns: 80px 1fr auto auto 40px;
+  gap: 15px;
   align-items: center;
+  padding: 15px 0;
   border-bottom: 1px solid #eee;
 }
 
-.item-product {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.item-image {
-  width: 80px;
-  height: 80px;
-  object-fit: contain;
+.item-image img {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 4px;
 }
 
 .item-name {
-  font-size: 16px;
   margin: 0 0 5px 0;
+  font-size: 16px;
+  color: #333;
 }
 
-.item-unit {
-  font-size: 12px;
-  color: #666;
+.item-price {
   margin: 0;
+  color: #666;
+  font-size: 14px;
 }
 
 .item-quantity {
   display: flex;
   align-items: center;
-}
-
-.quantity-input {
-  width: 40px;
-  text-align: center;
-  padding: 5px;
-  border: 1px solid #ddd;
-  border-radius: 0;
+  padding: 0 10px;
 }
 
 .quantity-btn {
-  background: #f0f0f0;
-  border: 1px solid #ddd;
   width: 30px;
   height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border: 1px solid #ddd;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 1;
   cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-.quantity-btn:first-child {
-  border-radius: 4px 0 0 4px;
+.quantity-btn:hover {
+  background-color: #e6e6e6;
 }
 
-.quantity-btn:last-child {
-  border-radius: 0 4px 4px 0;
+.quantity-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.item-total {
+.quantity-value {
+  width: 30px;
+  text-align: center;
   font-weight: 600;
+  margin: 0 10px;
 }
 
-.remove-btn {
+.item-subtotal {
+  font-weight: 600;
+  color: #333;
+  text-align: right;
+  min-width: 100px;
+}
+
+.remove-item {
   background: none;
   border: none;
-  color: #e63946;
+  font-size: 20px;
+  color: #999;
   cursor: pointer;
+  transition: color 0.2s;
   padding: 5px;
 }
 
-.remove-btn svg {
-  width: 18px;
-  height: 18px;
-  stroke: #e63946;
+.remove-item:hover {
+  color: #e63946;
+}
+
+.remove-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cart-actions {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 20px;
+}
+
+.clear-cart {
+  background-color: #f8f8f8;
+  color: #666;
+  border: 1px solid #ddd;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.clear-cart:hover {
+  background-color: #eee;
+}
+
+.clear-cart:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .cart-summary {
-  flex: 1 1 30%;
-  min-width: 250px;
-  background: #fff;
+  background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 20px;
+  padding: 30px;
   position: sticky;
   top: 20px;
-  align-self: flex-start;
 }
 
 .cart-summary h2 {
-  font-size: 24px;
   margin-bottom: 20px;
-  padding-bottom: 10px;
+  padding-bottom: 15px;
   border-bottom: 1px solid #eee;
+  color: #333;
 }
 
 .summary-row {
   display: flex;
   justify-content: space-between;
   margin-bottom: 15px;
-  font-size: 16px;
-}
-
-.shipping {
   padding-bottom: 15px;
   border-bottom: 1px solid #eee;
 }
 
-.free-shipping {
-  color: #4caf50;
-  font-weight: 500;
-}
-
-.total {
+.summary-row.total {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
   font-weight: 700;
   font-size: 18px;
-  margin-top: 15px;
-  color: #f5852a;
+  color: #333;
 }
 
-.shipping-options,
-.discount-code {
-  margin: 25px 0;
-}
-
-.shipping-options h3,
-.discount-code h3 {
-  font-size: 18px;
-  margin-bottom: 15px;
-}
-
-.option-wrapper {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.option-wrapper input[type='radio'] {
-  margin-right: 10px;
-}
-
-.discount-input-wrapper {
-  display: flex;
-  margin-bottom: 10px;
-}
-
-.discount-input-wrapper input {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px 0 0 4px;
-}
-
-.apply-btn {
-  background: #333;
-  color: white;
-  border: none;
-  padding: 0 15px;
-  border-radius: 0 4px 4px 0;
-  cursor: pointer;
-}
-
-.discount-message {
-  font-size: 14px;
-  color: #666;
-  margin-top: 5px;
-}
-
-.checkout-btn {
-  background-color: #f5852a;
-  color: white;
-  border: none;
-  padding: 15px;
-  width: 100%;
-  font-size: 16px;
-  font-weight: 600;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-bottom: 10px;
-  transition: background-color 0.3s;
-}
-
-.checkout-btn:hover {
-  background-color: #e67722;
-}
-
-.continue-shopping-btn {
-  background: none;
-  border: 1px solid #ddd;
-  padding: 10px;
-  width: 100%;
-  font-size: 14px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.continue-shopping-btn:hover {
-  background-color: #f9f9f9;
-}
-
-.empty-cart {
-  text-align: center;
-  padding: 60px 20px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.empty-cart-icon {
-  width: 80px;
-  height: 80px;
-  stroke: #ccc;
+.shipping-options {
   margin-bottom: 20px;
 }
 
-.empty-cart h2 {
-  font-size: 24px;
+.shipping-options h3 {
+  margin-bottom: 15px;
+  font-size: 16px;
+  color: #333;
+}
+
+.shipping-option {
+  display: flex;
+  align-items: flex-start;
   margin-bottom: 10px;
 }
 
-.empty-cart p {
-  color: #666;
-  margin-bottom: 30px;
+.shipping-option input[type='radio'] {
+  margin-top: 4px;
+  margin-right: 10px;
 }
 
-.empty-cart .continue-shopping-btn {
-  display: inline-block;
-  width: auto;
-  padding: 12px 25px;
-  background-color: #f5852a;
+.shipping-option label {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.checkout-button {
+  background-color: #4caf50;
   color: white;
   border: none;
+  padding: 15px 20px;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 600;
+  width: 100%;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-top: 20px;
 }
 
-.empty-cart .continue-shopping-btn:hover {
-  background-color: #e67722;
+.checkout-button:hover {
+  background-color: #45a049;
+}
+
+.checkout-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.login-prompt {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.login-prompt a {
+  color: #f5852a;
+  text-decoration: underline;
+}
+
+.error-message {
+  background-color: #fff8f8;
+  border: 1px solid #ffdddd;
+  color: #e63946;
+  padding: 15px;
+  border-radius: 5px;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.error-message button {
+  margin-top: 10px;
+  background-color: #e63946;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.error-message button:hover {
+  background-color: #d32f2f;
+}
+
+@media (max-width: 992px) {
+  .cart-content {
+    grid-template-columns: 1fr;
+  }
+
+  .cart-summary {
+    position: static;
+    margin-top: 30px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -505,61 +618,66 @@ h1 {
     height: 120px;
   }
 
-  .cart-header {
-    display: none;
-  }
-
   .cart-item {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
+    grid-template-columns: 60px 1fr auto;
+    grid-template-rows: auto auto;
     gap: 10px;
-    padding: 15px;
   }
 
-  .item-product {
-    grid-column: 1;
+  .item-image {
+    grid-row: span 2;
+  }
+
+  .item-details {
+    grid-column: 2;
+  }
+
+  .item-quantity {
+    grid-column: 3;
     grid-row: 1;
   }
 
-  .item-price,
-  .item-quantity {
-    grid-column: 1;
+  .item-subtotal {
+    grid-column: 2;
     grid-row: 2;
-    justify-content: space-between;
-    align-items: center;
+    text-align: left;
   }
 
-  .item-price {
-    grid-column: 1;
+  .remove-item {
+    grid-column: 3;
     grid-row: 2;
-    justify-content: flex-start;
-  }
-
-  .item-quantity {
-    grid-column: 1;
-    grid-row: 2;
-    justify-content: flex-end;
-  }
-
-  .item-total,
-  .item-actions {
-    grid-column: 1;
-    grid-row: 3;
-    display: flex;
-  }
-
-  .item-total {
-    justify-content: flex-start;
-  }
-
-  .item-actions {
-    justify-content: flex-end;
+    justify-self: end;
   }
 }
 
 @media (max-width: 576px) {
   .cart-container {
-    padding: 10px;
+    padding: 0 15px;
+  }
+
+  .cart-items-container,
+  .cart-summary {
+    padding: 20px 15px;
+  }
+
+  h1 {
+    font-size: 28px;
+    margin: 40px auto 30px auto;
+  }
+
+  .HeadingStrip {
+    height: 100px;
+  }
+
+  .cart-actions {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .continue-shopping,
+  .clear-cart {
+    width: 100%;
+    text-align: center;
   }
 }
 </style>

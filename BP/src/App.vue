@@ -6,35 +6,39 @@ import Footer from '@/components/Footer.vue'
 import CartDebug from '@/components/debug/CartDebug.vue'
 import StoreDebug from '@/components/debug/StoreDebug.vue'
 import { useUserStore } from '@/stores/useUserStore.js'
-import { useCart } from '@/stores/stavKosiku.js'
+import { useCartStore } from '@/stores/cartStore'
 
-// Development mode check - force to true for now
+// Development mode check
 const isDev = ref(true)
+const isInitializing = ref(true)
 
-// Force fix token format and reinitialize stores
+// Initialize user and cart on mount
 onMounted(async () => {
-  console.log('[App] Mounted, checking token format')
+  console.log('[App] Initializing application')
 
-  // Fix token format
-  const token = localStorage.getItem('token')
-  if (token && !token.startsWith('Bearer ')) {
-    console.log('[App] Fixing token format')
-    const fixedToken = `Bearer ${token}`
-    localStorage.setItem('token', fixedToken)
+  try {
+    // Fix token format if needed
+    const token = localStorage.getItem('token')
+    if (token && !token.startsWith('Bearer ')) {
+      console.log('[App] Fixing token format')
+      const fixedToken = `Bearer ${token}`
+      localStorage.setItem('token', fixedToken)
+    }
 
-    // Force re-initialize user store
+    // Initialize user store
     const userStore = useUserStore()
-    if (typeof userStore.init === 'function') {
-      userStore.init()
-    }
+    await userStore.init()
+    console.log('[App] User state initialized, isLoggedIn:', userStore.isLoggedIn)
 
-    // Force re-initialize cart
-    const cartStore = useCart()
-    if (typeof cartStore.initCart === 'function') {
-      await cartStore.initCart()
-    }
-
-    console.log('[App] Token format fixed and stores reinitialized')
+    // Initialize cart store
+    const cartStore = useCartStore()
+    await cartStore.initCart()
+    console.log('[App] Cart initialized, itemCount:', cartStore.itemCount)
+  } catch (error) {
+    console.error('[App] Error during initialization:', error)
+  } finally {
+    // Hide loading overlay
+    isInitializing.value = false
   }
 })
 
@@ -45,9 +49,17 @@ const showStoreDebug = ref(true)
 <template>
   <div class="app">
     <Header></Header>
-    <main>
+
+    <!-- Loading overlay when initializing -->
+    <div class="loading-overlay" v-if="isInitializing">
+      <div class="spinner"></div>
+      <div class="loading-message">Načítání aplikace...</div>
+    </div>
+
+    <main v-else>
       <RouterView />
     </main>
+
     <Footer></Footer>
 
     <!-- Debug components (only shown in development) -->
@@ -80,6 +92,44 @@ body {
 
 main {
   flex: 1;
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #f5852a;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+.loading-message {
+  font-size: 18px;
+  color: #333;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .toggle-debug-btn {

@@ -182,6 +182,7 @@ export const useUserStore = defineStore('user', () => {
       // Handle cart logout
       try {
         const cartStore = useCart()
+        console.log('[UserStore] Calling cart.handleLogout()')
         cartStore.handleLogout()
         console.log('[UserStore] Cart handleLogout completed')
       } catch (error) {

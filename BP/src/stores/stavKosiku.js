@@ -15,6 +15,8 @@ export const useCart = defineStore('cart', () => {
   const lastSyncTime = ref(null)
   const initialized = ref(false)
   const isInitializing = ref(false) // New flag to prevent duplicate initialization
+  const anonymousCart = ref([])
+  const userCarts = ref({}) // Will store carts by user ID
 
   // Getters
   const itemCount = computed(() => {
@@ -354,79 +356,57 @@ export const useCart = defineStore('cart', () => {
     }
   }
 
-  // Simplified login handler
+  // Modified login handler
   async function handleLogin() {
-    console.log('[Cart] Handling user login')
+    console.log('[Cart] Handling user login for user', userStore.user?.id)
 
     try {
       isLoading.value = true
       error.value = null
 
-      // Get localStorage cart
-      let localItems = []
-      try {
-        const savedCart = localStorage.getItem('cart')
-        if (savedCart) {
-          localItems = JSON.parse(savedCart)
-          console.log(`[Cart] Found ${localItems.length} items in localStorage`)
-        }
-      } catch (e) {
-        console.error('[Cart] Error parsing localStorage cart:', e)
-      }
+      // Store the anonymous cart when logging in
+      anonymousCart.value = [...items.value]
+      console.log('[Cart] Saved anonymous cart with', anonymousCart.value.length, 'items')
 
-      // Try to merge with server if we have local items
-      if (localItems.length > 0) {
-        try {
-          console.log('[Cart] Attempting to merge with server cart')
-          await api.post('/api/user/cart/merge', {
-            items: localItems,
-            shippingMethod: localStorage.getItem('shippingMethod') || 'pickup'
-          })
-        } catch (e) {
-          console.error('[Cart] Error merging cart:', e)
-        }
-      }
+      // Clear the current cart
+      items.value = []
 
-      // Load from server
+      // Try to load the cart from server
       await loadUserCart()
 
-      // Clear localStorage
-      localStorage.removeItem('cart')
-      localStorage.removeItem('shippingMethod')
+      console.log('[Cart] Loaded user cart with', items.value.length, 'items')
     } catch (err) {
-      console.error('[Cart] Login handler error:', err)
+      console.error('[Cart] Error in handleLogin:', err)
+      items.value = []
       await loadUserCart()
     } finally {
       isLoading.value = false
     }
   }
 
-  // Simplified logout handler
+  // Modified logout handler
   function handleLogout() {
     console.log('[Cart] Handling user logout')
 
     try {
-      // Clear cart state
+      const userId = userStore.user?.id
+
+      // Store the current user's cart before logout
+      if (userId) {
+        userCarts.value[userId] = [...items.value]
+        console.log(`[Cart] Saved cart for user ${userId} with`, items.value.length, 'items')
+      }
+
+      // Clear the current cart
       items.value = []
-      shippingMethod.value = 'pickup'
 
-      // Load from localStorage for anonymous browsing
-      loadLocalCart()
+      // Restore the anonymous cart
+      items.value = [...anonymousCart.value]
+      console.log('[Cart] Restored anonymous cart with', items.value.length, 'items')
     } catch (err) {
-      console.error('[Cart] Logout handler error:', err)
+      console.error('[Cart] Error in handleLogout:', err)
+      items.value = [] // Reset to empty if there's an error
     }
-  }
-  // Force a complete refresh with page reload - ONLY use when absolutely necessary
-  function forceRefresh() {
-    console.log('[Cart] Forcing complete refresh with page reload')
-
-    // Clear everything
-    items.value = []
-    localStorage.removeItem('cart')
-    localStorage.removeItem('shippingMethod')
-
-    // Reload the page
-    window.location.reload()
   }
 
   // Refresh cart from server, with optional forced reload

@@ -1,3 +1,4 @@
+//router with all imported views
 import { createRouter, createWebHistory } from 'vue-router'
 import HomePage from '@/views/HomePage.vue'
 

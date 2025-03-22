@@ -1,112 +1,424 @@
 // src/stores/stavKosiku.js
-import { reactive, computed } from 'vue'
+import { reactive, computed, watch } from 'vue'
+import axios from 'axios'
+import { useUserStore } from './index'
+
+// API baseURL
+const API_URL = import.meta.env.VITE_API_URL || 'https://vm31309.domainsale.cz:3000/api'
 
 // Reaktivní stav košíku
 const state = reactive({
   items: [],
-  shippingMethod: 'pickup' // Nastavíme výchozí metodu na osobní odběr (zdarma)
+  shippingMethod: 'pickup', // Nastavíme výchozí metodu na osobní odběr (zdarma)
+  loading: false,
+  error: null,
+  initialized: false
 })
 
-// Vyčistit localStorage pro košík (jednorázový reset)
-localStorage.removeItem('kosik')
+// Inicializace košíku
+const initializeCart = async () => {
+  if (state.initialized) return
+  state.initialized = true
 
-// Inicializace košíku z localStorage pokud existuje
-const inicializovatKosik = () => {
+  const userStore = useUserStore()
+
   try {
-    const ulozenyKosik = localStorage.getItem('kosik')
-    if (ulozenyKosik) {
-      const parsovanyKosik = JSON.parse(ulozenyKosik)
-      state.items = parsovanyKosik.items || []
-      state.shippingMethod = parsovanyKosik.shippingMethod || 'pickup'
+    state.loading = true
+
+    if (userStore.isAuthenticated) {
+      // Pokud je uživatel přihlášen, načteme košík ze serveru
+      await loadServerCart()
+    } else {
+      // Jinak načteme z localStorage
+      loadLocalCart()
+    }
+
+    state.loading = false
+  } catch (error) {
+    console.error('Error initializing cart:', error)
+    state.error = 'Nepodařilo se načíst košík'
+    state.loading = false
+
+    // Fallback na lokální košík
+    loadLocalCart()
+  }
+}
+
+// Načtení košíku z localStorage
+const loadLocalCart = () => {
+  try {
+    const savedCart = localStorage.getItem('kosik')
+    if (savedCart) {
+      const parsedCart = JSON.parse(savedCart)
+      state.items = parsedCart.items || []
+      state.shippingMethod = parsedCart.shippingMethod || 'pickup'
     }
   } catch (error) {
-    console.error('Chyba při načítání košíku z úložiště:', error)
+    console.error('Error loading cart from localStorage:', error)
+    state.error = 'Nepodařilo se načíst košík z lokálního úložiště'
+
+    // Reset košíku při chybě
+    state.items = []
+    state.shippingMethod = 'pickup'
   }
 }
 
-// Uložení košíku do localStorage
-const ulozitKosik = () => {
+// Načtení košíku ze serveru
+const loadServerCart = async () => {
+  const userStore = useUserStore()
+
   try {
-    localStorage.setItem(
-      'kosik',
-      JSON.stringify({
-        items: state.items,
-        shippingMethod: state.shippingMethod
+    // Získání košíku ze serveru
+    const response = await axios.get(`${API_URL}/cart`, {
+      headers: {
+        Authorization: `Bearer ${userStore.token}`
+      }
+    })
+
+    if (response.data.success) {
+      // Mapování dat z databáze do formátu košíku
+      state.items = response.data.cartItems.map((item) => ({
+        id: item.product_id,
+        quantity: item.quantity,
+        dbId: item.id, // ID záznamu v databázi pro pozdější použití
+        // Poznámka: V tomto okamžiku nemáme detaily produktu jako název, cena, atd.
+        // Tyto údaje by musely být získány z databáze nebo z API produktů
+        name: item.name || 'Produktové ID: ' + item.product_id,
+        price: item.price || '0',
+        image: item.image || '/placeholder.jpg',
+        priceUnit: item.price_unit || 'kus'
+      }))
+
+      // Získání uživatelského nastavení dopravy
+      const prefsResponse = await axios.get(`${API_URL}/user/preferences/shipping`, {
+        headers: {
+          Authorization: `Bearer ${userStore.token}`
+        }
       })
-    )
+
+      if (prefsResponse.data.success) {
+        state.shippingMethod = prefsResponse.data.shippingMethod
+      }
+    }
   } catch (error) {
-    console.error('Chyba při ukládání košíku do úložiště:', error)
+    console.error('Error loading cart from server:', error)
+    throw error
   }
 }
 
-// Funkce pro práci s košíkem
+// Uložení košíku
+const saveCart = async () => {
+  const userStore = useUserStore()
+
+  try {
+    if (userStore.isAuthenticated) {
+      // Košík již je synchronizován se serverem pomocí jednotlivých API volání
+    } else {
+      // Uložení do localStorage pro nepřihlášené uživatele
+      localStorage.setItem(
+        'kosik',
+        JSON.stringify({
+          items: state.items,
+          shippingMethod: state.shippingMethod
+        })
+      )
+    }
+  } catch (error) {
+    console.error('Error saving cart:', error)
+    state.error = 'Nepodařilo se uložit košík'
+  }
+}
+
+// Synchronizace lokálního košíku se serverem při přihlášení
+const syncCartWithServer = async () => {
+  const userStore = useUserStore()
+
+  if (!userStore.isAuthenticated) return
+
+  try {
+    state.loading = true
+
+    // Získání lokálního košíku
+    const localItems = state.items
+
+    // Odeslání lokálních položek na server
+    await axios.post(
+      `${API_URL}/cart/sync`,
+      { items: localItems },
+      {
+        headers: {
+          Authorization: `Bearer ${userStore.token}`
+        }
+      }
+    )
+
+    // Načtení aktualizovaného košíku ze serveru
+    await loadServerCart()
+
+    // Vymazání lokálního košíku
+    localStorage.removeItem('kosik')
+
+    state.loading = false
+  } catch (error) {
+    console.error('Error syncing cart with server:', error)
+    state.error = 'Nepodařilo se synchronizovat košík se serverem'
+    state.loading = false
+  }
+}
+
+// Main store export
 export const useCart = () => {
-  // Inicializace při prvním importu
-  inicializovatKosik()
+  const userStore = useUserStore()
+
+  // Inicializace při prvním volání
+  if (!state.initialized) {
+    initializeCart()
+  }
+
+  // Sledování změny přihlášení
+  watch(
+    () => userStore.isAuthenticated,
+    async (isAuthenticated, wasAuthenticated) => {
+      // Pokud se uživatel přihlásil
+      if (isAuthenticated && !wasAuthenticated) {
+        await syncCartWithServer()
+      }
+      // Pokud se uživatel odhlásil, načteme lokální košík
+      else if (!isAuthenticated && wasAuthenticated) {
+        loadLocalCart()
+      }
+    }
+  )
 
   // Přidání produktu do košíku
-  const addToCart = (product) => {
-    // Kontrola, zda produkt již je v košíku
-    const existujiciPolozka = state.items.find((item) => item.id === product.id)
+  const addToCart = async (product) => {
+    try {
+      state.loading = true
 
-    if (existujiciPolozka) {
-      // Pokud produkt už v košíku je, zvýšíme množství
-      existujiciPolozka.quantity++
-    } else {
-      // Přidání nového produktu do košíku s množstvím 1
-      state.items.push({
-        ...product,
-        quantity: 1
-      })
+      // Kontrola, zda produkt již je v košíku
+      const existingIndex = state.items.findIndex((item) => item.id === product.id)
+
+      if (userStore.isAuthenticated) {
+        // API volání pro přidání do košíku
+        const response = await axios.post(
+          `${API_URL}/cart`,
+          {
+            productId: product.id,
+            quantity: 1,
+            price: product.price,
+            name: product.name,
+            image: product.image,
+            priceUnit: product.priceUnit
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${userStore.token}`
+            }
+          }
+        )
+
+        if (response.data.success) {
+          // Pokud je položka již v košíku, aktualizujeme ji
+          if (existingIndex !== -1) {
+            state.items[existingIndex].quantity++
+            state.items[existingIndex].dbId = response.data.cartItem.id
+          } else {
+            // Přidání nového produktu
+            state.items.push({
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              image: product.image || '/placeholder.jpg',
+              priceUnit: product.priceUnit || 'kus',
+              quantity: 1,
+              dbId: response.data.cartItem.id
+            })
+          }
+        }
+      } else {
+        // Pro nepřihlášeného uživatele používáme lokální košík
+        if (existingIndex !== -1) {
+          state.items[existingIndex].quantity++
+        } else {
+          state.items.push({
+            ...product,
+            quantity: 1,
+            image: product.image || '/placeholder.jpg',
+            priceUnit: product.priceUnit || 'kus'
+          })
+        }
+
+        // Uložení do localStorage
+        saveCart()
+      }
+
+      state.loading = false
+    } catch (error) {
+      console.error('Error adding to cart:', error)
+      state.error = 'Nepodařilo se přidat položku do košíku'
+      state.loading = false
     }
-
-    // Uložení do localStorage
-    ulozitKosik()
   }
 
   // Odstranění položky z košíku
-  const removeFromCart = (index) => {
-    state.items.splice(index, 1)
-    ulozitKosik()
+  const removeFromCart = async (index) => {
+    try {
+      state.loading = true
+
+      if (userStore.isAuthenticated) {
+        // API volání pro odstranění položky
+        const item = state.items[index]
+
+        if (item && item.dbId) {
+          await axios.delete(`${API_URL}/cart/${item.dbId}`, {
+            headers: {
+              Authorization: `Bearer ${userStore.token}`
+            }
+          })
+        }
+      }
+
+      // Odstranění položky z lokálního stavu
+      state.items.splice(index, 1)
+
+      // Uložení do localStorage pro nepřihlášené uživatele
+      if (!userStore.isAuthenticated) {
+        saveCart()
+      }
+
+      state.loading = false
+    } catch (error) {
+      console.error('Error removing from cart:', error)
+      state.error = 'Nepodařilo se odstranit položku z košíku'
+      state.loading = false
+    }
   }
 
   // Aktualizace množství
-  const updateQuantity = (index, quantity) => {
-    if (quantity < 1) quantity = 1
-    state.items[index].quantity = quantity
-    ulozitKosik()
+  const updateQuantity = async (index, quantity) => {
+    try {
+      state.loading = true
+
+      // Zajištění minimálního množství 1
+      if (quantity < 1) quantity = 1
+
+      if (userStore.isAuthenticated) {
+        // API volání pro aktualizaci položky
+        const item = state.items[index]
+
+        if (item && item.dbId) {
+          await axios.put(
+            `${API_URL}/cart/${item.dbId}`,
+            { quantity },
+            {
+              headers: {
+                Authorization: `Bearer ${userStore.token}`
+              }
+            }
+          )
+        }
+      }
+
+      // Aktualizace lokálního stavu
+      state.items[index].quantity = quantity
+
+      // Uložení do localStorage pro nepřihlášené uživatele
+      if (!userStore.isAuthenticated) {
+        saveCart()
+      }
+
+      state.loading = false
+    } catch (error) {
+      console.error('Error updating quantity:', error)
+      state.error = 'Nepodařilo se aktualizovat množství položky'
+      state.loading = false
+    }
   }
 
   // Zvýšení množství
   const increaseQuantity = (index) => {
-    state.items[index].quantity++
-    ulozitKosik()
+    updateQuantity(index, state.items[index].quantity + 1)
   }
 
   // Snížení množství
   const decreaseQuantity = (index) => {
     if (state.items[index].quantity > 1) {
-      state.items[index].quantity--
-      ulozitKosik()
+      updateQuantity(index, state.items[index].quantity - 1)
     }
   }
 
   // Nastavení způsobu dopravy
-  const setShippingMethod = (method) => {
-    state.shippingMethod = method
-    ulozitKosik()
+  const setShippingMethod = async (method) => {
+    try {
+      state.loading = true
+      state.shippingMethod = method
+
+      if (userStore.isAuthenticated) {
+        // API volání pro aktualizaci způsobu dopravy
+        await axios.put(
+          `${API_URL}/user/preferences/shipping`,
+          { shippingMethod: method },
+          {
+            headers: {
+              Authorization: `Bearer ${userStore.token}`
+            }
+          }
+        )
+      }
+
+      // Uložení do localStorage pro nepřihlášené uživatele
+      if (!userStore.isAuthenticated) {
+        saveCart()
+      }
+
+      state.loading = false
+    } catch (error) {
+      console.error('Error setting shipping method:', error)
+      state.error = 'Nepodařilo se nastavit způsob dopravy'
+      state.loading = false
+    }
   }
 
   // Vyčištění košíku
-  const clearCart = () => {
-    state.items = []
-    ulozitKosik()
+  const clearCart = async () => {
+    try {
+      state.loading = true
+
+      if (userStore.isAuthenticated) {
+        // Pro každou položku v košíku zavoláme odstranění
+        for (const item of state.items) {
+          if (item.dbId) {
+            await axios.delete(`${API_URL}/cart/${item.dbId}`, {
+              headers: {
+                Authorization: `Bearer ${userStore.token}`
+              }
+            })
+          }
+        }
+      }
+
+      // Resetování lokálního stavu
+      state.items = []
+
+      // Uložení do localStorage pro nepřihlášené uživatele
+      if (!userStore.isAuthenticated) {
+        saveCart()
+      }
+
+      state.loading = false
+    } catch (error) {
+      console.error('Error clearing cart:', error)
+      state.error = 'Nepodařilo se vyčistit košík'
+      state.loading = false
+    }
   }
 
   // Výpočet celkové ceny zboží (bez dopravy)
   const cartTotal = computed(() => {
     return state.items.reduce((total, item) => {
-      return total + parseFloat(item.price) * item.quantity
+      // Zajistit, že price je číslo (může být uloženo jako string)
+      const price = typeof item.price === 'string' ? parseFloat(item.price) : item.price
+      return total + price * item.quantity
     }, 0)
   })
 
@@ -127,19 +439,16 @@ export const useCart = () => {
     itemCount,
     cartTotal,
     shipping,
-    shippingMethod: computed({
-      get: () => state.shippingMethod,
-      set: (value) => {
-        state.shippingMethod = value
-        ulozitKosik()
-      }
-    }),
+    shippingMethod: computed(() => state.shippingMethod),
+    loading: computed(() => state.loading),
+    error: computed(() => state.error),
     addToCart,
     removeFromCart,
     updateQuantity,
     increaseQuantity,
     decreaseQuantity,
     setShippingMethod,
-    clearCart
+    clearCart,
+    syncCartWithServer
   }
 }

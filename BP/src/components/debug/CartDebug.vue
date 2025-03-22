@@ -102,8 +102,8 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue'
-import { useCart } from '../stores/stavKosiku'
-import { useUserStore } from '../stores/useUserStore'
+import { useCart } from '../stores/stavKosiku.js'
+import { useUserStore } from '../stores/useUserStore.js'
 import api from '../config/api'
 
 export default {

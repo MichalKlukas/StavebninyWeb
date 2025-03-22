@@ -219,32 +219,27 @@ export const useCart = defineStore('cart', () => {
     }
   }
 
-  // Load cart from localStorage
+  // Make sure your loadLocalCart function is working correctly
   function loadLocalCart() {
     try {
       console.log('[Cart] Loading cart from localStorage')
 
-      const savedCart = localStorage.getItem('cart')
-      const savedShipping = localStorage.getItem('shippingMethod')
-
-      // Clear current items
+      // Clear current items first
       items.value = []
 
+      const savedCart = localStorage.getItem('cart')
       if (savedCart) {
         try {
           const parsedCart = JSON.parse(savedCart)
+          console.log('[Cart] Found cart in localStorage with', parsedCart.length, 'items')
+
           if (Array.isArray(parsedCart)) {
             items.value = parsedCart.map((item) => ({
               ...item,
-              price:
-                typeof item.price === 'string'
-                  ? parseFloat(item.price.replace(',', '.'))
-                  : item.price,
+              price: typeof item.price === 'string' ? parseFloat(item.price) : item.price,
               quantity: typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity
             }))
-            console.log(`[Cart] Loaded ${items.value.length} items from localStorage`)
-          } else {
-            console.error('[Cart] Invalid cart format in localStorage')
+            console.log('[Cart] Loaded', items.value.length, 'items from localStorage')
           }
         } catch (parseError) {
           console.error('[Cart] Error parsing localStorage cart:', parseError)
@@ -253,14 +248,13 @@ export const useCart = defineStore('cart', () => {
         console.log('[Cart] No cart found in localStorage')
       }
 
+      const savedShipping = localStorage.getItem('shippingMethod')
       if (savedShipping) {
         shippingMethod.value = savedShipping
       }
     } catch (err) {
       console.error('[Cart] Error loading cart from localStorage:', err)
       items.value = []
-      shippingMethod.value = 'pickup'
-      error.value = 'Nepodařilo se načíst košík. Zkuste to prosím znovu.'
     }
   }
 
@@ -450,33 +444,30 @@ export const useCart = defineStore('cart', () => {
     }
   }
 
-  // Handle user logout - IMPROVED version
+  // More robust logout handler
   function handleLogout() {
     console.log('[Cart] Handling user logout')
 
     try {
-      // First save current cart to localStorage
-      if (items.value && items.value.length > 0) {
-        localStorage.setItem('cart', JSON.stringify(items.value))
-        localStorage.setItem('shippingMethod', shippingMethod.value)
-        console.log('[Cart] Saved cart to localStorage:', items.value.length, 'items')
-      }
+      // Copy current cart items
+      const cartCopy = JSON.parse(JSON.stringify(items.value))
 
-      // Then clear the cart state
-      const oldItems = [...items.value]
+      // Clear the cart state first
       items.value = []
 
-      // Then reload from localStorage
+      // Then save the copy to localStorage
+      localStorage.setItem('cart', JSON.stringify(cartCopy))
+      localStorage.setItem('shippingMethod', shippingMethod.value)
+
+      // Force a cart reload from localStorage with delay
       setTimeout(() => {
         loadLocalCart()
-        console.log(
-          '[Cart] Loaded cart from localStorage after logout:',
-          items.value.length,
-          'items'
-        )
-      }, 100) // Small delay to ensure state changes take effect
+        console.log('[Cart] Loaded anonymous cart after logout, items:', items.value.length)
+      }, 200)
     } catch (err) {
       console.error('[Cart] Error in handleLogout:', err)
+      // Fallback
+      loadLocalCart()
     }
   }
 

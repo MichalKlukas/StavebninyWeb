@@ -21,7 +21,10 @@ export const useCartStore = defineStore('cart', () => {
 
   const cartTotal = computed(() => {
     return items.value.reduce((total, item) => {
-      return total + item.price * item.quantity
+      // Ensure price is treated as a number
+      const price =
+        typeof item.price === 'string' ? parseFloat(item.price.replace(',', '.')) : item.price
+      return total + price * item.quantity
     }, 0)
   })
 
@@ -36,7 +39,7 @@ export const useCartStore = defineStore('cart', () => {
     return 0
   })
 
-  const isAuthenticated = computed(() => userStore.isAuthenticated)
+  const isAuthenticated = computed(() => userStore.isLoggedIn)
 
   // Actions
 
@@ -45,12 +48,18 @@ export const useCartStore = defineStore('cart', () => {
     console.log('[Cart] Initializing cart')
     error.value = null
 
-    // If user is logged in, get cart from server
-    if (isAuthenticated.value) {
-      await loadUserCart()
-    } else {
-      // Otherwise load from localStorage
-      loadLocalCart()
+    try {
+      // If user is logged in, get cart from server
+      if (isAuthenticated.value) {
+        await loadUserCart()
+      } else {
+        // Otherwise load from localStorage
+        loadLocalCart()
+      }
+      console.log('[Cart] Cart initialized with', items.value.length, 'items')
+    } catch (err) {
+      console.error('[Cart] Error initializing cart:', err)
+      error.value = 'Nepodařilo se načíst košík. Zkuste to prosím znovu.'
     }
   }
 
@@ -58,14 +67,32 @@ export const useCartStore = defineStore('cart', () => {
   async function loadUserCart() {
     try {
       isLoading.value = true
+      error.value = null
       console.log('[Cart] Loading user cart from server')
 
       const response = await api.get('/api/user/cart')
-      items.value = response.data.items || []
-      shippingMethod.value = response.data.shippingMethod || 'pickup'
 
-      console.log(`[Cart] Loaded ${items.value.length} items from server`)
-      lastSyncTime.value = new Date()
+      // Check response format
+      console.log('[Cart] Server response:', response.data)
+
+      if (response.data && Array.isArray(response.data.items)) {
+        items.value = response.data.items.map((item) => ({
+          ...item,
+          // Ensure price is a number
+          price:
+            typeof item.price === 'string' ? parseFloat(item.price.replace(',', '.')) : item.price,
+          // Ensure quantity is a number
+          quantity: typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity
+        }))
+
+        shippingMethod.value = response.data.shippingMethod || 'pickup'
+        console.log(`[Cart] Loaded ${items.value.length} items from server`)
+        lastSyncTime.value = new Date()
+      } else {
+        console.error('[Cart] Invalid response format from server')
+        error.value = 'Neplatný formát dat z serveru.'
+        items.value = []
+      }
     } catch (err) {
       console.error('[Cart] Error loading user cart:', err)
       error.value = 'Nepodařilo se načíst košík. Zkuste to prosím znovu.'
@@ -89,7 +116,8 @@ export const useCartStore = defineStore('cart', () => {
 
     try {
       isLoading.value = true
-      console.log('[Cart] Saving user cart to server')
+      error.value = null
+      console.log('[Cart] Saving user cart to server', items.value)
 
       await api.post('/api/user/cart', {
         items: items.value,
@@ -114,8 +142,23 @@ export const useCartStore = defineStore('cart', () => {
       const savedShipping = localStorage.getItem('shippingMethod')
 
       if (savedCart) {
-        items.value = JSON.parse(savedCart)
-        console.log(`[Cart] Loaded ${items.value.length} items from localStorage`)
+        const parsedCart = JSON.parse(savedCart)
+        if (Array.isArray(parsedCart)) {
+          items.value = parsedCart.map((item) => ({
+            ...item,
+            // Ensure price is a number
+            price:
+              typeof item.price === 'string'
+                ? parseFloat(item.price.replace(',', '.'))
+                : item.price,
+            // Ensure quantity is a number
+            quantity: typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity
+          }))
+          console.log(`[Cart] Loaded ${items.value.length} items from localStorage`)
+        } else {
+          console.error('[Cart] Invalid cart format in localStorage')
+          items.value = []
+        }
       }
 
       if (savedShipping) {
@@ -126,6 +169,7 @@ export const useCartStore = defineStore('cart', () => {
       // Reset to defaults on error
       items.value = []
       shippingMethod.value = 'pickup'
+      error.value = 'Nepodařilo se načíst košík. Zkuste to prosím znovu.'
     }
   }
 
@@ -137,6 +181,7 @@ export const useCartStore = defineStore('cart', () => {
       localStorage.setItem('shippingMethod', shippingMethod.value)
     } catch (err) {
       console.error('[Cart] Error saving cart to localStorage:', err)
+      error.value = 'Nepodařilo se uložit košík do lokálního úložiště.'
     }
   }
 
@@ -150,21 +195,30 @@ export const useCartStore = defineStore('cart', () => {
     console.log(`[Cart] Adding product ${product.id} to cart, quantity: ${quantity}`)
     error.value = null
 
+    // Ensure quantity is a number
+    const quantityNum = parseInt(quantity) || 1
+
+    // Ensure price is a number
+    const price =
+      typeof product.price === 'string'
+        ? parseFloat(product.price.replace(',', '.'))
+        : product.price
+
     // Find if item already exists in cart
     const existingItemIndex = items.value.findIndex((item) => item.id === product.id)
 
     if (existingItemIndex >= 0) {
       // Update quantity if item exists
-      items.value[existingItemIndex].quantity += quantity
+      items.value[existingItemIndex].quantity += quantityNum
       console.log(`[Cart] Updated quantity for existing product ${product.id}`)
     } else {
       // Add new item if it doesn't exist
       items.value.push({
         id: product.id,
         name: product.name,
-        price: product.price,
-        image: product.image || '/images/placeholder.jpg',
-        quantity: quantity,
+        price: price,
+        image: product.image || '/placeholder.jpg',
+        quantity: quantityNum,
         priceUnit: product.priceUnit || 'ks'
       })
       console.log(`[Cart] Added new product ${product.id} to cart`)
@@ -177,7 +231,7 @@ export const useCartStore = defineStore('cart', () => {
 
         await api.post('/api/user/cart/add', {
           productId: product.id,
-          quantity: quantity
+          quantity: quantityNum
         })
 
         console.log(`[Cart] Product ${product.id} saved to server`)
@@ -239,12 +293,13 @@ export const useCartStore = defineStore('cart', () => {
       return
     }
 
+    const quantityNum = parseInt(quantity) || 1
     const item = items.value[index]
-    console.log(`[Cart] Updating quantity for product ${item.id} to ${quantity}`)
+    console.log(`[Cart] Updating quantity for product ${item.id} to ${quantityNum}`)
     error.value = null
 
     const oldQuantity = item.quantity
-    item.quantity = quantity
+    item.quantity = quantityNum
 
     // If user is logged in, save to server
     if (isAuthenticated.value) {
@@ -253,7 +308,7 @@ export const useCartStore = defineStore('cart', () => {
 
         await api.post('/api/user/cart/update', {
           productId: item.id,
-          quantity: quantity
+          quantity: quantityNum
         })
 
         console.log(`[Cart] Product ${item.id} quantity updated on server`)
@@ -370,6 +425,7 @@ export const useCartStore = defineStore('cart', () => {
       console.log(`[Cart] Merging ${localItems.length} local items with server cart`)
       try {
         isLoading.value = true
+        error.value = null
 
         // Send local cart to server for merging
         const response = await api.post('/api/user/cart/merge', {
@@ -378,10 +434,28 @@ export const useCartStore = defineStore('cart', () => {
         })
 
         // Update local state with merged result
-        items.value = response.data.items || []
-        shippingMethod.value = response.data.shippingMethod || 'pickup'
+        if (response.data && Array.isArray(response.data.items)) {
+          items.value = response.data.items.map((item) => ({
+            ...item,
+            // Ensure price is a number
+            price:
+              typeof item.price === 'string'
+                ? parseFloat(item.price.replace(',', '.'))
+                : item.price,
+            // Ensure quantity is a number
+            quantity: typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity
+          }))
 
-        console.log(`[Cart] Merged cart has ${items.value.length} items`)
+          shippingMethod.value = response.data.shippingMethod || 'pickup'
+          console.log(`[Cart] Merged cart has ${items.value.length} items`)
+        } else if (response.data && response.data.success) {
+          // Success but no items returned, load from server
+          await loadUserCart()
+        } else {
+          console.error('[Cart] Invalid response format from server during merge')
+          error.value = 'Neplatný formát dat z serveru.'
+          await loadUserCart()
+        }
 
         // Clear localStorage cart after successful merge
         localStorage.removeItem('cart')

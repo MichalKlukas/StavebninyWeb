@@ -43,12 +43,23 @@ const initializeCart = async () => {
   try {
     state.loading = true
 
+    // Always load from localStorage first
+    loadLocalCart()
+
+    // Then, if user is authenticated, try to load from server
     if (userStore.isAuthenticated) {
-      // Pokud je uživatel přihlášen, načteme košík ze serveru
-      await loadServerCart()
-    } else {
-      // Jinak načteme z localStorage
-      loadLocalCart()
+      try {
+        // First check if the cart API is accessible
+        const statusCheck = await axios.get(`${API_URL}/cart/status`)
+        if (statusCheck.data.success) {
+          await loadServerCart()
+        } else {
+          console.log('Cart API not available, using local cart')
+        }
+      } catch (error) {
+        console.error('Failed to load cart from server, using local cart:', error)
+        // Continue with local cart
+      }
     }
 
     state.loading = false
@@ -56,9 +67,6 @@ const initializeCart = async () => {
     console.error('Error initializing cart:', error)
     state.error = 'Nepodařilo se načíst košík'
     state.loading = false
-
-    // Fallback na lokální košík
-    loadLocalCart()
   }
 }
 
@@ -85,6 +93,11 @@ const loadLocalCart = () => {
 const loadServerCart = async () => {
   const userStore = useUserStore()
 
+  if (!userStore.isAuthenticated || !userStore.token) {
+    console.log('User not authenticated, skipping server cart load')
+    return
+  }
+
   try {
     // Získání košíku ze serveru
     const response = await axios.get(`${API_URL}/cart`, {
@@ -108,17 +121,29 @@ const loadServerCart = async () => {
       }))
 
       // Získání uživatelského nastavení dopravy
-      const prefsResponse = await axios.get(`${API_URL}/user/preferences/shipping`, {
-        headers: {
-          Authorization: `Bearer ${userStore.token}`
-        }
-      })
+      try {
+        const prefsResponse = await axios.get(`${API_URL}/user/preferences/shipping`, {
+          headers: {
+            Authorization: `Bearer ${userStore.token}`
+          }
+        })
 
-      if (prefsResponse.data.success) {
-        state.shippingMethod = prefsResponse.data.shippingMethod
+        if (prefsResponse.data.success) {
+          state.shippingMethod = prefsResponse.data.shippingMethod
+        }
+      } catch (prefsError) {
+        console.error('Error loading shipping preferences:', prefsError)
+        // Continue without updating shipping preferences
       }
     }
   } catch (error) {
+    // If the error is 401 Unauthorized, it means the token is invalid or expired
+    if (error.response && error.response.status === 401) {
+      // Token might be expired, log the user out
+      console.error('Authentication token invalid or expired')
+      userStore.logout()
+    }
+
     console.error('Error loading cart from server:', error)
     throw error
   }

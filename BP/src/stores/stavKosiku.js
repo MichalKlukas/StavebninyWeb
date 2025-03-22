@@ -455,29 +455,28 @@ export const useCart = defineStore('cart', () => {
     console.log('[Cart] Handling user logout')
 
     try {
-      // First save cart to localStorage to preserve for anonymous browsing
-      localStorage.setItem('cart', JSON.stringify(items.value))
-      localStorage.setItem('shippingMethod', shippingMethod.value)
+      // First save current cart to localStorage
+      if (items.value && items.value.length > 0) {
+        localStorage.setItem('cart', JSON.stringify(items.value))
+        localStorage.setItem('shippingMethod', shippingMethod.value)
+        console.log('[Cart] Saved cart to localStorage:', items.value.length, 'items')
+      }
 
-      // Then reset everything
+      // Then clear the cart state
+      const oldItems = [...items.value]
       items.value = []
-      error.value = null
-      lastSyncTime.value = null
-      initialized.value = false
 
-      // Finally load from localStorage for anonymous browsing
-      loadLocalCart()
-      initialized.value = true
-
-      console.log('[Cart] Logout handling complete')
+      // Then reload from localStorage
+      setTimeout(() => {
+        loadLocalCart()
+        console.log(
+          '[Cart] Loaded cart from localStorage after logout:',
+          items.value.length,
+          'items'
+        )
+      }, 100) // Small delay to ensure state changes take effect
     } catch (err) {
       console.error('[Cart] Error in handleLogout:', err)
-
-      // Reset everything in case of error
-      items.value = []
-      initialized.value = false
-      loadLocalCart()
-      initialized.value = true
     }
   }
 

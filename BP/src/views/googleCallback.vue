@@ -30,14 +30,14 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/useUserStore'
-import { useCartStore } from '../stores/cartStore'
+import { useCart } from '@/stores/stavKosiku'
 import api from '../config/api'
 
 export default {
   name: 'GoogleCallback',
   setup() {
     const userStore = useUserStore()
-    const cartStore = useCartStore()
+    const cartStore = useCart()
     const router = useRouter()
 
     // State

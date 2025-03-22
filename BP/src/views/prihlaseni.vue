@@ -132,7 +132,7 @@ import { ref } from 'vue'
 import axios from 'axios'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/useUserStore'
-import { useCartStore } from '../stores/cartStore'
+import { useCart } from '@/stores/stavKosiku'
 
 export default {
   name: 'LoginPage',
@@ -140,7 +140,7 @@ export default {
     const router = useRouter()
     const route = useRoute()
     const userStore = useUserStore()
-    const cartStore = useCartStore()
+    const cartStore = useCart()
 
     // Form data
     const loginData = ref({

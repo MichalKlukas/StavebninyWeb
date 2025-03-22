@@ -153,7 +153,7 @@ import { defineComponent, ref, onMounted, onUnmounted, computed } from 'vue'
 import { useUserStore } from '../stores'
 import { useRouter } from 'vue-router'
 // Import the store type along with the function
-import { useCartStore } from '@/stores/cartStore'
+import { useCart } from '@/stores/stavKosiku.js'
 import categoriesJson from '@/data/categories.json'
 
 export default defineComponent({
@@ -162,7 +162,7 @@ export default defineComponent({
     const userStore = useUserStore()
     const router = useRouter()
     const dropdownOpen = ref(false)
-    const cartStore = useCartStore()
+    const cartStore = useCart()
     const searchQuery = ref('')
 
     // We'll keep a local reactive reference that's TypeScript-safe

@@ -6,7 +6,7 @@ import Footer from '@/components/Footer.vue'
 import CartDebug from '@/components/debug/CartDebug.vue'
 import StoreDebug from '@/components/debug/StoreDebug.vue'
 import { useUserStore } from '@/stores/useUserStore.js'
-import { useCartStore } from '@/stores/cartStore'
+import { useCart } from '@/stores/stavKosiku.js'
 
 // Development mode check
 const isDev = ref(true)
@@ -31,7 +31,7 @@ onMounted(async () => {
     console.log('[App] User state initialized, isLoggedIn:', userStore.isLoggedIn)
 
     // Initialize cart store
-    const cartStore = useCartStore()
+    const cartStore = useCart()
     await cartStore.initCart()
     console.log('[App] Cart initialized, itemCount:', cartStore.itemCount)
   } catch (error) {

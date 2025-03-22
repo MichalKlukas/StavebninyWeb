@@ -146,14 +146,14 @@
 <script>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useCartStore } from '../stores/cartStore'
+import { useCart } from '@/stores/stavKosiku'
 import { useUserStore } from '../stores/useUserStore'
 
 export default {
   name: 'CartPage',
   setup() {
     const router = useRouter()
-    const cartStore = useCartStore()
+    const cartStore = useCart()
     const userStore = useUserStore()
 
     // Local copy of cart state for reactivity

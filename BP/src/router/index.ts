@@ -20,7 +20,7 @@ import GoogleCallback from '@/views/googleCallback.vue'
 
 // Import stores for initialization
 import { useUserStore } from '@/stores/useUserStore.js'
-import { useCartStore } from '@/stores/cartStore'
+import { useCart } from '@/stores/stavKosiku.js'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -148,7 +148,7 @@ router.beforeEach(async (to, from, next) => {
       }
 
       // Initialize cart store
-      const cartStore = useCartStore()
+      const cartStore = useCart()
       if (typeof cartStore.initCart === 'function') {
         await cartStore.initCart()
         console.log('Cart store initialized')

@@ -30,7 +30,7 @@
 
 <script lang="ts">
 import { defineComponent, ref } from 'vue'
-import { useCartStore } from '@/stores/cartStore'
+import { useCart } from '@/stores/stavKosiku.js'
 import type { PropType } from 'vue'
 
 // Define the product interface for type safety
@@ -53,7 +53,7 @@ export default defineComponent({
     }
   },
   setup(props) {
-    const cartStore = useCartStore()
+    const cartStore = useCart()
     const isAddingToCart = ref(false)
 
     const navigateToProduct = () => {

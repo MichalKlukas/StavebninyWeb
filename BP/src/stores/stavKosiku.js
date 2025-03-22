@@ -114,10 +114,10 @@ const loadServerCart = async () => {
         id: item.product_id,
         quantity: item.quantity,
         dbId: item.id, // Database record ID for later use
-        name: item.name || 'Produktové ID: ' + item.product_id,
-        price: item.price || '0',
-        image: item.image || '/placeholder.jpg',
-        priceUnit: item.price_unit || 'kus'
+        name: item.product_name || 'Produktové ID: ' + item.product_id,
+        price: item.product_price || '0',
+        image: item.product_image || '/placeholder.jpg',
+        priceUnit: item.product_unit || 'kus'
       }))
 
       // Also load the user’s shipping preferences

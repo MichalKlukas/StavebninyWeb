@@ -3,8 +3,26 @@ import { reactive, computed, watch } from 'vue'
 import axios from 'axios'
 import { useUserStore } from './index'
 
-// API baseURL
-const API_URL = import.meta.env.VITE_API_URL || 'https://vm31309.domainsale.cz:3000/api'
+// API baseURL - make sure to add /api to all endpoints
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://46.28.108.195.nip.io'
+const API_URL = `${BASE_URL}/api`
+
+// Helper function to parse price strings correctly
+const parsePrice = (priceString) => {
+  if (typeof priceString === 'number') return priceString
+
+  // Handle Czech/European price format (e.g., "329,00 Kč")
+  if (typeof priceString === 'string') {
+    // Remove currency symbol and spaces
+    let cleanPrice = priceString.replace(/[^\d,\.]/g, '')
+    // Replace comma with dot for decimal
+    cleanPrice = cleanPrice.replace(',', '.')
+    // Parse to float
+    return parseFloat(cleanPrice) || 0
+  }
+
+  return 0
+}
 
 // Reaktivní stav košíku
 const state = reactive({
@@ -195,20 +213,26 @@ export const useCart = () => {
     try {
       state.loading = true
 
+      // Process price to ensure it's in the correct format
+      const processedProduct = {
+        ...product,
+        price: parsePrice(product.price)
+      }
+
       // Kontrola, zda produkt již je v košíku
-      const existingIndex = state.items.findIndex((item) => item.id === product.id)
+      const existingIndex = state.items.findIndex((item) => item.id === processedProduct.id)
 
       if (userStore.isAuthenticated) {
         // API volání pro přidání do košíku
         const response = await axios.post(
           `${API_URL}/cart`,
           {
-            productId: product.id,
+            productId: processedProduct.id,
             quantity: 1,
-            price: product.price,
-            name: product.name,
-            image: product.image,
-            priceUnit: product.priceUnit
+            price: processedProduct.price,
+            name: processedProduct.name,
+            image: processedProduct.image || '/placeholder.jpg',
+            priceUnit: processedProduct.priceUnit || 'kus'
           },
           {
             headers: {
@@ -225,11 +249,11 @@ export const useCart = () => {
           } else {
             // Přidání nového produktu
             state.items.push({
-              id: product.id,
-              name: product.name,
-              price: product.price,
-              image: product.image || '/placeholder.jpg',
-              priceUnit: product.priceUnit || 'kus',
+              id: processedProduct.id,
+              name: processedProduct.name,
+              price: processedProduct.price,
+              image: processedProduct.image || '/placeholder.jpg',
+              priceUnit: processedProduct.priceUnit || 'kus',
               quantity: 1,
               dbId: response.data.cartItem.id
             })
@@ -241,10 +265,10 @@ export const useCart = () => {
           state.items[existingIndex].quantity++
         } else {
           state.items.push({
-            ...product,
+            ...processedProduct,
             quantity: 1,
-            image: product.image || '/placeholder.jpg',
-            priceUnit: product.priceUnit || 'kus'
+            image: processedProduct.image || '/placeholder.jpg',
+            priceUnit: processedProduct.priceUnit || 'kus'
           })
         }
 
@@ -416,9 +440,7 @@ export const useCart = () => {
   // Výpočet celkové ceny zboží (bez dopravy)
   const cartTotal = computed(() => {
     return state.items.reduce((total, item) => {
-      // Zajistit, že price je číslo (může být uloženo jako string)
-      const price = typeof item.price === 'string' ? parseFloat(item.price) : item.price
-      return total + price * item.quantity
+      return total + parsePrice(item.price) * item.quantity
     }, 0)
   })
 

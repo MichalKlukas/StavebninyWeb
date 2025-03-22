@@ -1,4 +1,4 @@
-// src/stores/useUserStore.js
+// src/stores/useUserStore.js - AGGRESSIVE VERSION
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
@@ -36,17 +36,13 @@ export const useUserStore = defineStore('user', () => {
           // Parse user data
           user.value = JSON.parse(userData)
           // Set token
-          token.value = storedToken
+          token.value = formatToken(storedToken)
+
+          // Ensure token is saved with correct format
+          localStorage.setItem('token', token.value)
 
           console.log('[UserStore] User restored from localStorage:', user.value.email)
           console.log('[UserStore] Token restored:', token.value ? 'Present' : 'Missing')
-
-          // Ensure token has Bearer prefix
-          if (token.value && !token.value.startsWith('Bearer ')) {
-            token.value = `Bearer ${token.value}`
-            localStorage.setItem('token', token.value)
-            console.log('[UserStore] Added Bearer prefix to token')
-          }
 
           return true
         } catch (parseError) {
@@ -100,6 +96,10 @@ export const useUserStore = defineStore('user', () => {
         throw new Error('Missing user data or authentication token')
       }
 
+      // AGGRESSIVE: First clear all cart data
+      localStorage.removeItem('cart')
+      localStorage.removeItem('shippingMethod')
+
       // Format token properly
       const formattedToken = formatToken(authToken)
       console.log('[UserStore] Token formatted:', formattedToken ? 'Success' : 'Failed')
@@ -113,17 +113,9 @@ export const useUserStore = defineStore('user', () => {
       localStorage.setItem('token', formattedToken)
       console.log('[UserStore] User data saved to localStorage')
 
-      // Verify data was saved correctly
-      const verifyToken = localStorage.getItem('token')
-      const verifyUser = localStorage.getItem('user')
+      // NOTE: Cart handling is now managed through the watcher in the cart store
+      // which will trigger a page reload when auth state changes
 
-      if (!verifyToken || !verifyUser) {
-        console.error('[UserStore] Verification failed - localStorage not updated')
-      } else {
-        console.log('[UserStore] Verification successful')
-      }
-
-      // NOTE: The cart will be handled via the watcher in the cart store
       return true
     } catch (error) {
       console.error('[UserStore] Login error:', error)
@@ -141,8 +133,11 @@ export const useUserStore = defineStore('user', () => {
       loading.value = true
       lastError.value = null
 
-      // IMPORTANT: First clear state
-      // Cart store watches for this change
+      // Save cart data before clearing auth
+      // We don't need to do anything special here as cart is already saved to localStorage
+      // and cart state change watcher will handle the reset
+
+      // IMPORTANT: First clear user state
       user.value = null
       token.value = null
       console.log('[UserStore] User data cleared from state')
@@ -152,7 +147,7 @@ export const useUserStore = defineStore('user', () => {
       localStorage.removeItem('token')
       console.log('[UserStore] User data removed from localStorage')
 
-      // We don't directly handle the cart here - the cart store's watcher will handle it
+      // Cart store's watcher will detect this change and refresh
 
       return true
     } catch (error) {
@@ -187,6 +182,22 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  // Force logout and reload
+  function forceLogout() {
+    console.log('[UserStore] Force logout and reload')
+
+    // Clear everything
+    user.value = null
+    token.value = null
+    localStorage.removeItem('user')
+    localStorage.removeItem('token')
+    localStorage.removeItem('cart')
+    localStorage.removeItem('shippingMethod')
+
+    // Reload the page
+    window.location.reload()
+  }
+
   return {
     user,
     token,
@@ -197,6 +208,7 @@ export const useUserStore = defineStore('user', () => {
     init,
     login,
     logout,
-    getAuthStatus
+    getAuthStatus,
+    forceLogout
   }
 })

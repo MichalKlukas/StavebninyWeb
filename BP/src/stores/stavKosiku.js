@@ -45,21 +45,31 @@ const initializeCart = async () => {
 
     // Always load from localStorage first
     loadLocalCart()
+    console.log('Local cart loaded')
 
     // Then, if user is authenticated, try to load from server
     if (userStore.isAuthenticated) {
+      console.log('User is authenticated, checking cart API status...')
       try {
-        // First check if the cart API is accessible
-        const statusCheck = await axios.get(`${API_URL}/cart/status`)
-        if (statusCheck.data.success) {
-          await loadServerCart()
-        } else {
-          console.log('Cart API not available, using local cart')
-        }
+        // First try to access the status endpoint without auth
+        await axios
+          .get(`${API_URL}/cart/status`)
+          .then((response) => {
+            console.log('Cart API status check successful:', response.data)
+            if (response.data.success) {
+              return loadServerCart()
+            }
+          })
+          .catch((error) => {
+            console.error('Cart API status check failed:', error)
+            // Continue with local cart
+          })
       } catch (error) {
-        console.error('Failed to load cart from server, using local cart:', error)
+        console.error('Error checking cart API status:', error)
         // Continue with local cart
       }
+    } else {
+      console.log('User not authenticated, using local cart only')
     }
 
     state.loading = false

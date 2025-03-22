@@ -361,123 +361,79 @@ export const useCart = defineStore('cart', () => {
 
   // Merge local cart with server cart - IMPROVED version
   async function handleLogin() {
-    console.log('[Cart] Handling user login for user', userStore.user?.id)
+    console.log('[Cart] Handling user login')
 
     try {
       isLoading.value = true
       error.value = null
-      initialized.value = false
 
-      // Get items from localStorage
+      // Get items from localStorage first
       const localCart = localStorage.getItem('cart')
       let localItems = []
-      let localShipping = 'pickup'
-
-      if (localCart) {
-        try {
-          const parsed = JSON.parse(localCart)
-          if (Array.isArray(parsed)) {
-            localItems = parsed
-          }
-        } catch (e) {
-          console.error('[Cart] Error parsing localStorage cart:', e)
-        }
-        localShipping = localStorage.getItem('shippingMethod') || 'pickup'
+      try {
+        localItems = localCart ? JSON.parse(localCart) : []
+      } catch (e) {
+        console.error('[Cart] Error parsing localStorage cart:', e)
       }
 
-      const hasLocalItems = localItems.length > 0
-      console.log(`[Cart] LocalStorage has ${localItems.length} items`)
-
-      if (hasLocalItems) {
+      // If there are local items, merge with server
+      if (localItems.length > 0) {
         console.log(`[Cart] Merging ${localItems.length} local items with server cart`)
 
-        // Add cache-busting parameter
-        const timestamp = new Date().getTime()
-        const response = await api.post(
-          `/api/user/cart/merge?_nocache=${timestamp}`,
-          {
+        try {
+          await api.post('/api/user/cart/merge', {
             items: localItems,
-            shippingMethod: localShipping
-          },
-          {
-            headers: {
-              Authorization: userStore.token || localStorage.getItem('token')
-            }
-          }
-        )
-
-        if (response.data && Array.isArray(response.data.items)) {
-          // Clear items first
-          items.value = []
-
-          // Set items from response
-          items.value = response.data.items.map((item) => ({
-            ...item,
-            price:
-              typeof item.price === 'string'
-                ? parseFloat(item.price.replace(',', '.'))
-                : item.price,
-            quantity: typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity
-          }))
-
-          shippingMethod.value = response.data.shippingMethod || 'pickup'
-          console.log(`[Cart] Merged cart now has ${items.value.length} items`)
-        } else {
-          console.log('[Cart] No items in merge response, loading from server')
-          await loadUserCart()
+            shippingMethod: localStorage.getItem('shippingMethod') || 'pickup'
+          })
+          console.log('[Cart] Cart merge request sent successfully')
+        } catch (mergeError) {
+          console.error('[Cart] Error merging cart with server:', mergeError)
+          // Continue anyway - we'll load whatever is on the server
         }
-      } else {
-        console.log('[Cart] No local items, loading cart from server')
-        await loadUserCart()
       }
 
-      // Clear localStorage after handling login
+      // Load the cart from server (merged or not)
+      await loadUserCart()
+
+      // Clear localStorage cart after handling server cart
       localStorage.removeItem('cart')
       localStorage.removeItem('shippingMethod')
 
-      initialized.value = true
       console.log('[Cart] Login cart handling complete')
     } catch (err) {
       console.error('[Cart] Error in handleLogin:', err)
-      console.error('[Cart] Error details:', err.response?.data || err.message)
-
-      // Fall back to server cart
-      items.value = []
+      // Fall back to loading from server
       await loadUserCart()
-      initialized.value = true
     } finally {
       isLoading.value = false
     }
   }
 
-  // Handle user logout - IMPROVED version
+  // Simplified logout handler
   function handleLogout() {
     console.log('[Cart] Handling user logout')
 
     try {
-      // First save cart to localStorage to preserve for anonymous browsing
-      localStorage.setItem('cart', JSON.stringify(items.value))
-      localStorage.setItem('shippingMethod', shippingMethod.value)
+      // Save current cart to localStorage first
+      if (items.value.length > 0) {
+        localStorage.setItem('cart', JSON.stringify(items.value))
+        localStorage.setItem('shippingMethod', shippingMethod.value)
+        console.log('[Cart] Current cart saved to localStorage for anonymous browsing')
+      }
 
-      // Then reset everything
+      // Reset cart state
       items.value = []
       error.value = null
-      lastSyncTime.value = null
-      initialized.value = false
 
-      // Finally load from localStorage for anonymous browsing
+      // Load saved cart from localStorage (what we just saved)
       loadLocalCart()
-      initialized.value = true
 
       console.log('[Cart] Logout handling complete')
     } catch (err) {
       console.error('[Cart] Error in handleLogout:', err)
-
       // Reset everything in case of error
       items.value = []
-      initialized.value = false
       loadLocalCart()
-      initialized.value = true
     }
   }
 

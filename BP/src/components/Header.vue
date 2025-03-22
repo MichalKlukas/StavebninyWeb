@@ -149,7 +149,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { defineComponent, ref, onMounted, onUnmounted, computed } from 'vue'
 import { useUserStore } from '../stores'
 import { useRouter } from 'vue-router'
 // Import the store type along with the function
@@ -181,9 +181,6 @@ export default defineComponent({
         cartTotalAmount.value = 0
       }
     }
-    // Watch for changes in cart store
-    watch(() => cartStore.itemCount, updateCartInfo, { immediate: true })
-    watch(() => cartStore.cartTotal, updateCartInfo, { immediate: true })
 
     // Format the cart total for display
     const formatCartTotal = computed(() => {
@@ -210,19 +207,12 @@ export default defineComponent({
       dropdownOpen.value = !dropdownOpen.value
     }
 
-    const logout = async () => {
-      // First close dropdown
-      dropdownOpen.value = false
-
-      // Properly handle cart during logout
+    const logout = () => {
       if (typeof cartStore.handleLogout === 'function') {
-        await cartStore.handleLogout()
+        cartStore.handleLogout()
       }
-
-      // Then logout user
-      await userStore.logout()
-
-      // Navigate to home page
+      userStore.logout()
+      dropdownOpen.value = false
       router.push('/')
     }
 

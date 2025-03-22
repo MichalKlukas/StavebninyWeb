@@ -495,8 +495,20 @@ export const useCart = defineStore('cart', () => {
   // Handle user logout
   function handleLogout() {
     console.log('[Cart] Handling user logout')
+
     // Save current cart to localStorage before clearing
     saveLocalCart()
+
+    // IMPORTANT: Reset cart state to defaults
+    items.value = []
+    error.value = null
+    lastSyncTime.value = null
+
+    // Then reload from localStorage (for anonymous user)
+    setTimeout(() => {
+      loadLocalCart()
+      console.log('[Cart] Cart reset to anonymous state after logout')
+    }, 100)
   }
 
   return {

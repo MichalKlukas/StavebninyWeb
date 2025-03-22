@@ -1,3 +1,4 @@
+// src/stores/useUserStore.js - Update the logout method
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useCart } from './stavKosiku' // Import directly to avoid dynamic import issues
@@ -77,6 +78,7 @@ export const useUserStore = defineStore('user', () => {
       return false
     }
   }
+
   function verifyTokenFormat() {
     const storedToken = localStorage.getItem('token')
     console.log('[UserStore] Token verification:')
@@ -144,9 +146,6 @@ export const useUserStore = defineStore('user', () => {
           const cartStore = useCart()
           await cartStore.handleLogin()
 
-          // Force cart initialization
-          await cartStore.initCart()
-
           console.log('[UserStore] Cart handling completed successfully')
           cartInitSuccess = true
         } catch (error) {
@@ -189,6 +188,9 @@ export const useUserStore = defineStore('user', () => {
         console.error('[UserStore] Error in cart handling during logout:', error)
       }
 
+      // IMPORTANT: Clear user state BEFORE clearing localStorage
+      const wasLoggedIn = isLoggedIn.value
+
       // Clear user state
       user.value = null
       token.value = null
@@ -198,6 +200,19 @@ export const useUserStore = defineStore('user', () => {
       localStorage.removeItem('user')
       localStorage.removeItem('token')
       console.log('[UserStore] User data removed from localStorage')
+
+      // If the user was previously logged in, force refresh cart
+      if (wasLoggedIn) {
+        try {
+          const cartStore = useCart()
+          // Clear items first
+          cartStore.items = []
+          cartStore.loadLocalCart()
+          console.log('[UserStore] Cart reloaded after logout')
+        } catch (error) {
+          console.error('[UserStore] Error reloading cart after logout:', error)
+        }
+      }
 
       return true
     } catch (error) {

@@ -1,12 +1,11 @@
-// src/stores/useUserStore.js - Update the logout method
+// src/stores/useUserStore.js
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useCart } from './stavKosiku' // Import directly to avoid dynamic import issues
 
 export const useUserStore = defineStore('user', () => {
   // State
   const user = ref(null)
-  const token = ref(localStorage.getItem('token'))
+  const token = ref(null)
   const loading = ref(false)
   const lastError = ref(null)
 
@@ -31,25 +30,34 @@ export const useUserStore = defineStore('user', () => {
       // Load user from localStorage
       const userData = localStorage.getItem('user')
       const storedToken = localStorage.getItem('token')
-      verifyTokenFormat()
+
       if (userData && storedToken) {
-        // Parse user data
-        user.value = JSON.parse(userData)
-        // Set token
-        token.value = storedToken
+        try {
+          // Parse user data
+          user.value = JSON.parse(userData)
+          // Set token
+          token.value = storedToken
 
-        console.log('[UserStore] User restored from localStorage:', user.value.email)
-        console.log('[UserStore] Token restored:', token.value ? 'Present' : 'Missing')
+          console.log('[UserStore] User restored from localStorage:', user.value.email)
+          console.log('[UserStore] Token restored:', token.value ? 'Present' : 'Missing')
 
-        // Ensure token has Bearer prefix
-        if (token.value && !token.value.startsWith('Bearer ')) {
-          token.value = `Bearer ${token.value}`
-          localStorage.setItem('token', token.value)
-          console.log('[UserStore] Added Bearer prefix to token')
+          // Ensure token has Bearer prefix
+          if (token.value && !token.value.startsWith('Bearer ')) {
+            token.value = `Bearer ${token.value}`
+            localStorage.setItem('token', token.value)
+            console.log('[UserStore] Added Bearer prefix to token')
+          }
+
+          return true
+        } catch (parseError) {
+          console.error('[UserStore] Error parsing user data:', parseError)
+          // Clear corrupted data
+          localStorage.removeItem('user')
+          localStorage.removeItem('token')
+          user.value = null
+          token.value = null
+          return false
         }
-
-        loading.value = false
-        return true
       } else {
         console.log('[UserStore] No complete user data in localStorage')
 
@@ -62,7 +70,6 @@ export const useUserStore = defineStore('user', () => {
           token.value = null
         }
 
-        loading.value = false
         return false
       }
     } catch (error) {
@@ -74,26 +81,8 @@ export const useUserStore = defineStore('user', () => {
       user.value = null
       token.value = null
 
-      loading.value = false
       return false
     }
-  }
-
-  function verifyTokenFormat() {
-    const storedToken = localStorage.getItem('token')
-    console.log('[UserStore] Token verification:')
-    console.log('- Token in state:', token.value ? 'Present' : 'Missing')
-    console.log('- Token in localStorage:', storedToken ? 'Present' : 'Missing')
-
-    if (storedToken && !storedToken.startsWith('Bearer ')) {
-      console.log('- Fixing token format in localStorage')
-      const fixedToken = `Bearer ${storedToken}`
-      localStorage.setItem('token', fixedToken)
-      token.value = fixedToken
-      return fixedToken
-    }
-
-    return storedToken
   }
 
   async function login(userData, authToken) {
@@ -134,33 +123,7 @@ export const useUserStore = defineStore('user', () => {
         console.log('[UserStore] Verification successful')
       }
 
-      // Handle cart login with retry logic
-      let cartInitSuccess = false
-      let attempts = 0
-
-      while (!cartInitSuccess && attempts < 3) {
-        try {
-          attempts++
-          console.log(`[UserStore] Attempting cart handling (attempt ${attempts})`)
-
-          const cartStore = useCart()
-          await cartStore.handleLogin()
-
-          console.log('[UserStore] Cart handling completed successfully')
-          cartInitSuccess = true
-        } catch (error) {
-          console.error(`[UserStore] Cart handling error (attempt ${attempts}):`, error)
-
-          if (attempts < 3) {
-            console.log('[UserStore] Retrying cart initialization...')
-            await new Promise((resolve) => setTimeout(resolve, 500)) // Wait before retry
-          } else {
-            console.error('[UserStore] Maximum cart initialization attempts reached')
-            lastError.value = 'Cart initialization failed'
-          }
-        }
-      }
-
+      // NOTE: The cart will be handled via the watcher in the cart store
       return true
     } catch (error) {
       console.error('[UserStore] Login error:', error)
@@ -178,46 +141,30 @@ export const useUserStore = defineStore('user', () => {
       loading.value = true
       lastError.value = null
 
-      // Handle cart logout
-      try {
-        const cartStore = useCart()
-        console.log('[UserStore] Calling cart.handleLogout()')
-        cartStore.handleLogout()
-        console.log('[UserStore] Cart handleLogout completed')
-      } catch (error) {
-        console.error('[UserStore] Error in cart handling during logout:', error)
-      }
-
-      // IMPORTANT: Clear user state BEFORE clearing localStorage
-      const wasLoggedIn = isLoggedIn.value
-
-      // Clear user state
+      // IMPORTANT: First clear state
+      // Cart store watches for this change
       user.value = null
       token.value = null
       console.log('[UserStore] User data cleared from state')
 
-      // Remove from localStorage
+      // Then remove from localStorage
       localStorage.removeItem('user')
       localStorage.removeItem('token')
       console.log('[UserStore] User data removed from localStorage')
 
-      // If the user was previously logged in, force refresh cart
-      if (wasLoggedIn) {
-        try {
-          const cartStore = useCart()
-          // Clear items first
-          cartStore.items = []
-          cartStore.loadLocalCart()
-          console.log('[UserStore] Cart reloaded after logout')
-        } catch (error) {
-          console.error('[UserStore] Error reloading cart after logout:', error)
-        }
-      }
+      // We don't directly handle the cart here - the cart store's watcher will handle it
 
       return true
     } catch (error) {
       console.error('[UserStore] Logout error:', error)
       lastError.value = error.message
+
+      // Ensure user is logged out even in case of error
+      user.value = null
+      token.value = null
+      localStorage.removeItem('user')
+      localStorage.removeItem('token')
+
       return false
     } finally {
       loading.value = false

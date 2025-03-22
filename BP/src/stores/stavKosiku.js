@@ -1,6 +1,6 @@
 // src/stores/stavKosiku.js
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useUserStore } from './useUserStore'
 import api from '../config/api'
 
@@ -13,6 +13,7 @@ export const useCart = defineStore('cart', () => {
   const isLoading = ref(false)
   const error = ref(null)
   const lastSyncTime = ref(null)
+  const initialized = ref(false) // Add initialization flag
 
   // Getters
   const itemCount = computed(() => {
@@ -41,19 +42,46 @@ export const useCart = defineStore('cart', () => {
 
   const isAuthenticated = computed(() => userStore.isLoggedIn)
 
+  // Add watcher for auth state changes
+  watch(
+    () => userStore.isLoggedIn,
+    (newValue, oldValue) => {
+      console.log(`[Cart] Auth state changed: ${oldValue} -> ${newValue}`)
+
+      // Only react if there's an actual change and initialization is complete
+      if (newValue !== oldValue && initialized.value) {
+        if (newValue) {
+          // User just logged in
+          console.log('[Cart] User logged in, handling login')
+          handleLogin()
+        } else {
+          // User just logged out
+          console.log('[Cart] User logged out, handling logout')
+          handleLogout()
+        }
+      }
+    }
+  )
+
   // Methods for debugging
   function getStatus() {
     return {
-      initialized: lastSyncTime.value ? 'Yes' : 'No',
+      initialized: initialized.value ? 'Yes' : 'No',
       itemCount: items.value.length,
+      isAuthenticated: isAuthenticated.value ? 'Yes' : 'No',
+      lastSync: lastSyncTime.value ? lastSyncTime.value.toISOString() : 'Never',
       lastError: error.value
     }
   }
 
-  // Actions
-
   // Initialize cart
   async function initCart() {
+    // Prevent multiple initializations
+    if (initialized.value) {
+      console.log('[Cart] Cart already initialized, skipping')
+      return
+    }
+
     console.log('[Cart] Initializing cart')
     error.value = null
 
@@ -66,16 +94,24 @@ export const useCart = defineStore('cart', () => {
         loadLocalCart()
       }
       console.log('[Cart] Cart initialized with', items.value.length, 'items')
+      initialized.value = true
     } catch (err) {
       console.error('[Cart] Error initializing cart:', err)
       error.value = 'Nepodařilo se načíst košík. Zkuste to prosím znovu.'
       // Load from localStorage as fallback even for logged in users
       loadLocalCart()
+      initialized.value = true // Still mark as initialized to avoid infinite loops
     }
   }
 
   // Load cart for logged-in user from server
   async function loadUserCart() {
+    if (!isAuthenticated.value) {
+      console.log('[Cart] Not authenticated, loading from localStorage instead')
+      loadLocalCart()
+      return
+    }
+
     try {
       isLoading.value = true
       error.value = null
@@ -84,7 +120,7 @@ export const useCart = defineStore('cart', () => {
       const response = await api.get('/api/user/cart')
 
       // Check response format
-      console.log('[Cart] Server response:', response.data)
+      console.log('[Cart] Server response received')
 
       if (response.data && Array.isArray(response.data.items)) {
         items.value = response.data.items.map((item) => ({
@@ -163,23 +199,30 @@ export const useCart = defineStore('cart', () => {
       const savedShipping = localStorage.getItem('shippingMethod')
 
       if (savedCart) {
-        const parsedCart = JSON.parse(savedCart)
-        if (Array.isArray(parsedCart)) {
-          items.value = parsedCart.map((item) => ({
-            ...item,
-            // Ensure price is a number
-            price:
-              typeof item.price === 'string'
-                ? parseFloat(item.price.replace(',', '.'))
-                : item.price,
-            // Ensure quantity is a number
-            quantity: typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity
-          }))
-          console.log(`[Cart] Loaded ${items.value.length} items from localStorage`)
-        } else {
-          console.error('[Cart] Invalid cart format in localStorage')
+        try {
+          const parsedCart = JSON.parse(savedCart)
+          if (Array.isArray(parsedCart)) {
+            items.value = parsedCart.map((item) => ({
+              ...item,
+              // Ensure price is a number
+              price:
+                typeof item.price === 'string'
+                  ? parseFloat(item.price.replace(',', '.'))
+                  : item.price,
+              // Ensure quantity is a number
+              quantity: typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity
+            }))
+            console.log(`[Cart] Loaded ${items.value.length} items from localStorage`)
+          } else {
+            console.error('[Cart] Invalid cart format in localStorage')
+            items.value = []
+          }
+        } catch (parseError) {
+          console.error('[Cart] Error parsing cart from localStorage:', parseError)
           items.value = []
         }
+      } else {
+        items.value = []
       }
 
       if (savedShipping) {
@@ -435,12 +478,17 @@ export const useCart = defineStore('cart', () => {
   // Merge local cart with server cart when user logs in
   async function handleLogin() {
     console.log('[Cart] Handling user login')
-    const localItems = [...items.value]
-    const localShipping = shippingMethod.value
 
-    if (localItems.length > 0) {
-      console.log(`[Cart] Merging ${localItems.length} local items with server cart`)
-      try {
+    try {
+      // Create a copy of local items before any modifications
+      const localItems = [...items.value]
+      const localShipping = shippingMethod.value
+
+      // Reset the cart first to avoid duplicates
+      items.value = []
+
+      if (localItems.length > 0) {
+        console.log(`[Cart] Merging ${localItems.length} local items with server cart`)
         isLoading.value = true
         error.value = null
 
@@ -477,18 +525,23 @@ export const useCart = defineStore('cart', () => {
         // Clear localStorage cart after successful merge
         localStorage.removeItem('cart')
         localStorage.removeItem('shippingMethod')
-      } catch (err) {
-        console.error('[Cart] Error merging carts:', err)
-        error.value = 'Nepodařilo se sloučit košíky. Zkuste to prosím znovu.'
-
-        // If merge fails, try loading the server cart
+      } else {
+        // No local items, just load user cart from server
         await loadUserCart()
-      } finally {
-        isLoading.value = false
       }
-    } else {
-      // No local items, just load user cart from server
-      await loadUserCart()
+    } catch (err) {
+      console.error('[Cart] Error merging carts:', err)
+      error.value = 'Nepodařilo se sloučit košíky. Zkuste to prosím znovu.'
+
+      // If merge fails, try loading the server cart
+      try {
+        await loadUserCart()
+      } catch (loadErr) {
+        console.error('[Cart] Failed to load user cart after merge failure:', loadErr)
+        // As a last resort, keep whatever is in the cart now
+      }
+    } finally {
+      isLoading.value = false
     }
   }
 
@@ -496,19 +549,48 @@ export const useCart = defineStore('cart', () => {
   function handleLogout() {
     console.log('[Cart] Handling user logout')
 
-    // Save current cart to localStorage before clearing
-    saveLocalCart()
+    try {
+      // Save current cart to localStorage before clearing
+      saveLocalCart()
 
-    // IMPORTANT: Reset cart state to defaults
+      // Store current cart for debugging
+      const prevItems = [...items.value]
+
+      // IMPORTANT: Reset cart state to defaults
+      items.value = []
+      error.value = null
+      lastSyncTime.value = null
+
+      console.log(`[Cart] Cleared cart state, previously had ${prevItems.length} items`)
+
+      // Then reload from localStorage (for anonymous user)
+      loadLocalCart()
+      console.log(`[Cart] Reloaded ${items.value.length} items from localStorage after logout`)
+    } catch (err) {
+      console.error('[Cart] Error in handleLogout:', err)
+      // Ensure cart is reset even if there's an error
+      items.value = []
+      try {
+        loadLocalCart()
+      } catch (innerErr) {
+        console.error('[Cart] Failed to load cart from localStorage after error:', innerErr)
+      }
+    }
+  }
+
+  // Force a full reset and reinitialize cart
+  function resetCart() {
+    console.log('[Cart] Performing full cart reset')
+
+    // Clear all state
     items.value = []
+    shippingMethod.value = 'pickup'
     error.value = null
     lastSyncTime.value = null
+    initialized.value = false
 
-    // Then reload from localStorage (for anonymous user)
-    setTimeout(() => {
-      loadLocalCart()
-      console.log('[Cart] Cart reset to anonymous state after logout')
-    }, 100)
+    // Re-initialize
+    return initCart()
   }
 
   return {
@@ -518,6 +600,7 @@ export const useCart = defineStore('cart', () => {
     isLoading,
     error,
     lastSyncTime,
+    initialized,
 
     // Getters
     itemCount,
@@ -526,6 +609,7 @@ export const useCart = defineStore('cart', () => {
 
     // Debug methods
     getStatus,
+    resetCart,
 
     // Actions
     initCart,

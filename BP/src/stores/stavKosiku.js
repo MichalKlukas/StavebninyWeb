@@ -1,4 +1,4 @@
-// src/stores/stavKosiku.js - AGGRESSIVE VERSION with page reload
+// src/stores/stavKosiku.js - COMPLETE VERSION
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useUserStore } from './useUserStore'
@@ -244,7 +244,300 @@ export const useCart = defineStore('cart', () => {
     }
   }
 
-  // The rest of cart methods remain the same
+  // COMPLETE IMPLEMENTATION OF MISSING METHODS
+
+  // Add item to cart
+  async function addToCart(product, quantity = 1) {
+    if (!product || !product.id) {
+      console.error('[Cart] Invalid product:', product)
+      return
+    }
+
+    console.log('[Cart] Adding product to cart:', product)
+    console.log('[Cart] User authenticated:', isAuthenticated.value)
+    error.value = null
+
+    try {
+      // Ensure quantity is a number
+      const quantityNum = parseInt(quantity) || 1
+
+      // Find if item already exists in cart
+      const existingItemIndex = items.value.findIndex((item) => item.id == product.id)
+
+      console.log('[Cart] Existing item index:', existingItemIndex)
+
+      if (existingItemIndex >= 0) {
+        // Update quantity if item exists
+        console.log('[Cart] Updating existing item quantity')
+        items.value[existingItemIndex].quantity += quantityNum
+      } else {
+        // Add new item if it doesn't exist
+        console.log('[Cart] Adding new item to cart')
+        items.value.push({
+          id: product.id,
+          name: product.name,
+          price:
+            typeof product.price === 'string'
+              ? parseFloat(product.price.replace(',', '.'))
+              : product.price,
+          image: product.image || '/placeholder.jpg',
+          quantity: quantityNum,
+          priceUnit: product.priceUnit || 'ks'
+        })
+      }
+
+      console.log('[Cart] Updated items:', items.value.length)
+
+      // Save to localStorage first (regardless of auth status)
+      saveLocalCart()
+      console.log('[Cart] Saved to localStorage')
+
+      // If user is logged in, ALSO save to server
+      if (isAuthenticated.value) {
+        try {
+          console.log('[Cart] User is authenticated, saving to server')
+          isLoading.value = true
+
+          // Direct API call with explicit options
+          const response = await api.post(
+            '/api/user/cart/add',
+            {
+              productId: product.id,
+              quantity: quantityNum
+            },
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                // Explicitly add auth token as header might be lost
+                Authorization: localStorage.getItem('token')
+              }
+            }
+          )
+
+          console.log('[Cart] Server response:', response.data)
+          console.log(`[Cart] Product ${product.id} saved to server`)
+        } catch (err) {
+          console.error('[Cart] Error saving product to server:', err)
+          console.error('[Cart] Error details:', err.response?.data || err.message)
+          error.value = 'Nepodařilo se uložit změny v košíku.'
+        } finally {
+          isLoading.value = false
+        }
+      } else {
+        console.log('[Cart] User not authenticated, using only localStorage')
+      }
+    } catch (err) {
+      console.error('[Cart] Unexpected error in addToCart:', err)
+      error.value = 'Nepodařilo se přidat položku do košíku.'
+    }
+  }
+
+  // Remove item from cart
+  async function removeFromCart(index) {
+    if (index < 0 || index >= items.value.length) {
+      console.error('[Cart] Invalid item index:', index)
+      return
+    }
+
+    const productId = items.value[index].id
+    console.log(`[Cart] Removing product ${productId} from cart`)
+    error.value = null
+
+    // Store the removed item in case we need to restore it
+    const removedItem = items.value[index]
+
+    // Remove from local state
+    items.value.splice(index, 1)
+
+    // Save to localStorage immediately
+    saveLocalCart()
+
+    // If user is logged in, also remove from server
+    if (isAuthenticated.value) {
+      try {
+        isLoading.value = true
+
+        await api.post(
+          '/api/user/cart/remove',
+          {
+            productId: removedItem.id
+          },
+          {
+            headers: {
+              Authorization: localStorage.getItem('token')
+            }
+          }
+        )
+
+        console.log(`[Cart] Product ${removedItem.id} removed from server`)
+      } catch (err) {
+        console.error('[Cart] Error removing product from server:', err)
+        error.value = 'Nepodařilo se odebrat položku z košíku.'
+
+        // Add the item back if server update fails
+        items.value.splice(index, 0, removedItem)
+        saveLocalCart()
+      } finally {
+        isLoading.value = false
+      }
+    }
+  }
+
+  // Update item quantity
+  async function updateQuantity(index, quantity) {
+    if (index < 0 || index >= items.value.length || quantity <= 0) {
+      console.error('[Cart] Invalid update parameters - index:', index, 'quantity:', quantity)
+      return
+    }
+
+    const item = items.value[index]
+    const quantityNum = parseInt(quantity) || 1
+    console.log(`[Cart] Updating quantity for product ${item.id} to ${quantityNum}`)
+    error.value = null
+
+    const oldQuantity = item.quantity
+    item.quantity = quantityNum
+
+    // Save to localStorage
+    saveLocalCart()
+
+    // If user is logged in, update on server
+    if (isAuthenticated.value) {
+      try {
+        isLoading.value = true
+
+        await api.post(
+          '/api/user/cart/update',
+          {
+            productId: item.id,
+            quantity: quantityNum
+          },
+          {
+            headers: {
+              Authorization: localStorage.getItem('token')
+            }
+          }
+        )
+
+        console.log(`[Cart] Product ${item.id} quantity updated on server`)
+      } catch (err) {
+        console.error('[Cart] Error updating product quantity on server:', err)
+        error.value = 'Nepodařilo se aktualizovat množství.'
+
+        // Revert quantity on error
+        item.quantity = oldQuantity
+        saveLocalCart()
+      } finally {
+        isLoading.value = false
+      }
+    }
+  }
+
+  // Convenience methods for increasing/decreasing quantity
+  async function increaseQuantity(index) {
+    if (index >= 0 && index < items.value.length) {
+      await updateQuantity(index, items.value[index].quantity + 1)
+    }
+  }
+
+  async function decreaseQuantity(index) {
+    if (index >= 0 && index < items.value.length && items.value[index].quantity > 1) {
+      await updateQuantity(index, items.value[index].quantity - 1)
+    } else if (index >= 0 && index < items.value.length && items.value[index].quantity === 1) {
+      await removeFromCart(index)
+    }
+  }
+
+  // Set shipping method
+  async function setShippingMethod(method) {
+    if (!method || (method !== 'pickup' && method !== 'delivery')) {
+      console.error('[Cart] Invalid shipping method:', method)
+      return
+    }
+
+    console.log(`[Cart] Setting shipping method to: ${method}`)
+    error.value = null
+
+    const oldMethod = shippingMethod.value
+    shippingMethod.value = method
+
+    // Save to localStorage
+    saveLocalCart()
+
+    // If user is logged in, update on server
+    if (isAuthenticated.value) {
+      try {
+        isLoading.value = true
+
+        await api.post(
+          '/api/user/cart/shipping',
+          {
+            shippingMethod: method
+          },
+          {
+            headers: {
+              Authorization: localStorage.getItem('token')
+            }
+          }
+        )
+
+        console.log('[Cart] Shipping method updated on server')
+      } catch (err) {
+        console.error('[Cart] Error updating shipping method on server:', err)
+        error.value = 'Nepodařilo se změnit způsob doručení.'
+
+        // Revert on error
+        shippingMethod.value = oldMethod
+        saveLocalCart()
+      } finally {
+        isLoading.value = false
+      }
+    }
+  }
+
+  // Clear cart
+  async function clearCart() {
+    console.log('[Cart] Clearing cart')
+    error.value = null
+
+    const oldItems = [...items.value]
+    const oldShippingMethod = shippingMethod.value
+
+    // Clear local state
+    items.value = []
+
+    // Update localStorage
+    saveLocalCart()
+
+    // If user is logged in, clear on server
+    if (isAuthenticated.value) {
+      try {
+        isLoading.value = true
+
+        await api.post(
+          '/api/user/cart/clear',
+          {},
+          {
+            headers: {
+              Authorization: localStorage.getItem('token')
+            }
+          }
+        )
+
+        console.log('[Cart] Cart cleared on server')
+      } catch (err) {
+        console.error('[Cart] Error clearing cart on server:', err)
+        error.value = 'Nepodařilo se vyprázdnit košík.'
+
+        // Restore previous state on error
+        items.value = oldItems
+        shippingMethod.value = oldShippingMethod
+        saveLocalCart()
+      } finally {
+        isLoading.value = false
+      }
+    }
+  }
 
   // Merge local cart with server cart - AGGRESSIVE version
   async function handleLogin() {
@@ -283,10 +576,18 @@ export const useCart = defineStore('cart', () => {
 
         // Add cache-busting parameter
         const timestamp = new Date().getTime()
-        const response = await api.post(`/api/user/cart/merge?_nocache=${timestamp}`, {
-          items: localItems,
-          shippingMethod: localShipping
-        })
+        const response = await api.post(
+          `/api/user/cart/merge?_nocache=${timestamp}`,
+          {
+            items: localItems,
+            shippingMethod: localShipping
+          },
+          {
+            headers: {
+              Authorization: localStorage.getItem('token')
+            }
+          }
+        )
 
         if (response.data && Array.isArray(response.data.items)) {
           // Clear items first
@@ -373,38 +674,6 @@ export const useCart = defineStore('cart', () => {
 
     // Reload the page
     window.location.reload()
-  }
-
-  // Add the remaining cart methods from your existing implementation
-  // (addToCart, removeFromCart, updateQuantity, etc.)
-
-  // Here's a skeleton implementation for these functions:
-  async function addToCart(product, quantity = 1) {
-    // Implementation remains the same
-  }
-
-  async function removeFromCart(index) {
-    // Implementation remains the same
-  }
-
-  async function updateQuantity(index, quantity) {
-    // Implementation remains the same
-  }
-
-  async function increaseQuantity(index) {
-    // Implementation remains the same
-  }
-
-  async function decreaseQuantity(index) {
-    // Implementation remains the same
-  }
-
-  async function setShippingMethod(method) {
-    // Implementation remains the same
-  }
-
-  async function clearCart() {
-    // Implementation remains the same
   }
 
   // New function to immediately refresh cart from server, forcing a reload if needed

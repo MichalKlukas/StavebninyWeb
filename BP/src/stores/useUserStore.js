@@ -1,4 +1,4 @@
-// src/stores/useUserStore.js - AGGRESSIVE VERSION
+// src/stores/useUserStore.js - FIXED VERSION
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
@@ -35,11 +35,14 @@ export const useUserStore = defineStore('user', () => {
         try {
           // Parse user data
           user.value = JSON.parse(userData)
-          // Set token
+          // Set token with correct format
           token.value = formatToken(storedToken)
 
-          // Ensure token is saved with correct format
-          localStorage.setItem('token', token.value)
+          // Always ensure token is saved with Bearer prefix
+          if (token.value !== storedToken) {
+            console.log('[UserStore] Fixing token format in localStorage')
+            localStorage.setItem('token', token.value)
+          }
 
           console.log('[UserStore] User restored from localStorage:', user.value.email)
           console.log('[UserStore] Token restored:', token.value ? 'Present' : 'Missing')
@@ -48,10 +51,7 @@ export const useUserStore = defineStore('user', () => {
         } catch (parseError) {
           console.error('[UserStore] Error parsing user data:', parseError)
           // Clear corrupted data
-          localStorage.removeItem('user')
-          localStorage.removeItem('token')
-          user.value = null
-          token.value = null
+          logout(false) // Silent logout with no callback
           return false
         }
       } else {
@@ -60,10 +60,7 @@ export const useUserStore = defineStore('user', () => {
         // Clear partial data if present
         if (userData || storedToken) {
           console.log('[UserStore] Clearing incomplete user data')
-          localStorage.removeItem('user')
-          localStorage.removeItem('token')
-          user.value = null
-          token.value = null
+          logout(false) // Silent logout with no callback
         }
 
         return false
@@ -72,16 +69,12 @@ export const useUserStore = defineStore('user', () => {
       console.error('[UserStore] Error during user initialization:', error)
 
       // Clear potentially corrupted data
-      localStorage.removeItem('user')
-      localStorage.removeItem('token')
-      user.value = null
-      token.value = null
-
+      logout(false) // Silent logout with no callback
       return false
     }
   }
 
-  async function login(userData, authToken) {
+  async function login(userData, authToken, callbackFn = null) {
     console.log('[UserStore] Login called with:', {
       user: userData?.email,
       tokenProvided: !!authToken
@@ -96,25 +89,24 @@ export const useUserStore = defineStore('user', () => {
         throw new Error('Missing user data or authentication token')
       }
 
-      // AGGRESSIVE: First clear all cart data
-      localStorage.removeItem('cart')
-      localStorage.removeItem('shippingMethod')
-
       // Format token properly
       const formattedToken = formatToken(authToken)
       console.log('[UserStore] Token formatted:', formattedToken ? 'Success' : 'Failed')
 
-      // Update state
+      // Important: First update local state before localStorage
+      // This ensures the watch handlers in cart store are triggered correctly
       user.value = userData
       token.value = formattedToken
 
-      // Save to localStorage
+      // Then save to localStorage
       localStorage.setItem('user', JSON.stringify(userData))
       localStorage.setItem('token', formattedToken)
       console.log('[UserStore] User data saved to localStorage')
 
-      // NOTE: Cart handling is now managed through the watcher in the cart store
-      // which will trigger a page reload when auth state changes
+      // Run callback if provided (e.g., for cart sync)
+      if (callbackFn && typeof callbackFn === 'function') {
+        await callbackFn()
+      }
 
       return true
     } catch (error) {
@@ -126,18 +118,14 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  async function logout() {
+  async function logout(callbackFn = null) {
     console.log('[UserStore] Logout called')
 
     try {
       loading.value = true
       lastError.value = null
 
-      // Save cart data before clearing auth
-      // We don't need to do anything special here as cart is already saved to localStorage
-      // and cart state change watcher will handle the reset
-
-      // IMPORTANT: First clear user state
+      // Important: First change local state to trigger watchers in cart store
       user.value = null
       token.value = null
       console.log('[UserStore] User data cleared from state')
@@ -147,7 +135,10 @@ export const useUserStore = defineStore('user', () => {
       localStorage.removeItem('token')
       console.log('[UserStore] User data removed from localStorage')
 
-      // Cart store's watcher will detect this change and refresh
+      // Run callback if provided (e.g., for cart reset)
+      if (callbackFn && typeof callbackFn === 'function') {
+        await callbackFn()
+      }
 
       return true
     } catch (error) {
@@ -182,20 +173,10 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  // Force logout and reload
+  // For compatibility with existing code
   function forceLogout() {
-    console.log('[UserStore] Force logout and reload')
-
-    // Clear everything
-    user.value = null
-    token.value = null
-    localStorage.removeItem('user')
-    localStorage.removeItem('token')
-    localStorage.removeItem('cart')
-    localStorage.removeItem('shippingMethod')
-
-    // Reload the page
-    window.location.reload()
+    console.log('[UserStore] Force logout')
+    return logout()
   }
 
   return {

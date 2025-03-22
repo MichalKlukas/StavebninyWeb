@@ -1,7 +1,6 @@
 // src/stores/index.ts
 import { defineStore } from 'pinia'
 
-// Add type definitions
 interface User {
   firstName?: string
   lastName?: string

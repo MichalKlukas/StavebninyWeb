@@ -52,7 +52,7 @@ import { defineComponent, ref } from 'vue'
 import ProductCard from '@/components/ProductCard.vue'
 import reusableCarousel from '@/components/reusableCarousel.vue'
 import type { Product } from '@/components/ProductCard.vue'
-import { useCart } from '@/stores/stavKosiku.js'
+import { useCart } from '@/stores/stavKosiku'
 
 // Import images directly using ES module imports
 import storeFrontImage from '@/assets/store-front.jpg'

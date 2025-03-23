@@ -187,7 +187,12 @@
                 </div>
               </div>
               <div class="product-actions">
-                <button @click.stop="addToCart(product)" class="add-to-cart-btn">
+                <!-- Button for authenticated users -->
+                <button
+                  v-if="userStore.isAuthenticated"
+                  @click.stop="addToCart(product)"
+                  class="add-to-cart-btn"
+                >
                   <svg
                     class="cart-icon"
                     xmlns="http://www.w3.org/2000/svg"
@@ -206,6 +211,13 @@
                   </svg>
                   <span>Přidat do košíku</span>
                 </button>
+
+                <!-- Login message for non-authenticated users -->
+                <div v-else class="login-required-message">
+                  <router-link to="/prihlaseni" class="login-link">
+                    Pro nákup se přihlaste
+                  </router-link>
+                </div>
               </div>
             </div>
           </div>
@@ -258,6 +270,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ztraceneBedneniImage from '@/assets/images/ztracene-bedneni.jpg'
 import { useCart } from '@/stores/stavKosiku'
+import { useUserStore } from '@/stores'
 
 export default {
   name: 'CategoryPage',
@@ -265,6 +278,7 @@ export default {
     const route = useRoute()
     const router = useRouter()
     const cart = useCart() // Import košíku
+    const userStore = useUserStore()
     const showNotification = ref(false) // Stav notifikace
 
     // Stav
@@ -1082,29 +1096,36 @@ export default {
       router.push(`/produkt/${productId}`)
     }
 
-    // Přidání do košíku
-    const addToCart = (product) => {
-      // Formátujeme product pro košík, pokud je třeba
+    // Přidání produktu do košíku
+    const addToCart = async (product) => {
+      // Check if user is authenticated
+      if (!userStore.isAuthenticated) {
+        // If not authenticated, don't do anything
+        return
+      }
+
+      // Formátujeme product pro košík
       const cartProduct = {
         id: product.id,
         name: product.name,
-        price: product.price.toString(),
+        price: typeof product.price === 'number' ? product.price.toString() : product.price,
         image: product.image || '/placeholder-image.jpg',
-        priceUnit: 'kus' // nebo jiná jednotka, pokud je k dispozici
+        priceUnit: 'kus'
       }
 
-      // Přidáme produkt do košíku
-      cart.addToCart(cartProduct)
+      // Try to add to cart and show notification only on success
+      const success = await cart.addToCart(cartProduct)
 
-      // Zobrazíme notifikaci
-      showNotification.value = true
+      if (success) {
+        // Show notification
+        showNotification.value = true
 
-      // Po 3 sekundách notifikaci schováme
-      setTimeout(() => {
-        showNotification.value = false
-      }, 3000)
+        // Hide notification after 3 seconds
+        setTimeout(() => {
+          showNotification.value = false
+        }, 3000)
+      }
     }
-
     return {
       categoryData,
       selectedSubcategory,
@@ -1128,6 +1149,7 @@ export default {
       sortProducts,
       viewProductDetail,
       selectSubcategory,
+      userStore,
       addToCart,
       showNotification
     }
@@ -1176,6 +1198,23 @@ export default {
 }
 .subcategory-tile {
   position: relative;
+}
+.login-required-message {
+  width: 100%;
+  padding: 10px 0;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  text-align: center;
+}
+.login-link {
+  color: #f5852a;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.login-link:hover {
+  color: #e67722;
+  text-decoration: underline;
 }
 .subcategory-tile {
   display: flex;

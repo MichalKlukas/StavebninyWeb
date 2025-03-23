@@ -37,22 +37,33 @@ export const useCart = defineStore('cart', () => {
     }
     try {
       loading.value = true
+      console.log('Loading server cart...')
+
       const resp = await axios.get(`${API_URL}/cart`, {
         headers: { Authorization: `Bearer ${userStore.token}` }
       })
+
+      console.log('Server cart response:', resp.data)
+
       if (resp.data.success) {
-        items.value = resp.data.cartItems.map((item: any) => ({
-          id: item.product_id,
-          quantity: item.quantity,
-          dbId: item.id,
-          name: item.product_name || `Produkt ${item.product_id}`,
-          price: item.product_price || 0,
-          image: item.product_image || '/placeholder.jpg',
-          priceUnit: item.product_unit || 'kus'
-        }))
+        if (resp.data.cartItems && resp.data.cartItems.length > 0) {
+          items.value = resp.data.cartItems.map((item: any) => ({
+            id: item.product_id,
+            quantity: item.quantity,
+            dbId: item.id,
+            name: item.product_name || `Produkt ${item.product_id}`,
+            price: item.product_price || 0,
+            image: item.product_image || '/placeholder.jpg',
+            priceUnit: item.product_unit || 'kus'
+          }))
+          console.log('Cart loaded with items:', items.value)
+        } else {
+          console.log('Cart is empty')
+          items.value = []
+        }
       }
 
-      // REMOVED: The shipping preferences endpoint call since it doesn't exist yet
+      // We removed the shipping preferences endpoint code
     } catch (err) {
       console.error('Error loading server cart:', err)
       error.value = 'Nepodařilo se načíst košík'
@@ -65,23 +76,21 @@ export const useCart = defineStore('cart', () => {
   async function addToCart(product: any) {
     if (!userStore.isAuthenticated || !userStore.token) {
       console.warn('User not logged in. Cannot add to cart.')
-      return false // Return false to indicate failure
+      return false
     }
 
     try {
       loading.value = true
       const quantity = product.quantity || 1
 
-      // Format price if it's a string with "Kč/"
+      // Format price correctly - handle both comma and period formats
       let price = product.price
-      if (typeof price === 'string' && price.includes('Kč/')) {
-        price = price.split('Kč/')[0].trim()
-      }
-
-      // Handle comma as decimal separator in Czech format
-      if (typeof price === 'string' && price.includes(',')) {
+      if (typeof price === 'string') {
+        // Replace comma with period for server processing
         price = price.replace(',', '.')
       }
+
+      console.log(`Adding to cart: ${product.id}, price: ${price}, quantity: ${quantity}`)
 
       const resp = await axios.post(
         `${API_URL}/cart`,
@@ -106,7 +115,7 @@ export const useCart = defineStore('cart', () => {
           addSuccess.value = false
         }, 3000)
 
-        return true // Return true to indicate success
+        return true
       }
     } catch (err) {
       console.error('Error adding to cart:', err)

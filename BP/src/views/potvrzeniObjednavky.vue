@@ -176,9 +176,9 @@
               <button
                 @click="calculateShippingCost"
                 class="calculate-btn"
-                :disabled="!canCalculateDeliveryCost"
+                :disabled="!canCalculateDeliveryCost || isCalculating"
               >
-                Vypočítat cenu dopravy
+                {{ isCalculating ? 'Výpočet...' : 'Vypočítat cenu dopravy' }}
               </button>
             </div>
           </div>
@@ -222,6 +222,7 @@ import { useCart } from '@/stores/stavKosiku'
 import { useUserStore } from '@/stores'
 import { computed, reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+const isCalculating = ref(false)
 
 export default {
   name: 'OrderConfirmation',
@@ -295,25 +296,65 @@ export default {
           return
         }
 
-        // Vytvoříme objekt adresy z údajů uživatele
-        const addressObj = {
-          street: userInfo.value.street,
-          city: userInfo.value.city,
-          zip: userInfo.value.zipCode
+        // Stav načítání
+        isCalculating.value = true
+
+        try {
+          // Voláme backend endpoint, který nám spočítá vzdálenost
+          const response = await fetch(
+            `${import.meta.env.VITE_API_URL || 'https://46.28.108.195.nip.io'}/api/calculate-shipping`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${userStore.token}`
+              },
+              body: JSON.stringify({
+                address: {
+                  street: userInfo.value.street,
+                  city: userInfo.value.city,
+                  zip: userInfo.value.zipCode
+                }
+              })
+            }
+          )
+
+          if (!response.ok) {
+            throw new Error(`Chyba při výpočtu vzdálenosti: ${response.status}`)
+          }
+
+          const result = await response.json()
+
+          if (result.success) {
+            deliveryDistance.value = result.distance.value
+            deliveryCost.value = result.cost
+
+            // Pokud je označeno jako odhad, zobrazíme upozornění
+            if (result.details && result.details.isEstimate) {
+              alert(
+                'Nepodařilo se přesně určit vzdálenost. Zobrazovaná cena dopravy je orientační.'
+              )
+            }
+          } else {
+            throw new Error(result.message || 'Nepodařilo se vypočítat vzdálenost')
+          }
+        } catch (error) {
+          console.error('Chyba při volání API pro výpočet vzdálenosti:', error)
+          alert('Nepodařilo se vypočítat vzdálenost. Použijeme odhad.')
+
+          // Záložní výpočet, pokud API selže
+          const distance = Math.random() * 30 + 5
+          deliveryDistance.value = Math.round(distance * 10) / 10
+          const baseCost = 500
+          const costPerKm = 30
+          deliveryCost.value = Math.round(baseCost + costPerKm * deliveryDistance.value)
+        } finally {
+          isCalculating.value = false
         }
-
-        // Zde by normálně byl kód pro volání Google Maps API pro výpočet vzdálenosti
-        // V tomto příkladu použijeme náhodnou vzdálenost pro demonstraci
-        const distance = Math.random() * 30 + 5 // Náhodná vzdálenost 5-35 km
-        deliveryDistance.value = Math.round(distance * 10) / 10
-
-        // Výpočet ceny dopravy: 500 Kč základ + 30 Kč za km
-        const baseCost = 500
-        const costPerKm = 30
-        deliveryCost.value = baseCost + costPerKm * deliveryDistance.value
       } catch (error) {
         console.error('Chyba při výpočtu ceny dopravy:', error)
         alert('Nepodařilo se vypočítat cenu dopravy. Zkuste to prosím znovu.')
+        isCalculating.value = false
       }
     }
 
@@ -344,7 +385,15 @@ export default {
 
         // Vytvoření dat pro odeslání objednávky
         const orderData = {
-          items: cartItems.value,
+          items: cartItems.value.map((item) => ({
+            productId: item.id,
+            quantity: item.quantity,
+            price:
+              typeof item.price === 'string'
+                ? parseFloat(item.price.replace(',', '.'))
+                : item.price,
+            name: item.name
+          })),
           shipping: {
             method: formData.shippingMethod,
             address:
@@ -370,9 +419,27 @@ export default {
           total: cartTotal.value + deliveryCost.value
         }
 
+        console.log('Odesílám objednávku:', orderData)
+
         // Zde by byl kód pro odeslání objednávky na server pomocí API
-        // Lze využít funkci createOrder ze store
-        const result = await cart.createOrder(orderData)
+        // Místo createOrder ze store použijeme standardní axios
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL || 'https://46.28.108.195.nip.io'}/api/orders`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${userStore.token}`
+            },
+            body: JSON.stringify(orderData)
+          }
+        )
+
+        if (!response.ok) {
+          throw new Error(`Chyba při odesílání objednávky: ${response.status}`)
+        }
+
+        const result = await response.json()
 
         if (result.success) {
           alert('Vaše objednávka byla úspěšně vytvořena!')
@@ -410,7 +477,6 @@ export default {
         // Předvyplnění firemních údajů, pokud jsou v profilu
         if (userInfo.value.companyName) {
           formData.company = userInfo.value.companyName
-          formData.isCompanyPurchase = true
         }
 
         if (userInfo.value.ico) {
@@ -447,6 +513,7 @@ export default {
       setShippingMethod,
       calculateShippingCost,
       goBack,
+      isCalculating,
       goToProfile,
       submitOrder,
       formatPrice

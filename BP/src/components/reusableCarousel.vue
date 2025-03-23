@@ -47,7 +47,7 @@
                   class="login-required-message"
                 >
                   <router-link to="/prihlaseni" class="login-link" @click.stop>
-                    Pro nákup se přihlaste
+                    Pro objednání se přihlaste
                   </router-link>
                 </div>
               </div>

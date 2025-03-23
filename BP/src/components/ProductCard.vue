@@ -30,7 +30,7 @@
 
     <!-- Login message for non-authenticated users -->
     <div v-else class="login-required-message">
-      <router-link to="/prihlaseni" class="login-link"> Pro nákup se přihlaste </router-link>
+      <router-link to="/prihlaseni" class="login-link"> Pro objednání se přihlaste </router-link>
     </div>
   </div>
 </template>

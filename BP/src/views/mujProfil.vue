@@ -15,7 +15,8 @@
           <div class="info-row">
             <div class="info-label">Jméno a příjmení:</div>
             <div class="info-value">
-              {{ userStore.user.firstName }} {{ userStore.user.lastName }}
+              {{ userStore.user.firstName || userStore.user.first_name }}
+              {{ userStore.user.lastName || userStore.user.last_name }}
             </div>
           </div>
           <div class="info-row">
@@ -81,7 +82,7 @@
 </template>
 
 <script>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useUserStore } from '../stores'
 import { useRouter } from 'vue-router'
 import ProfileSidebar from '@/components/ProfileSidebar.vue'
@@ -100,10 +101,16 @@ export default {
       router.push('/prihlaseni')
     }
 
+    // Debug - log user data on component mount
+    onMounted(() => {
+      console.log('User data:', userStore.user)
+    })
+
     // Kontrola, zda má uživatel vyplněnou alespoň částečnou adresu
     const hasAddress = computed(() => {
       const user = userStore.user || {}
-      return !!(user.street || user.city || user.zip_code || user.zip_code)
+      // Check for both camelCase and snake_case variants
+      return !!(user.street || user.city || user.zipCode || user.zip_code)
     })
 
     // Metody

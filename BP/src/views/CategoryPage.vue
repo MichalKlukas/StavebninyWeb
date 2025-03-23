@@ -216,7 +216,7 @@
                 <div v-else class="login-required-message">
                   <!-- Added @click.stop to prevent product navigation -->
                   <router-link @click.stop to="/prihlaseni" class="login-link">
-                    Pro nákup se přihlaste
+                    Pro objednání se přihlaste
                   </router-link>
                 </div>
               </div>

@@ -300,6 +300,12 @@ export default {
         isCalculating.value = true
 
         try {
+          console.log('Calling calculate-shipping API with address:', {
+            street: userInfo.value.street,
+            city: userInfo.value.city,
+            zip: userInfo.value.zipCode
+          })
+
           // Voláme backend endpoint, který nám spočítá vzdálenost
           const response = await fetch(
             `${import.meta.env.VITE_API_URL || 'https://46.28.108.195.nip.io'}/api/calculate-shipping`,
@@ -320,10 +326,13 @@ export default {
           )
 
           if (!response.ok) {
+            const errorText = await response.text()
+            console.error(`API error (${response.status}):`, errorText)
             throw new Error(`Chyba při výpočtu vzdálenosti: ${response.status}`)
           }
 
           const result = await response.json()
+          console.log('API response:', result)
 
           if (result.success) {
             deliveryDistance.value = result.distance.value

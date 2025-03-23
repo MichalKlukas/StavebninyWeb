@@ -90,7 +90,7 @@
                 value="pickup"
                 v-model="selectedShippingMethod"
               />
-              <label for="pickup">Osobní odběr (zdarma)</label>
+              <label for="pickup">Osobní odběr</label>
             </div>
             <div class="option-wrapper">
               <input
@@ -100,11 +100,11 @@
                 value="delivery"
                 v-model="selectedShippingMethod"
               />
-              <label for="delivery">Doručení na adresu (150 Kč)</label>
+              <label for="delivery">Doručení na adresu</label>
             </div>
           </div>
 
-          <button @click="proceedToCheckout" class="checkout-btn">Závazně objednat</button>
+          <button @click="proceedToCheckout" class="checkout-btn">Potvrdit objednávku</button>
           <button @click="continueShopping" class="continue-shopping-btn">
             Pokračovat v nákupu
           </button>
@@ -217,7 +217,7 @@ export default {
   },
   methods: {
     proceedToCheckout() {
-      // ...
+      this.$router.push('/potvrzeni-objednavky')
     },
     continueShopping() {
       this.$router.push('/')

@@ -71,6 +71,11 @@ import sigaLogo from '@/assets/manufacturers/siga.png'
 import porfixLogo from '@/assets/manufacturers/porfix.png'
 import porothermLogo from '@/assets/manufacturers/porotherm.png'
 import horizontLogo from '@/assets/manufacturers/horizont.png'
+import rajDrevaLogo from '@/assets/manufacturers/raj_dreva.png'
+import ditonLogo from '@/assets/manufacturers/diton.png'
+import presbetonLogo from '@/assets/manufacturers/presbeton.png'
+import styrotradeLogo from '@/assets/manufacturers/styrotrade.png'
+import bmiBramcaLogo from '@/assets/manufacturers/bramac.png'
 
 export default defineComponent({
   name: 'HomePage',
@@ -276,6 +281,31 @@ export default defineComponent({
           id: 10,
           name: 'HORIZONT',
           imageUrl: horizontLogo
+        },
+        {
+          id: 11,
+          name: 'RAJ DREVA',
+          imageUrl: rajDrevaLogo
+        },
+        {
+          id: 12,
+          name: 'DITON',
+          imageUrl: ditonLogo
+        },
+        {
+          id: 13,
+          name: 'PRESBETON',
+          imageUrl: presbetonLogo
+        },
+        {
+          id: 14,
+          name: 'STYROTRADE',
+          imageUrl: styrotradeLogo
+        },
+        {
+          id: 15,
+          name: 'BMI BRAMAC',
+          imageUrl: bmiBramcaLogo
         }
       ]
     }

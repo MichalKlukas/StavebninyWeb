@@ -17,6 +17,7 @@ import Kategorie from '@/views/CategoryPage.vue'
 import Kosik from '@/views/kosik.vue'
 import ResetHesla from '@/views/resetHesla.vue'
 import SearchResults from '@/views/searchResults.vue'
+import PotvrzeniObjednavky from '@/views/potvrzeniObjednavky.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -65,6 +66,11 @@ const router = createRouter({
       path: '/o-nas',
       name: 'about',
       component: AboutView
+    },
+    {
+      path: '/potvrzeni-objednavky',
+      name: 'orderConfirmation',
+      component: PotvrzeniObjednavky
     },
     {
       path: '/profil',

@@ -30,6 +30,7 @@ watch(
       // 1) Merge guest cart first (if any)
       const guestCart = localStorage.getItem('kosik_guest') // adjust if you use a different guest key
       if (guestCart) {
+        cartStore.loadLocalCart()
         await cartStore.syncCartWithServer()
         localStorage.removeItem('kosik_guest')
       }

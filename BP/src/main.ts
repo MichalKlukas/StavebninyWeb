@@ -28,15 +28,15 @@ watch(
       // The user just logged in
 
       // 1) Merge guest cart first (if any)
-      const guestCart = localStorage.getItem('anonymous_cart') // adjust if you use a different guest key
+      const guestCart = localStorage.getItem('kosik_guest') // adjust if you use a different guest key
       if (guestCart) {
         await cartStore.syncCartWithServer()
-        localStorage.removeItem('anonymous_cart')
+        localStorage.removeItem('kosik_guest')
       }
 
       // 2) Check if there is a saved user cart (from a previous session)
       if (userStore.user) {
-        const userCartKey = `cart_${userStore.user.id}` // adjust as needed
+        const userCartKey = `kosik_${userStore.user.id}` // adjust as needed
         const savedUserCart = localStorage.getItem(userCartKey)
         if (savedUserCart) {
           // Optionally merge the saved user cart with the server cart.
@@ -49,7 +49,7 @@ watch(
     } else if (!isAuthenticated && wasAuthenticated) {
       // The user just logged out
       if (userStore.user) {
-        const userCartKey = `cart_${userStore.user.id}` // adjust as needed
+        const userCartKey = `kosik_${userStore.user.id}` // adjust as needed
         // Save the current cart using computed properties from cartStore.
         localStorage.setItem(
           userCartKey,

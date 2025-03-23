@@ -143,12 +143,18 @@ export default {
   setup() {
     const cart = useCart()
 
+    // Create a computed property for cart items to make it reactive
+    const cartItems = computed(() => cart.items)
+
+    // Create a computed property for total to ensure it updates
+    const cartTotal = computed(() => cart.cartTotal)
+
     // This local ref is optional; you can also just bind directly to cart.shippingMethod
-    const selectedShippingMethod = ref(cart.shippingMethod.value)
+    const selectedShippingMethod = ref(cart.shippingMethod)
 
     // Watch for changes from the store
     watch(
-      () => cart.shippingMethod.value,
+      () => cart.shippingMethod,
       (newVal) => {
         selectedShippingMethod.value = newVal
       }
@@ -165,12 +171,30 @@ export default {
 
     // Example for updating item quantity
     const updateCartItem = (index) => {
-      const item = cart.items.value[index]
+      const item = cartItems.value[index]
       cart.updateQuantity(index, item.quantity)
+    }
+
+    // Helper functions for increasing/decreasing quantity
+    const increaseQuantity = (index) => {
+      const item = cartItems.value[index]
+      cart.updateQuantity(index, item.quantity + 1)
+    }
+
+    const decreaseQuantity = (index) => {
+      const item = cartItems.value[index]
+      if (item.quantity > 1) {
+        cart.updateQuantity(index, item.quantity - 1)
+      }
     }
 
     // Format price
     const formatPrice = (price) => {
+      // Handle string prices with commas
+      if (typeof price === 'string') {
+        price = parseFloat(price.replace(',', '.'))
+      }
+
       return (
         price.toLocaleString('cs-CZ', {
           minimumFractionDigits: 2,
@@ -180,14 +204,14 @@ export default {
     }
 
     return {
-      cartItems: cart.items,
-      cartTotal: cart.cartTotal,
+      cartItems,
+      cartTotal,
       currentShippingCost,
       selectedShippingMethod,
       removeFromCart: cart.removeFromCart,
       updateCartItem,
-      increaseQuantity: cart.increaseQuantity, // if you have these in the new store
-      decreaseQuantity: cart.decreaseQuantity, // if you have these in the new store
+      increaseQuantity,
+      decreaseQuantity,
       formatPrice
     }
   },

@@ -8,7 +8,9 @@
       <span class="price">{{ formatPrice(product) }}</span>
       <span class="price-info">Cena za {{ product.priceUnit || 'kus' }} s DPH</span>
     </div>
-    <button class="add-to-cart-btn" @click.stop="addToCart">
+
+    <!-- Button changes if not authenticated -->
+    <button v-if="isAuthenticated" class="add-to-cart-btn" @click.stop="addToCart">
       <svg
         class="cart-icon"
         xmlns="http://www.w3.org/2000/svg"
@@ -25,14 +27,15 @@
       </svg>
       <span>Přidat do košíku</span>
     </button>
+    <button v-else class="add-to-cart-btn disabled" disabled>Musíte se nejdříve přihlásit</button>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue'
+import { defineComponent, computed } from 'vue'
 import type { PropType } from 'vue'
+import { useUserStore } from '@/stores' // or wherever your user store is
 
-// Define the product interface for type safety
 export interface Product {
   id: number | string
   name: string
@@ -51,6 +54,12 @@ export default defineComponent({
       required: true
     }
   },
+  setup() {
+    const userStore = useUserStore()
+    // We'll use a computed to check if user is logged in
+    const isAuthenticated = computed(() => userStore.isAuthenticated)
+    return { userStore, isAuthenticated }
+  },
   methods: {
     navigateToProduct() {
       // Navigate to product detail page
@@ -58,18 +67,19 @@ export default defineComponent({
       this.$router.push(`/product/${productSlug}`)
     },
     addToCart(event: Event) {
-      // Prevent navigation when clicking the add to cart button
       event.preventDefault()
       event.stopPropagation()
-      // Emit event to parent component
+
+      // If we got here, the user is authenticated (due to v-if="isAuthenticated")
+      // Emit an event for the parent to handle the actual "add" logic
       this.$emit('add-to-cart', this.product)
     },
     formatPrice(product: Product): string {
-      // Pokud je price již řetězec s formátem "XXX Kč/jednotka", vrátíme jen cenu
+      // If price is already a string with format "XXX Kč/jednotka", return the portion before "Kč/"
       if (typeof product.price === 'string' && product.price.includes('Kč/')) {
         return product.price.split('Kč/')[0] + ' Kč'
       }
-      // Jinak vrátíme cenu tak jak je
+      // Otherwise return as is or "XXX Kč"
       return typeof product.price === 'string' ? product.price : `${product.price} Kč`
     }
   }
@@ -157,7 +167,10 @@ export default defineComponent({
   justify-content: center;
   gap: 8px;
 }
-
+.add-to-cart-btn.disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
 .add-to-cart-btn:hover {
   background-color: #e67722;
 }

@@ -179,7 +179,7 @@ export default defineComponent({
     const dropdownOpen = ref(false)
     const cart = useCart()
     const searchQuery = ref('')
-    const cartItemCount = computed(() => cart.itemCount.value)
+    const cartItemCount = computed(() => cart.itemCount)
 
     const handleSearch = () => {
       if (searchQuery.value.trim()) {
@@ -194,7 +194,7 @@ export default defineComponent({
 
     // Formátovaná celková cena košíku
     const formatCartTotal = computed(() => {
-      const total = cart.cartTotal.value || 0
+      const total = cart.cartTotal || 0
       return (
         total.toLocaleString('cs-CZ', {
           minimumFractionDigits: 2,

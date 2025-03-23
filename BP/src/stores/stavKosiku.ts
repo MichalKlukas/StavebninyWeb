@@ -255,19 +255,26 @@ export const useCart = defineStore('cart', () => {
   const itemCount = computed(() => items.value.reduce((count, item) => count + item.quantity, 0))
   const cartTotal = computed(() => {
     return items.value.reduce((total, item) => {
-      // Handle Czech number format (comma as decimal separator)
+      // Get the numeric price value
       let priceNum = 0
+
       if (typeof item.price === 'number') {
         priceNum = item.price
       } else if (typeof item.price === 'string') {
-        // Replace comma with period for parsing
+        // Handle both comma and period as decimal separators
         priceNum = parseFloat(item.price.replace(',', '.'))
       }
 
+      // Ensure it's a valid number
       if (isNaN(priceNum)) {
-        console.warn(`Invalid price format: ${item.price}`)
+        console.warn(`Invalid price format for item ${item.id}: ${item.price}`)
         priceNum = 0
       }
+
+      // Log for debugging
+      console.log(
+        `Cart item ${item.id}: price=${priceNum}, quantity=${item.quantity}, total=${priceNum * item.quantity}`
+      )
 
       return total + priceNum * item.quantity
     }, 0)

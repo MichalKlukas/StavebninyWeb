@@ -155,17 +155,14 @@ async function loadServerCart(): Promise<void> {
 
 // 4. Save cart to localStorage (for guests)
 async function saveCart(): Promise<void> {
-  const userStore = useUserStore()
   try {
-    if (!userStore.isAuthenticated) {
-      localStorage.setItem(
-        getLocalCartKey(),
-        JSON.stringify({
-          items: state.items,
-          shippingMethod: state.shippingMethod
-        })
-      )
-    }
+    localStorage.setItem(
+      getLocalCartKey(),
+      JSON.stringify({
+        items: state.items,
+        shippingMethod: state.shippingMethod
+      })
+    )
   } catch (error) {
     console.error('Error saving cart:', error)
     state.error = 'Nepodařilo se uložit košík'

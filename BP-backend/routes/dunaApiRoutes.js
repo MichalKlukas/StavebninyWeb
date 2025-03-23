@@ -1,12 +1,12 @@
 // routes/dunaApiRoutes.js
 const express = require('express');
 const router = express.Router();
-const basicAuth = require('../middleware/basicAuthMiddleware');
+//const basicAuth = require('../middleware/basicAuthMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 const dunaController = require('../controllers/dunaController');
 
 // Aplikace middleware na všechny DUNA API endpointy
-router.use(basicAuth);
+//router.use(basicAuth);
 
 // Test připojení (eshopStatus)
 router.get('/eshopStatus', dunaController.getStatus);

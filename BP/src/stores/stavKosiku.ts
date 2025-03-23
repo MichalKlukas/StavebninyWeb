@@ -51,17 +51,8 @@ export const useCart = defineStore('cart', () => {
           priceUnit: item.product_unit || 'kus'
         }))
       }
-      // Optionally fetch user's preferred shipping method from the server:
-      try {
-        const prefsResp = await axios.get(`${API_URL}/user/preferences/shipping`, {
-          headers: { Authorization: `Bearer ${userStore.token}` }
-        })
-        if (prefsResp.data.success && prefsResp.data.shippingMethod) {
-          shippingMethod.value = prefsResp.data.shippingMethod
-        }
-      } catch (err) {
-        console.warn('Failed to load shipping preferences, using default pickup.')
-      }
+
+      // REMOVED: The shipping preferences endpoint call since it doesn't exist yet
     } catch (err) {
       console.error('Error loading server cart:', err)
       error.value = 'Nepodařilo se načíst košík'
@@ -85,6 +76,11 @@ export const useCart = defineStore('cart', () => {
       let price = product.price
       if (typeof price === 'string' && price.includes('Kč/')) {
         price = price.split('Kč/')[0].trim()
+      }
+
+      // Handle comma as decimal separator in Czech format
+      if (typeof price === 'string' && price.includes(',')) {
+        price = price.replace(',', '.')
       }
 
       const resp = await axios.post(
@@ -181,7 +177,7 @@ export const useCart = defineStore('cart', () => {
 
   // Clear cart
   async function clearCart() {
-    if (userStore.isAuthenticated) {
+    if (userStore.isAuthenticated && userStore.token && items.value.length > 0) {
       for (const item of items.value) {
         if (item.dbId) {
           try {
@@ -200,25 +196,27 @@ export const useCart = defineStore('cart', () => {
   // ** Set shipping method **
   async function setShippingMethod(method: 'pickup' | 'delivery') {
     shippingMethod.value = method
-    // If user is logged in, optionally update server preference
-    if (userStore.isAuthenticated && userStore.token) {
-      try {
-        await axios.put(
-          `${API_URL}/user/preferences/shipping`,
-          { shippingMethod: method },
-          { headers: { Authorization: `Bearer ${userStore.token}` } }
-        )
-      } catch (err) {
-        console.error('Error updating shipping method on server:', err)
-      }
-    }
+    // We're not syncing with server since the endpoint doesn't exist
   }
 
   // Computed
   const itemCount = computed(() => items.value.reduce((count, item) => count + item.quantity, 0))
   const cartTotal = computed(() => {
     return items.value.reduce((total, item) => {
-      const priceNum = typeof item.price === 'number' ? item.price : parseFloat(item.price)
+      // Handle Czech number format (comma as decimal separator)
+      let priceNum = 0
+      if (typeof item.price === 'number') {
+        priceNum = item.price
+      } else if (typeof item.price === 'string') {
+        // Replace comma with period for parsing
+        priceNum = parseFloat(item.price.replace(',', '.'))
+      }
+
+      if (isNaN(priceNum)) {
+        console.warn(`Invalid price format: ${item.price}`)
+        priceNum = 0
+      }
+
       return total + priceNum * item.quantity
     }, 0)
   })
@@ -229,7 +227,7 @@ export const useCart = defineStore('cart', () => {
     shippingMethod,
     loading,
     error,
-    addSuccess, // Expose the new success state
+    addSuccess,
     itemCount,
     cartTotal,
     loadServerCart,

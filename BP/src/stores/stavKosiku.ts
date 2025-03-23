@@ -159,7 +159,7 @@ async function saveCart(): Promise<void> {
     localStorage.setItem(
       getLocalCartKey(),
       JSON.stringify({
-        items: state.items,
+        items: state.items, // or if using computed, use cartStore.items (or .value if it's a ref)
         shippingMethod: state.shippingMethod
       })
     )

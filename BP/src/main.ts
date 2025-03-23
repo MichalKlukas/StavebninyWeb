@@ -28,19 +28,19 @@ watch(
       // The user just logged in
 
       // 1) Merge guest cart first (if any)
-      const guestCart = localStorage.getItem('kosik_guest')
+      const guestCart = localStorage.getItem('anonymous_cart') // adjust if you use a different guest key
       if (guestCart) {
         await cartStore.syncCartWithServer()
-        localStorage.removeItem('kosik_guest')
+        localStorage.removeItem('anonymous_cart')
       }
 
       // 2) Check if there is a saved user cart (from a previous session)
       if (userStore.user) {
-        const userCartKey = `kosik_${userStore.user.id}`
+        const userCartKey = `cart_${userStore.user.id}` // adjust as needed
         const savedUserCart = localStorage.getItem(userCartKey)
         if (savedUserCart) {
-          // Optionally merge the saved user cart with the server cart
-          // This could be a separate function that compares quantities, etc.
+          // Optionally merge the saved user cart with the server cart.
+          // You can implement a merge function here if you want to add quantities, etc.
         }
       }
 
@@ -49,19 +49,20 @@ watch(
     } else if (!isAuthenticated && wasAuthenticated) {
       // The user just logged out
       if (userStore.user) {
-        const userCartKey = `kosik_${userStore.user.id}`
-        // Use the computed properties from cartStore instead of direct state access
+        const userCartKey = `cart_${userStore.user.id}` // adjust as needed
+        // Save the current cart using computed properties from cartStore.
         localStorage.setItem(
           userCartKey,
           JSON.stringify({
-            items: cartStore.items, // or cartStore.items.value if needed
-            shippingMethod: cartStore.shippingMethod // or .value if required
+            items: cartStore.items, // if these are refs, you might need .value
+            shippingMethod: cartStore.shippingMethod
           })
         )
       }
-      // Clear the cart (or load guest cart if needed)
-      cartStore.clearCart()
-      // Optionally, you can call cartStore.loadLocalCart() if you'd like to switch to the guest cart immediately.
+      // Clear the in-memory cart (or, if you prefer, load the guest cart)
+      await cartStore.clearCart() // make sure clearCart is awaited if it performs async tasks
+      // Optionally, you could load the guest cart:
+      // await cartStore.loadLocalCart()
     }
   }
 )

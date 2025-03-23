@@ -1,11 +1,10 @@
 // src/stores/stavKosiku.ts
 import { reactive, computed } from 'vue'
 import axios from 'axios'
-import { useUserStore } from './index' // your user store file
+import { useUserStore } from './index'
 
 // ========== TYPES ==========
 
-// Single cart item shape
 interface CartItem {
   id: number
   quantity: number
@@ -16,7 +15,6 @@ interface CartItem {
   priceUnit: string
 }
 
-// The reactive state shape
 interface CartState {
   items: CartItem[]
   shippingMethod: string
@@ -25,8 +23,6 @@ interface CartState {
   initialized: boolean
 }
 
-// For the "product" param in addToCart, we can keep it minimal with "any"
-// or define a real interface if you know the shape.
 type Product = any
 
 // ========== CONSTANTS ==========
@@ -36,7 +32,6 @@ const API_URL = `${BASE_URL}/api`
 
 // ========== HELPERS ==========
 
-// Convert price from string or number to a float
 function parsePrice(priceString: number | string): number {
   if (typeof priceString === 'number') return priceString
   if (typeof priceString === 'string') {
@@ -47,7 +42,6 @@ function parsePrice(priceString: number | string): number {
   return 0
 }
 
-// Return "kosik_guest" if not logged in, else "kosik_{userId}"
 function getLocalCartKey(): string {
   const userStore = useUserStore()
   return userStore.isAuthenticated && userStore.user?.id
@@ -67,7 +61,6 @@ const state = reactive<CartState>({
 
 // ========== MAIN FUNCTIONS ==========
 
-// 1. Initialize the cart
 async function initializeCart(): Promise<void> {
   if (state.initialized) return
   state.initialized = true
@@ -75,12 +68,15 @@ async function initializeCart(): Promise<void> {
   const userStore = useUserStore()
   try {
     state.loading = true
+
+    // Always load local cart first to ensure we have something to display
     loadLocalCart()
 
     if (userStore.isAuthenticated) {
       try {
         const resp = await axios.get(`${API_URL}/cart/status`)
         if (resp.data.success) {
+          // If API is available, load server cart (which will override local cart for logged-in users)
           await loadServerCart()
         }
       } catch (err) {
@@ -95,7 +91,6 @@ async function initializeCart(): Promise<void> {
   }
 }
 
-// 2. Load from localStorage
 function loadLocalCart(): void {
   try {
     const savedCart = localStorage.getItem(getLocalCartKey())
@@ -112,7 +107,6 @@ function loadLocalCart(): void {
   }
 }
 
-// 3. Load from server
 async function loadServerCart(): Promise<void> {
   const userStore = useUserStore()
   if (!userStore.isAuthenticated || !userStore.token) return
@@ -153,13 +147,12 @@ async function loadServerCart(): Promise<void> {
   }
 }
 
-// 4. Save cart to localStorage (for guests)
 async function saveCart(): Promise<void> {
   try {
     localStorage.setItem(
       getLocalCartKey(),
       JSON.stringify({
-        items: state.items, // or if using computed, use cartStore.items (or .value if it's a ref)
+        items: state.items,
         shippingMethod: state.shippingMethod
       })
     )
@@ -169,23 +162,28 @@ async function saveCart(): Promise<void> {
   }
 }
 
-// 5. Sync local guest cart with server
 async function syncCartWithServer(): Promise<void> {
   const userStore = useUserStore()
   if (!userStore.isAuthenticated) return
 
   try {
     state.loading = true
-    const localItems = state.items
+    const localItems = [...state.items] // Make a copy to preserve the local items
 
+    // Send local items to be merged with server cart
     await axios.post(
       `${API_URL}/cart/sync`,
       { items: localItems },
       { headers: { Authorization: `Bearer ${userStore.token}` } }
     )
 
+    // Reload the updated cart from server
     await loadServerCart()
-    localStorage.removeItem(getLocalCartKey())
+
+    // User is now logged in, so we don't need the guest cart anymore
+    if (userStore.user?.id && localStorage.getItem('kosik_guest')) {
+      localStorage.removeItem('kosik_guest')
+    }
 
     state.loading = false
   } catch (error) {
@@ -195,7 +193,6 @@ async function syncCartWithServer(): Promise<void> {
   }
 }
 
-// 6. Add to cart
 async function addToCart(product: Product): Promise<void> {
   const userStore = useUserStore()
   try {
@@ -212,7 +209,7 @@ async function addToCart(product: Product): Promise<void> {
         `${API_URL}/cart`,
         {
           productId: processed.id,
-          quantity: 1,
+          quantity: product.quantity || 1, // Use specified quantity or default to 1
           price: processed.price,
           name: processed.name,
           image: processed.image || '/placeholder.jpg',
@@ -222,7 +219,7 @@ async function addToCart(product: Product): Promise<void> {
       )
       if (resp.data.success) {
         if (existingIndex !== -1) {
-          state.items[existingIndex].quantity++
+          state.items[existingIndex].quantity += product.quantity || 1
           state.items[existingIndex].dbId = resp.data.cartItem.id
         } else {
           state.items.push({
@@ -231,7 +228,7 @@ async function addToCart(product: Product): Promise<void> {
             price: processed.price,
             image: processed.image || '/placeholder.jpg',
             priceUnit: processed.priceUnit || 'kus',
-            quantity: 1,
+            quantity: product.quantity || 1,
             dbId: resp.data.cartItem.id
           })
         }
@@ -239,11 +236,11 @@ async function addToCart(product: Product): Promise<void> {
     } else {
       // guest
       if (existingIndex !== -1) {
-        state.items[existingIndex].quantity++
+        state.items[existingIndex].quantity += product.quantity || 1
       } else {
         state.items.push({
           ...processed,
-          quantity: 1,
+          quantity: product.quantity || 1,
           image: processed.image || '/placeholder.jpg',
           priceUnit: processed.priceUnit || 'kus'
         })
@@ -258,7 +255,7 @@ async function addToCart(product: Product): Promise<void> {
   }
 }
 
-// 7. Remove from cart
+// Other functions remain the same
 async function removeFromCart(index: number): Promise<void> {
   const userStore = useUserStore()
   try {
@@ -284,7 +281,6 @@ async function removeFromCart(index: number): Promise<void> {
   }
 }
 
-// 8. Update quantity
 async function updateQuantity(index: number, quantity: number): Promise<void> {
   const userStore = useUserStore()
   try {
@@ -323,7 +319,6 @@ function decreaseQuantity(index: number): void {
   }
 }
 
-// 9. Set shipping method
 async function setShippingMethod(method: string): Promise<void> {
   const userStore = useUserStore()
   try {
@@ -347,7 +342,6 @@ async function setShippingMethod(method: string): Promise<void> {
   }
 }
 
-// 10. Clear the cart
 async function clearCart(): Promise<void> {
   const userStore = useUserStore()
   try {
@@ -387,8 +381,6 @@ const itemCount = computed<number>(() =>
 
 // ========== MAIN EXPORT ==========
 
-// We export a function returning all the cart logic.
-// In Pinia style, you might defineStore, but this is fine for a composable.
 export function useCart() {
   // Ensure we initialize once
   if (!state.initialized) {
@@ -412,6 +404,7 @@ export function useCart() {
     clearCart,
     syncCartWithServer,
     loadLocalCart,
-    loadServerCart
+    loadServerCart,
+    saveCart
   }
 }

@@ -5,9 +5,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import { useCart } from '@/stores/stavKosiku.ts'
-// Import your cart store and user store
-
-import { useUserStore } from './stores/index' // or './stores/user' if you separate them
+import { useUserStore } from './stores/index'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -27,43 +25,69 @@ watch(
     if (isAuthenticated && !wasAuthenticated) {
       // The user just logged in
 
-      // 1) Merge guest cart first (if any)
-      const guestCart = localStorage.getItem('kosik_guest') // adjust if you use a different guest key
-      if (guestCart) {
-        cartStore.loadLocalCart()
+      // First load the server cart to see what's already there
+      await cartStore.loadServerCart()
+
+      // Then check for a guest cart
+      const guestCart = localStorage.getItem('kosik_guest')
+      if (guestCart && JSON.parse(guestCart).items?.length > 0) {
+        // If we have guest items, sync them with server
         await cartStore.syncCartWithServer()
+        // Clean up the guest cart
         localStorage.removeItem('kosik_guest')
       }
 
-      // 2) Check if there is a saved user cart (from a previous session)
+      // Finally, check for a previously saved user cart from a prior session
       if (userStore.user) {
-        const userCartKey = `kosik_${userStore.user.id}` // adjust as needed
+        const userCartKey = `kosik_${userStore.user.id}`
         const savedUserCart = localStorage.getItem(userCartKey)
+
         if (savedUserCart) {
-          // Optionally merge the saved user cart with the server cart.
-          // You can implement a merge function here if you want to add quantities, etc.
+          const parsedCart = JSON.parse(savedUserCart)
+
+          // Only process if there are items to merge
+          if (parsedCart.items && parsedCart.items.length > 0) {
+            // We need to merge these saved items with what's already been loaded
+            // For simplicity, let's just add each item to the cart
+            for (const item of parsedCart.items) {
+              try {
+                await cartStore.addToCart({
+                  id: item.id,
+                  name: item.name,
+                  price: item.price,
+                  image: item.image,
+                  priceUnit: item.priceUnit,
+                  quantity: item.quantity
+                })
+              } catch (error) {
+                console.error('Error adding saved item to cart:', error)
+              }
+            }
+
+            // Clean up after successful merge
+            localStorage.removeItem(userCartKey)
+          }
         }
       }
-
-      // 3) Load the user’s DB cart
-      await cartStore.loadServerCart()
     } else if (!isAuthenticated && wasAuthenticated) {
       // The user just logged out
+      // Save the current cart state before clearing
       if (userStore.user) {
-        const userCartKey = `kosik_${userStore.user.id}` // adjust as needed
-        // Save the current cart using computed properties from cartStore.
+        const userCartKey = `kosik_${userStore.user.id}`
+
+        // Get the current cart state
         localStorage.setItem(
           userCartKey,
           JSON.stringify({
-            items: cartStore.items, // if these are refs, you might need .value
-            shippingMethod: cartStore.shippingMethod
+            items: cartStore.items.value, // Make sure to use .value since these are computed refs
+            shippingMethod: cartStore.shippingMethod.value
           })
         )
       }
-      // Clear the in-memory cart (or, if you prefer, load the guest cart)
-      await cartStore.clearCart() // make sure clearCart is awaited if it performs async tasks
-      // Optionally, you could load the guest cart:
-      // await cartStore.loadLocalCart()
+
+      // Clear in-memory cart and load guest cart if exists
+      await cartStore.clearCart()
+      await cartStore.loadLocalCart() // This will load any existing guest cart
     }
   }
 )

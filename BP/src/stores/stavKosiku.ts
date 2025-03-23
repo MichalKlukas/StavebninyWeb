@@ -25,7 +25,22 @@ interface CartItem {
   image: string
   priceUnit: string
 }
-
+const getProductCache = () => {
+  try {
+    const cache = localStorage.getItem('product_cache')
+    return cache ? JSON.parse(cache) : {}
+  } catch (e) {
+    console.error('Error loading product cache:', e)
+    return {}
+  }
+}
+const saveProductCache = (cache: Record<string, any>) => {
+  try {
+    localStorage.setItem('product_cache', JSON.stringify(cache))
+  } catch (e) {
+    console.error('Error saving product cache:', e)
+  }
+}
 export const useCart = defineStore('cart', () => {
   // Reactive state
   const items = ref<CartItem[]>([])
@@ -57,17 +72,22 @@ export const useCart = defineStore('cart', () => {
 
       if (resp.data.success) {
         if (resp.data.cartItems && resp.data.cartItems.length > 0) {
+          // Get product cache
+          const cache = getProductCache()
+
           // Transform server cart items to client format
-          // Use proper type annotation for the map function parameter
           items.value = resp.data.cartItems.map((item: ServerCartItem) => {
+            const productId = item.product_id
+            const cachedProduct = cache[productId] || {}
+
             return {
-              id: item.product_id,
+              id: productId,
               quantity: item.quantity,
               dbId: item.id,
-              name: `Produkt ${item.product_id}`, // Basic placeholder
-              price: 0, // We don't have price info from the server
-              image: '/placeholder.jpg',
-              priceUnit: 'kus'
+              name: cachedProduct.name || `Produkt ${productId}`,
+              price: cachedProduct.price || 0,
+              image: cachedProduct.image || '/placeholder.jpg',
+              priceUnit: cachedProduct.priceUnit || 'kus'
             } as CartItem
           })
 
@@ -85,7 +105,6 @@ export const useCart = defineStore('cart', () => {
     }
   }
 
-  // Add item to cart (login required)
   // Add item to cart (login required)
   async function addToCart(product: any) {
     if (!userStore.isAuthenticated || !userStore.token) {
@@ -105,6 +124,16 @@ export const useCart = defineStore('cart', () => {
       }
 
       console.log(`Adding to cart: ${product.id}, price: ${price}, quantity: ${quantity}`)
+
+      // Save product details to cache
+      const cache = getProductCache()
+      cache[product.id] = {
+        name: product.name,
+        price: price,
+        image: product.image || '/placeholder.jpg',
+        priceUnit: product.priceUnit || 'kus'
+      }
+      saveProductCache(cache)
 
       const resp = await axios.post(
         `${API_URL}/cart`,

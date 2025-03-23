@@ -214,7 +214,8 @@
 
                 <!-- Login message for non-authenticated users -->
                 <div v-else class="login-required-message">
-                  <router-link to="/prihlaseni" class="login-link">
+                  <!-- Added @click.stop to prevent product navigation -->
+                  <router-link @click.stop to="/prihlaseni" class="login-link">
                     Pro nákup se přihlaste
                   </router-link>
                 </div>

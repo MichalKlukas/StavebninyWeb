@@ -15,9 +15,10 @@
               <div class="item-details">
                 <p class="item-name">{{ item.name }}</p>
                 <p v-if="itemType === 'product'" class="item-price">{{ item.price }}</p>
-                <!-- Tlačítko Přidat do košíku pouze pro produkty -->
+
+                <!-- Tlačítko Přidat do košíku pouze pro přihlášené uživatele -->
                 <button
-                  v-if="itemType === 'product'"
+                  v-if="itemType === 'product' && isAuthenticated"
                   class="add-to-cart-btn"
                   @click.stop="addToCart(item)"
                 >
@@ -39,6 +40,16 @@
                   </svg>
                   <span>Přidat do košíku</span>
                 </button>
+
+                <!-- Login message for non-authenticated users -->
+                <div
+                  v-if="itemType === 'product' && !isAuthenticated"
+                  class="login-required-message"
+                >
+                  <router-link to="/prihlaseni" class="login-link" @click.stop>
+                    Pro nákup se přihlaste
+                  </router-link>
+                </div>
               </div>
             </div>
           </transition-group>
@@ -87,8 +98,14 @@ export default {
     autoSlide: {
       type: Boolean,
       default: true
+    },
+    // Whether the user is authenticated
+    isAuthenticated: {
+      type: Boolean,
+      default: false
     }
   },
+  // Rest of the component remains the same
   data() {
     return {
       currentIndex: 0,
@@ -287,6 +304,27 @@ export default {
   stroke: white;
 }
 
+/* New styles for login message */
+.login-required-message {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.login-link {
+  color: #f5852a;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.login-link:hover {
+  color: #e67722;
+  text-decoration: underline;
+}
+
 /* Improved transition for the carousel */
 .carousel-slide-enter-active,
 .carousel-slide-leave-active {
@@ -329,6 +367,11 @@ export default {
   .cart-icon {
     width: 14px;
     height: 14px;
+  }
+
+  .login-required-message {
+    padding: 6px 8px;
+    font-size: 12px;
   }
 }
 

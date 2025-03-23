@@ -14,6 +14,7 @@
       :slideCount="6"
       :autoSlide="true"
       @add-to-cart="handleAddToCart"
+      :isAuthenticated="userStore.isAuthenticated"
     />
 
     <!-- Manufacturers Carousel -->

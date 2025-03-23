@@ -9,7 +9,7 @@
       <span class="price-info">Cena za {{ product.priceUnit || 'kus' }} s DPH</span>
     </div>
 
-    <!-- Button changes if not authenticated -->
+    <!-- Button for authenticated users -->
     <button v-if="isAuthenticated" class="add-to-cart-btn" @click.stop="addToCart">
       <svg
         class="cart-icon"
@@ -27,14 +27,18 @@
       </svg>
       <span>Přidat do košíku</span>
     </button>
-    <button v-else class="add-to-cart-btn disabled" disabled>Musíte se nejdříve přihlásit</button>
+
+    <!-- Login message for non-authenticated users -->
+    <div v-else class="login-required-message">
+      <router-link to="/prihlaseni" class="login-link"> Pro nákup se přihlaste </router-link>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, computed } from 'vue'
 import type { PropType } from 'vue'
-import { useUserStore } from '@/stores' // or wherever your user store is
+import { useUserStore } from '@/stores'
 
 export interface Product {
   id: number | string
@@ -54,25 +58,32 @@ export default defineComponent({
       required: true
     }
   },
-  setup() {
+  setup(props, { emit }) {
     const userStore = useUserStore()
     // We'll use a computed to check if user is logged in
     const isAuthenticated = computed(() => userStore.isAuthenticated)
-    return { userStore, isAuthenticated }
+
+    const addToCart = (event: Event) => {
+      event.preventDefault()
+      event.stopPropagation()
+
+      if (isAuthenticated.value) {
+        // Emit event only if authenticated
+        emit('add-to-cart', props.product)
+      }
+    }
+
+    return {
+      userStore,
+      isAuthenticated,
+      addToCart
+    }
   },
   methods: {
     navigateToProduct() {
       // Navigate to product detail page
       const productSlug = this.product.slug || this.product.id
       this.$router.push(`/product/${productSlug}`)
-    },
-    addToCart(event: Event) {
-      event.preventDefault()
-      event.stopPropagation()
-
-      // If we got here, the user is authenticated (due to v-if="isAuthenticated")
-      // Emit an event for the parent to handle the actual "add" logic
-      this.$emit('add-to-cart', this.product)
     },
     formatPrice(product: Product): string {
       // If price is already a string with format "XXX Kč/jednotka", return the portion before "Kč/"
@@ -167,10 +178,7 @@ export default defineComponent({
   justify-content: center;
   gap: 8px;
 }
-.add-to-cart-btn.disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
+
 .add-to-cart-btn:hover {
   background-color: #e67722;
 }
@@ -179,5 +187,26 @@ export default defineComponent({
   width: 16px;
   height: 16px;
   stroke: white;
+}
+
+/* New styles for login message */
+.login-required-message {
+  width: 100%;
+  padding: 8px 15px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.login-link {
+  color: #f5852a;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.login-link:hover {
+  color: #e67722;
+  text-decoration: underline;
 }
 </style>

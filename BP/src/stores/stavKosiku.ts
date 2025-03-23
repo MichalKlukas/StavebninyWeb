@@ -22,6 +22,7 @@ export const useCart = defineStore('cart', () => {
   const items = ref<CartItem[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const addSuccess = ref(false) // New state for tracking add success
 
   // ** Add shippingMethod here **
   const shippingMethod = ref<'pickup' | 'delivery'>('pickup')
@@ -50,7 +51,7 @@ export const useCart = defineStore('cart', () => {
           priceUnit: item.product_unit || 'kus'
         }))
       }
-      // Optionally fetch user’s preferred shipping method from the server:
+      // Optionally fetch user's preferred shipping method from the server:
       try {
         const prefsResp = await axios.get(`${API_URL}/user/preferences/shipping`, {
           headers: { Authorization: `Bearer ${userStore.token}` }
@@ -73,33 +74,53 @@ export const useCart = defineStore('cart', () => {
   async function addToCart(product: any) {
     if (!userStore.isAuthenticated || !userStore.token) {
       console.warn('User not logged in. Cannot add to cart.')
-      return
+      return false // Return false to indicate failure
     }
+
     try {
       loading.value = true
       const quantity = product.quantity || 1
+
+      // Format price if it's a string with "Kč/"
+      let price = product.price
+      if (typeof price === 'string' && price.includes('Kč/')) {
+        price = price.split('Kč/')[0].trim()
+      }
+
       const resp = await axios.post(
         `${API_URL}/cart`,
         {
           productId: product.id,
           quantity,
-          price: product.price,
+          price,
           name: product.name,
           image: product.image || '/placeholder.jpg',
           priceUnit: product.priceUnit || 'kus'
         },
         { headers: { Authorization: `Bearer ${userStore.token}` } }
       )
+
       if (resp.data.success) {
         // Reload the entire cart
         await loadServerCart()
+        addSuccess.value = true
+
+        // Reset success flag after 3 seconds
+        setTimeout(() => {
+          addSuccess.value = false
+        }, 3000)
+
+        return true // Return true to indicate success
       }
     } catch (err) {
       console.error('Error adding to cart:', err)
       error.value = 'Nepodařilo se přidat do košíku'
+      return false
     } finally {
       loading.value = false
     }
+
+    return false
   }
 
   // Remove item
@@ -142,6 +163,19 @@ export const useCart = defineStore('cart', () => {
       error.value = 'Nepodařilo se aktualizovat množství'
     } finally {
       loading.value = false
+    }
+  }
+
+  // Helper methods for kosik.vue
+  function increaseQuantity(index: number) {
+    if (index >= 0 && index < items.value.length) {
+      updateQuantity(index, items.value[index].quantity + 1)
+    }
+  }
+
+  function decreaseQuantity(index: number) {
+    if (index >= 0 && index < items.value.length && items.value[index].quantity > 1) {
+      updateQuantity(index, items.value[index].quantity - 1)
     }
   }
 
@@ -192,15 +226,18 @@ export const useCart = defineStore('cart', () => {
   // Return everything
   return {
     items,
-    shippingMethod, // <--- Expose shippingMethod as a ref
+    shippingMethod,
     loading,
     error,
+    addSuccess, // Expose the new success state
     itemCount,
     cartTotal,
     loadServerCart,
     addToCart,
     removeFromCart,
     updateQuantity,
+    increaseQuantity,
+    decreaseQuantity,
     clearCart,
     setShippingMethod
   }

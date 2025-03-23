@@ -48,11 +48,12 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue'
+import { defineComponent, ref, watch } from 'vue'
 import ProductCard from '@/components/ProductCard.vue'
 import reusableCarousel from '@/components/reusableCarousel.vue'
 import type { Product } from '@/components/ProductCard.vue'
 import { useCart } from '@/stores/stavKosiku'
+import { useUserStore } from '@/stores'
 
 // Import images directly using ES module imports
 import storeFrontImage from '@/assets/store-front.jpg'
@@ -77,12 +78,32 @@ export default defineComponent({
     reusableCarousel
   },
   setup() {
-    // Použijeme náš hook pro košík
+    // Použijeme náš hook pro košík a uživatele
     const cart = useCart()
+    const userStore = useUserStore()
     const showNotification = ref(false)
 
+    // Watch for changes to cart.addSuccess
+    watch(
+      () => cart.addSuccess,
+      (newValue) => {
+        if (newValue) {
+          showNotification.value = true
+          // Notification will be auto-hidden by the timer in the cart store
+          setTimeout(() => {
+            showNotification.value = false
+          }, 3000)
+        }
+      }
+    )
+
     // Metoda pro přidání produktu do košíku
-    const handleAddToCart = (product: any) => {
+    const handleAddToCart = async (product: any) => {
+      // Only proceed if user is authenticated
+      if (!userStore.isAuthenticated) {
+        return
+      }
+
       // Formátování produktu pro košík, pokud je třeba
       const cartProduct = {
         id: product.id,
@@ -95,23 +116,22 @@ export default defineComponent({
         priceUnit: product.priceUnit || 'kus'
       }
 
-      // Přidání produktu do košíku
-      cart.addToCart(cartProduct)
-
-      // Zobrazení notifikace
-      showNotification.value = true
-
-      // Skrytí notifikace po 3 sekundách
-      setTimeout(() => {
-        showNotification.value = false
-      }, 3000)
+      // Přidání produktu do košíku a show notification only on success
+      const success = await cart.addToCart(cartProduct)
+      if (success) {
+        showNotification.value = true
+        setTimeout(() => {
+          showNotification.value = false
+        }, 3000)
+      }
 
       console.log('Přidáno do košíku:', cartProduct)
     }
 
     return {
       handleAddToCart,
-      showNotification
+      showNotification,
+      userStore
     }
   },
   data() {

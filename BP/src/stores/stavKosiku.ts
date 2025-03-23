@@ -4,6 +4,9 @@ import axios from 'axios'
 import { useUserStore } from './index'
 import { computed, ref } from 'vue'
 
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://46.28.108.195.nip.io'
+const API_URL = `${BASE_URL}/api`
+
 interface CartItem {
   id: number
   quantity: number
@@ -14,21 +17,18 @@ interface CartItem {
   priceUnit: string
 }
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://46.28.108.195.nip.io'
-const API_URL = `${BASE_URL}/api`
-
 export const useCart = defineStore('cart', () => {
   // Reactive state
   const items = ref<CartItem[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  // User store
+  // ** Add shippingMethod here **
+  const shippingMethod = ref<'pickup' | 'delivery'>('pickup')
+
   const userStore = useUserStore()
 
-  // ====== ACTIONS ======
-
-  // Load the cart from the server (only if logged in)
+  // Load the server cart (only if logged in)
   async function loadServerCart() {
     if (!userStore.isAuthenticated || !userStore.token) {
       items.value = []
@@ -50,6 +50,17 @@ export const useCart = defineStore('cart', () => {
           priceUnit: item.product_unit || 'kus'
         }))
       }
+      // Optionally fetch user’s preferred shipping method from the server:
+      try {
+        const prefsResp = await axios.get(`${API_URL}/user/preferences/shipping`, {
+          headers: { Authorization: `Bearer ${userStore.token}` }
+        })
+        if (prefsResp.data.success && prefsResp.data.shippingMethod) {
+          shippingMethod.value = prefsResp.data.shippingMethod
+        }
+      } catch (err) {
+        console.warn('Failed to load shipping preferences, using default pickup.')
+      }
     } catch (err) {
       console.error('Error loading server cart:', err)
       error.value = 'Nepodařilo se načíst košík'
@@ -58,10 +69,9 @@ export const useCart = defineStore('cart', () => {
     }
   }
 
-  // Add an item to the server cart (only if logged in)
+  // Add item to cart (login required)
   async function addToCart(product: any) {
     if (!userStore.isAuthenticated || !userStore.token) {
-      // user not logged in, do nothing or show error
       console.warn('User not logged in. Cannot add to cart.')
       return
     }
@@ -81,7 +91,7 @@ export const useCart = defineStore('cart', () => {
         { headers: { Authorization: `Bearer ${userStore.token}` } }
       )
       if (resp.data.success) {
-        // Option 1: Reload the entire cart
+        // Reload the entire cart
         await loadServerCart()
       }
     } catch (err) {
@@ -92,7 +102,7 @@ export const useCart = defineStore('cart', () => {
     }
   }
 
-  // Remove item from server cart
+  // Remove item
   async function removeFromCart(index: number) {
     if (!userStore.isAuthenticated || !userStore.token) return
     try {
@@ -112,7 +122,7 @@ export const useCart = defineStore('cart', () => {
     }
   }
 
-  // Update quantity on server
+  // Update quantity
   async function updateQuantity(index: number, quantity: number) {
     if (!userStore.isAuthenticated || !userStore.token) return
     if (quantity < 1) quantity = 1
@@ -128,17 +138,16 @@ export const useCart = defineStore('cart', () => {
       }
       items.value[index].quantity = quantity
     } catch (err) {
-      console.error('Error updating cart item:', err)
+      console.error('Error updating quantity:', err)
       error.value = 'Nepodařilo se aktualizovat množství'
     } finally {
       loading.value = false
     }
   }
 
-  // Clear the server cart (if you want to remove items from DB) or just clear local
+  // Clear cart
   async function clearCart() {
     if (userStore.isAuthenticated) {
-      // Optionally remove each item from the server
       for (const item of items.value) {
         if (item.dbId) {
           try {
@@ -154,7 +163,24 @@ export const useCart = defineStore('cart', () => {
     items.value = []
   }
 
-  // ====== GETTERS ======
+  // ** Set shipping method **
+  async function setShippingMethod(method: 'pickup' | 'delivery') {
+    shippingMethod.value = method
+    // If user is logged in, optionally update server preference
+    if (userStore.isAuthenticated && userStore.token) {
+      try {
+        await axios.put(
+          `${API_URL}/user/preferences/shipping`,
+          { shippingMethod: method },
+          { headers: { Authorization: `Bearer ${userStore.token}` } }
+        )
+      } catch (err) {
+        console.error('Error updating shipping method on server:', err)
+      }
+    }
+  }
+
+  // Computed
   const itemCount = computed(() => items.value.reduce((count, item) => count + item.quantity, 0))
   const cartTotal = computed(() => {
     return items.value.reduce((total, item) => {
@@ -163,9 +189,10 @@ export const useCart = defineStore('cart', () => {
     }, 0)
   })
 
-  // Return everything needed
+  // Return everything
   return {
     items,
+    shippingMethod, // <--- Expose shippingMethod as a ref
     loading,
     error,
     itemCount,
@@ -174,6 +201,7 @@ export const useCart = defineStore('cart', () => {
     addToCart,
     removeFromCart,
     updateQuantity,
-    clearCart
+    clearCart,
+    setShippingMethod
   }
 })

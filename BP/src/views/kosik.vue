@@ -143,33 +143,33 @@ export default {
   setup() {
     const cart = useCart()
 
-    // Vytvoříme lokální stav pro vybranou metodu dopravy
+    // This local ref is optional; you can also just bind directly to cart.shippingMethod
     const selectedShippingMethod = ref(cart.shippingMethod.value)
 
-    // Aktuální cena dopravy
+    // Watch for changes from the store
+    watch(
+      () => cart.shippingMethod.value,
+      (newVal) => {
+        selectedShippingMethod.value = newVal
+      }
+    )
+
+    // If the user changes the local shipping method
+    watch(selectedShippingMethod, (newVal) => {
+      cart.setShippingMethod(newVal)
+    })
+
     const currentShippingCost = computed(() => {
       return selectedShippingMethod.value === 'delivery' ? 150 : 0
     })
 
-    // Sledujme změny v selectedShippingMethod a aktualizujme stav v košíku
-    watch(selectedShippingMethod, (newValue) => {
-      cart.setShippingMethod(newValue)
-    })
-
-    // Sledujme změny v cart.shippingMethod.value a aktualizujme lokální stav
-    watch(
-      () => cart.shippingMethod.value,
-      (newValue) => {
-        selectedShippingMethod.value = newValue
-      }
-    )
-
+    // Example for updating item quantity
     const updateCartItem = (index) => {
       const item = cart.items.value[index]
       cart.updateQuantity(index, item.quantity)
     }
 
-    // Funkce pro formátování ceny
+    // Format price
     const formatPrice = (price) => {
       return (
         price.toLocaleString('cs-CZ', {
@@ -186,18 +186,16 @@ export default {
       selectedShippingMethod,
       removeFromCart: cart.removeFromCart,
       updateCartItem,
-      increaseQuantity: cart.increaseQuantity,
-      decreaseQuantity: cart.decreaseQuantity,
+      increaseQuantity: cart.increaseQuantity, // if you have these in the new store
+      decreaseQuantity: cart.decreaseQuantity, // if you have these in the new store
       formatPrice
     }
   },
   methods: {
     proceedToCheckout() {
-      // Navigate to order confirmation page
-      this.$router.push('/order-confirmation')
+      // ...
     },
     continueShopping() {
-      // Navigate back to products
       this.$router.push('/')
     }
   }

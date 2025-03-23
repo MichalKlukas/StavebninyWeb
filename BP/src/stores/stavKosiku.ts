@@ -25,6 +25,29 @@ interface CartItem {
   image: string
   priceUnit: string
 }
+
+// New interfaces for delivery and order
+interface DeliveryAddress {
+  street: string
+  city: string
+  zip: string
+  distance?: number
+}
+
+interface OrderDetails {
+  name: string
+  email: string
+  phone: string
+  company?: string
+  ico?: string
+  dic?: string
+  pickupDate: string
+  shippingMethod: 'pickup' | 'delivery'
+  deliveryAddress?: DeliveryAddress
+  deliveryCost: number
+  note?: string
+}
+
 const getProductCache = () => {
   try {
     const cache = localStorage.getItem('product_cache')
@@ -34,6 +57,7 @@ const getProductCache = () => {
     return {}
   }
 }
+
 const saveProductCache = (cache: Record<string, any>) => {
   try {
     localStorage.setItem('product_cache', JSON.stringify(cache))
@@ -41,6 +65,7 @@ const saveProductCache = (cache: Record<string, any>) => {
     console.error('Error saving product cache:', e)
   }
 }
+
 export const useCart = defineStore('cart', () => {
   // Reactive state
   const items = ref<CartItem[]>([])
@@ -48,12 +73,15 @@ export const useCart = defineStore('cart', () => {
   const error = ref<string | null>(null)
   const addSuccess = ref(false) // New state for tracking add success
 
-  // ** Add shippingMethod here **
+  // Shipping and order related state
   const shippingMethod = ref<'pickup' | 'delivery'>('pickup')
+  const deliveryAddress = ref<DeliveryAddress | null>(null)
+  const deliveryCost = ref(0)
+  const deliveryDistance = ref(0)
+  const lastOrderId = ref<number | null>(null)
 
   const userStore = useUserStore()
 
-  // Load the server cart (only if logged in)
   // Load the server cart (only if logged in)
   async function loadServerCart() {
     if (!userStore.isAuthenticated || !userStore.token) {
@@ -245,10 +273,111 @@ export const useCart = defineStore('cart', () => {
     items.value = []
   }
 
-  // ** Set shipping method **
-  async function setShippingMethod(method: 'pickup' | 'delivery') {
+  // Set shipping method
+  function setShippingMethod(method: 'pickup' | 'delivery') {
     shippingMethod.value = method
-    // We're not syncing with server since the endpoint doesn't exist
+
+    // Reset delivery cost if switching to pickup
+    if (method === 'pickup') {
+      deliveryCost.value = 0
+      deliveryDistance.value = 0
+    }
+  }
+
+  // Set delivery address
+  function setDeliveryAddress(address: DeliveryAddress) {
+    deliveryAddress.value = address
+  }
+
+  // Calculate delivery cost based on distance
+  function calculateDeliveryCost(distance: number) {
+    deliveryDistance.value = distance
+
+    // Base cost is 500 Kč + 30 Kč per km
+    const baseCost = 500
+    const costPerKm = 30
+    deliveryCost.value = baseCost + costPerKm * distance
+
+    return deliveryCost.value
+  }
+
+  // Create order
+  async function createOrder(orderDetails: OrderDetails) {
+    if (!userStore.isAuthenticated || !userStore.token) {
+      console.warn('User not logged in. Cannot create order.')
+      return { success: false, message: 'Pro vytvoření objednávky je nutné se přihlásit.' }
+    }
+
+    if (items.value.length === 0) {
+      return { success: false, message: 'Košík je prázdný.' }
+    }
+
+    try {
+      loading.value = true
+
+      // Format order data for API
+      const orderData = {
+        items: items.value.map((item) => ({
+          productId: item.id,
+          quantity: item.quantity,
+          price:
+            typeof item.price === 'string' ? parseFloat(item.price.replace(',', '.')) : item.price,
+          name: item.name
+        })),
+        shipping: {
+          method: orderDetails.shippingMethod,
+          address: orderDetails.shippingMethod === 'delivery' ? orderDetails.deliveryAddress : null,
+          cost: orderDetails.deliveryCost,
+          pickupDate: orderDetails.pickupDate
+        },
+        customer: {
+          name: orderDetails.name,
+          email: orderDetails.email,
+          phone: orderDetails.phone,
+          company: orderDetails.company || null,
+          ico: orderDetails.ico || null,
+          dic: orderDetails.dic || null
+        },
+        note: orderDetails.note || null,
+        total: cartTotal.value + orderDetails.deliveryCost
+      }
+
+      // Call API to create order
+      // API endpoint for creating orders may need to be confirmed
+      const resp = await axios.post(`${API_URL}/orders`, orderData, {
+        headers: { Authorization: `Bearer ${userStore.token}` }
+      })
+
+      if (resp.data.success) {
+        // Store the order ID for reference
+        lastOrderId.value = resp.data.orderId || null
+
+        // Clear the cart after successful order
+        await clearCart()
+
+        return {
+          success: true,
+          orderId: resp.data.orderId,
+          message: 'Objednávka byla úspěšně vytvořena.'
+        }
+      } else {
+        return {
+          success: false,
+          message: resp.data.message || 'Nepodařilo se vytvořit objednávku.'
+        }
+      }
+    } catch (err: any) {
+      console.error('Error creating order:', err)
+      error.value = 'Nepodařilo se vytvořit objednávku'
+      return {
+        success: false,
+        message:
+          err.response?.data?.message ||
+          'Nepodařilo se vytvořit objednávku. Zkuste to prosím znovu později.'
+      }
+    } finally {
+      loading.value = false
+    }
   }
 
   // Computed
@@ -271,11 +400,6 @@ export const useCart = defineStore('cart', () => {
         priceNum = 0
       }
 
-      // Log for debugging
-      console.log(
-        `Cart item ${item.id}: price=${priceNum}, quantity=${item.quantity}, total=${priceNum * item.quantity}`
-      )
-
       return total + priceNum * item.quantity
     }, 0)
   })
@@ -284,6 +408,10 @@ export const useCart = defineStore('cart', () => {
   return {
     items,
     shippingMethod,
+    deliveryAddress,
+    deliveryCost,
+    deliveryDistance,
+    lastOrderId,
     loading,
     error,
     addSuccess,
@@ -296,6 +424,9 @@ export const useCart = defineStore('cart', () => {
     increaseQuantity,
     decreaseQuantity,
     clearCart,
-    setShippingMethod
+    setShippingMethod,
+    setDeliveryAddress,
+    calculateDeliveryCost,
+    createOrder
   }
 })

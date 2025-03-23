@@ -72,12 +72,12 @@
           </div>
           <div class="summary-row shipping">
             <span>Doprava:</span>
-            <span v-if="currentShippingCost > 0">{{ formatPrice(currentShippingCost) }}</span>
+            <span v-if="selectedShippingMethod === 'delivery'" class="fee">Poplatek</span>
             <span v-else class="free-shipping">Zdarma</span>
           </div>
           <div class="summary-row total">
             <span>Celková cena:</span>
-            <span>{{ formatPrice(cartTotal + currentShippingCost) }}</span>
+            <span>{{ formatPrice(cartTotal) }}</span>
           </div>
 
           <div class="shipping-options">
@@ -166,7 +166,8 @@ export default {
     })
 
     const currentShippingCost = computed(() => {
-      return selectedShippingMethod.value === 'delivery' ? 150 : 0
+      // Only return a cost in the calculations, but don't display the specific amount in the UI
+      return selectedShippingMethod.value === 'delivery' ? 0 : 0
     })
 
     // Example for updating item quantity
@@ -388,6 +389,11 @@ h1 {
 
 .free-shipping {
   color: #4caf50;
+  font-weight: 500;
+}
+
+.fee {
+  color: #f5852a;
   font-weight: 500;
 }
 

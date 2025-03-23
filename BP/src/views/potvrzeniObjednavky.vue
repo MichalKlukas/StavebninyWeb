@@ -38,6 +38,25 @@
             </div>
           </div>
         </div>
+
+        <!-- Přehled kontaktních údajů z profilu -->
+        <div class="user-details">
+          <h3>Vaše kontaktní údaje</h3>
+          <div class="contact-info">
+            <div class="info-row">
+              <span class="info-label">Jméno:</span>
+              <span class="info-value">{{ userInfo.firstName }} {{ userInfo.lastName }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Email:</span>
+              <span class="info-value">{{ userInfo.email }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Telefon:</span>
+              <span class="info-value">{{ userInfo.phone || 'Nevyplněno' }}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="order-details">
@@ -46,41 +65,39 @@
         <div class="info-message">
           <div class="icon-info">ℹ️</div>
           <p>
-            Objednávky se na webové aplikaci neplatí a neodesílají, slouží pouze k vytvoření
-            objednávek.
+            Objednávky se na webu neplatí a neodesílají, slouží pouze k vytvoření objednávek, které
+            je potřeba zaplatit na prodejně.
           </p>
         </div>
 
+        <!-- Toggle pro nákup na firmu -->
         <div class="form-section">
-          <h3>Kontaktní údaje</h3>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="name">Jméno a příjmení *</label>
-              <input type="text" id="name" v-model="formData.name" required />
-            </div>
-            <div class="form-group">
-              <label for="email">Email *</label>
-              <input type="email" id="email" v-model="formData.email" required />
-            </div>
+          <div class="company-toggle">
+            <label class="toggle-label">
+              <input type="checkbox" v-model="formData.isCompanyPurchase" />
+              <span class="toggle-text">Nákup na firmu</span>
+            </label>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="phone">Telefon *</label>
-              <input type="tel" id="phone" v-model="formData.phone" required />
+
+          <!-- Firemní údaje - zobrazí se pouze pokud je zaškrtnuto "Nákup na firmu" -->
+          <div v-if="formData.isCompanyPurchase" class="company-details">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="company">Název firmy *</label>
+                <input type="text" id="company" v-model="formData.company" required />
+              </div>
+              <div class="form-group">
+                <label for="ico">IČO *</label>
+                <input type="text" id="ico" v-model="formData.ico" required />
+              </div>
             </div>
-            <div class="form-group">
-              <label for="company">Název firmy</label>
-              <input type="text" id="company" v-model="formData.company" />
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="ico">IČO</label>
-              <input type="text" id="ico" v-model="formData.ico" />
-            </div>
-            <div class="form-group">
-              <label for="dic">DIČ</label>
-              <input type="text" id="dic" v-model="formData.dic" />
+            <div class="form-row">
+              <div class="form-group">
+                <label for="dic">DIČ</label>
+                <input type="text" id="dic" v-model="formData.dic" />
+              </div>
+              <div class="form-group"></div>
+              <!-- Prázdný div pro zachování layoutu -->
             </div>
           </div>
         </div>
@@ -133,21 +150,28 @@
         <!-- Delivery address section - shown only when delivery is selected -->
         <div class="form-section" v-if="formData.shippingMethod === 'delivery'">
           <h3>Adresa doručení</h3>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="street">Ulice a číslo *</label>
-              <input type="text" id="street" v-model="formData.address.street" required />
+
+          <div class="address-info">
+            <div class="info-row">
+              <span class="info-label">Ulice a č.p.:</span>
+              <span class="info-value">{{ userInfo.street || 'Nevyplněno' }}</span>
             </div>
-            <div class="form-group">
-              <label for="city">Město *</label>
-              <input type="text" id="city" v-model="formData.address.city" required />
+            <div class="info-row">
+              <span class="info-label">Město:</span>
+              <span class="info-value">{{ userInfo.city || 'Nevyplněno' }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">PSČ:</span>
+              <span class="info-value">{{ userInfo.zipCode || 'Nevyplněno' }}</span>
             </div>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="zip">PSČ *</label>
-              <input type="text" id="zip" v-model="formData.address.zip" required />
-            </div>
+
+          <div v-if="!hasValidAddress" class="address-warning">
+            <p>Pro doručení na adresu je potřeba mít vyplněnou adresu ve vašem profilu.</p>
+            <button @click="goToProfile" class="edit-profile-btn">Upravit profil</button>
+          </div>
+
+          <div class="form-row" v-if="hasValidAddress">
             <div class="form-group">
               <button
                 @click="calculateShippingCost"
@@ -195,6 +219,7 @@
 
 <script>
 import { useCart } from '@/stores/stavKosiku'
+import { useUserStore } from '@/stores'
 import { computed, reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -202,6 +227,7 @@ export default {
   name: 'OrderConfirmation',
   setup() {
     const cart = useCart()
+    const userStore = useUserStore()
     const router = useRouter()
 
     const cartItems = computed(() => cart.items)
@@ -209,6 +235,7 @@ export default {
 
     const deliveryCost = ref(0)
     const deliveryDistance = ref(0)
+    const userInfo = ref({})
 
     // Get tomorrow as minimum date for pickup
     const tomorrow = new Date()
@@ -216,9 +243,7 @@ export default {
     const minDate = tomorrow.toISOString().split('T')[0]
 
     const formData = reactive({
-      name: '',
-      email: '',
-      phone: '',
+      isCompanyPurchase: false,
       company: '',
       ico: '',
       dic: '',
@@ -232,24 +257,26 @@ export default {
       note: ''
     })
 
+    // Kontrola, zda má uživatel vyplněnou adresu
+    const hasValidAddress = computed(() => {
+      return !!(userInfo.value.street && userInfo.value.city && userInfo.value.zipCode)
+    })
+
     const canCalculateDeliveryCost = computed(() => {
-      return (
-        formData.shippingMethod === 'delivery' &&
-        formData.address.street &&
-        formData.address.city &&
-        formData.address.zip
-      )
+      return formData.shippingMethod === 'delivery' && hasValidAddress.value
     })
 
     const isFormValid = computed(() => {
-      return (
-        formData.name &&
-        formData.email &&
-        formData.phone &&
-        formData.pickupDate &&
-        (formData.shippingMethod !== 'delivery' ||
-          (formData.address.street && formData.address.city && formData.address.zip))
-      )
+      // Základní validace
+      const baseValid =
+        formData.pickupDate && (formData.shippingMethod !== 'delivery' || hasValidAddress.value)
+
+      // Pokud je zaškrtnuto "Nákup na firmu", zkontrolujeme povinné firemní údaje
+      if (formData.isCompanyPurchase) {
+        return baseValid && formData.company && formData.ico
+      }
+
+      return baseValid
     })
 
     const setShippingMethod = (method) => {
@@ -262,6 +289,19 @@ export default {
 
     const calculateShippingCost = async () => {
       try {
+        // Kontrola, zda má uživatel vyplněnou adresu
+        if (!hasValidAddress.value) {
+          alert('Pro výpočet ceny dopravy je potřeba mít vyplněnou adresu.')
+          return
+        }
+
+        // Vytvoříme objekt adresy z údajů uživatele
+        const addressObj = {
+          street: userInfo.value.street,
+          city: userInfo.value.city,
+          zip: userInfo.value.zipCode
+        }
+
         // Zde by normálně byl kód pro volání Google Maps API pro výpočet vzdálenosti
         // V tomto příkladu použijeme náhodnou vzdálenost pro demonstraci
         const distance = Math.random() * 30 + 5 // Náhodná vzdálenost 5-35 km
@@ -281,16 +321,68 @@ export default {
       router.push('/kosik')
     }
 
+    const goToProfile = () => {
+      router.push('/upravit-profil')
+    }
+
     const submitOrder = async () => {
       try {
-        // Zde by byl kód pro odeslání objednávky na server
-        // Pro demonstraci pouze zobrazíme hlášku a pak přesměrujeme na homepage
+        // Kontrola, zda je formulář validní
+        if (!isFormValid.value) {
+          if (formData.shippingMethod === 'delivery' && !hasValidAddress.value) {
+            alert('Pro doručení na adresu je potřeba mít vyplněnou adresu ve vašem profilu.')
+            return
+          }
 
-        alert('Vaše objednávka byla úspěšně vytvořena!')
-        // Vyčistit košík
-        cart.clearCart()
-        // Přesměrovat na domovskou stránku
-        router.push('/')
+          if (formData.isCompanyPurchase && (!formData.company || !formData.ico)) {
+            alert('Pro nákup na firmu je potřeba vyplnit název firmy a IČO.')
+            return
+          }
+
+          return
+        }
+
+        // Vytvoření dat pro odeslání objednávky
+        const orderData = {
+          items: cartItems.value,
+          shipping: {
+            method: formData.shippingMethod,
+            address:
+              formData.shippingMethod === 'delivery'
+                ? {
+                    street: userInfo.value.street,
+                    city: userInfo.value.city,
+                    zip: userInfo.value.zipCode
+                  }
+                : null,
+            cost: deliveryCost.value,
+            pickupDate: formData.pickupDate
+          },
+          customer: {
+            name: `${userInfo.value.firstName} ${userInfo.value.lastName}`,
+            email: userInfo.value.email,
+            phone: userInfo.value.phone,
+            company: formData.isCompanyPurchase ? formData.company : null,
+            ico: formData.isCompanyPurchase ? formData.ico : null,
+            dic: formData.isCompanyPurchase ? formData.dic : null
+          },
+          note: formData.note,
+          total: cartTotal.value + deliveryCost.value
+        }
+
+        // Zde by byl kód pro odeslání objednávky na server pomocí API
+        // Lze využít funkci createOrder ze store
+        const result = await cart.createOrder(orderData)
+
+        if (result.success) {
+          alert('Vaše objednávka byla úspěšně vytvořena!')
+          // Vyčistit košík
+          cart.clearCart()
+          // Přesměrovat na domovskou stránku
+          router.push('/')
+        } else {
+          throw new Error(result.message || 'Nepodařilo se vytvořit objednávku')
+        }
       } catch (error) {
         console.error('Chyba při vytváření objednávky:', error)
         alert('Nepodařilo se vytvořit objednávku. Zkuste to prosím znovu.')
@@ -311,6 +403,30 @@ export default {
     }
 
     onMounted(() => {
+      // Načtení informací o uživateli
+      if (userStore.isAuthenticated) {
+        userInfo.value = { ...userStore.user }
+
+        // Předvyplnění firemních údajů, pokud jsou v profilu
+        if (userInfo.value.companyName) {
+          formData.company = userInfo.value.companyName
+          formData.isCompanyPurchase = true
+        }
+
+        if (userInfo.value.ico) {
+          formData.ico = userInfo.value.ico
+        }
+
+        if (userInfo.value.dic) {
+          formData.dic = userInfo.value.dic
+        }
+
+        console.log('Načtené údaje uživatele:', userInfo.value)
+      } else {
+        // Pokud uživatel není přihlášen, přesměrujeme ho na přihlášení
+        router.push('/prihlaseni')
+      }
+
       // Pokud je košík prázdný, přesměrovat zpět na košík
       if (cartItems.value.length === 0) {
         router.push('/kosik')
@@ -320,15 +436,18 @@ export default {
     return {
       cartItems,
       cartTotal,
+      userInfo,
       formData,
       minDate,
       deliveryCost,
       deliveryDistance,
+      hasValidAddress,
       canCalculateDeliveryCost,
       isFormValid,
       setShippingMethod,
       calculateShippingCost,
       goBack,
+      goToProfile,
       submitOrder,
       formatPrice
     }
@@ -501,6 +620,89 @@ textarea {
   resize: vertical;
 }
 
+/* Styly pro kontaktní informace */
+.user-details {
+  margin-top: 25px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+}
+
+.contact-info,
+.address-info {
+  background-color: #f9f9f9;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 15px;
+}
+
+.info-row {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.info-label {
+  flex: 0 0 100px;
+  font-weight: 500;
+  color: #555;
+}
+
+.info-value {
+  flex: 1;
+}
+
+/* Stylování tlačítka pro přepnutí "Nákup na firmu" */
+.company-toggle {
+  margin-bottom: 20px;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.toggle-label input {
+  margin-right: 10px;
+  width: 20px;
+  height: 20px;
+}
+
+.toggle-text {
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.company-details {
+  margin-top: 15px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+/* Varování o chybějící adrese */
+.address-warning {
+  margin-top: 10px;
+  padding: 12px;
+  background-color: #fff8e1;
+  border-radius: 6px;
+  border-left: 4px solid #ffc107;
+}
+
+.edit-profile-btn {
+  margin-top: 10px;
+  padding: 8px 16px;
+  background-color: #f5852a;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.edit-profile-btn:hover {
+  background-color: #e67722;
+}
+
 .shipping-toggle {
   display: flex;
   gap: 15px;
@@ -652,6 +854,14 @@ textarea {
 
   .shipping-toggle {
     flex-direction: column;
+  }
+
+  .info-row {
+    flex-direction: column;
+  }
+
+  .info-label {
+    margin-bottom: 3px;
   }
 }
 

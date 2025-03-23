@@ -7,6 +7,15 @@ import { computed, ref } from 'vue'
 const BASE_URL = import.meta.env.VITE_API_URL || 'https://46.28.108.195.nip.io'
 const API_URL = `${BASE_URL}/api`
 
+// Define interface for cart items from server
+interface ServerCartItem {
+  id: number
+  product_id: number
+  quantity: number
+  created_at: string
+  updated_at: string
+}
+
 interface CartItem {
   id: number
   quantity: number
@@ -30,6 +39,7 @@ export const useCart = defineStore('cart', () => {
   const userStore = useUserStore()
 
   // Load the server cart (only if logged in)
+  // Load the server cart (only if logged in)
   async function loadServerCart() {
     if (!userStore.isAuthenticated || !userStore.token) {
       items.value = []
@@ -47,23 +57,26 @@ export const useCart = defineStore('cart', () => {
 
       if (resp.data.success) {
         if (resp.data.cartItems && resp.data.cartItems.length > 0) {
-          items.value = resp.data.cartItems.map((item: any) => ({
-            id: item.product_id,
-            quantity: item.quantity,
-            dbId: item.id,
-            name: item.product_name || `Produkt ${item.product_id}`,
-            price: item.product_price || 0,
-            image: item.product_image || '/placeholder.jpg',
-            priceUnit: item.product_unit || 'kus'
-          }))
+          // Transform server cart items to client format
+          // Use proper type annotation for the map function parameter
+          items.value = resp.data.cartItems.map((item: ServerCartItem) => {
+            return {
+              id: item.product_id,
+              quantity: item.quantity,
+              dbId: item.id,
+              name: `Produkt ${item.product_id}`, // Basic placeholder
+              price: 0, // We don't have price info from the server
+              image: '/placeholder.jpg',
+              priceUnit: 'kus'
+            } as CartItem
+          })
+
           console.log('Cart loaded with items:', items.value)
         } else {
           console.log('Cart is empty')
           items.value = []
         }
       }
-
-      // We removed the shipping preferences endpoint code
     } catch (err) {
       console.error('Error loading server cart:', err)
       error.value = 'Nepodařilo se načíst košík'
@@ -72,6 +85,7 @@ export const useCart = defineStore('cart', () => {
     }
   }
 
+  // Add item to cart (login required)
   // Add item to cart (login required)
   async function addToCart(product: any) {
     if (!userStore.isAuthenticated || !userStore.token) {

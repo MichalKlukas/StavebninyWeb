@@ -15,8 +15,7 @@
           <div class="info-row">
             <div class="info-label">Jméno a příjmení:</div>
             <div class="info-value">
-              {{ userStore.user.firstName || userStore.user.first_name }}
-              {{ userStore.user.lastName || userStore.user.last_name }}
+              {{ userStore.user.firstName }} {{ userStore.user.lastName }}
             </div>
           </div>
           <div class="info-row">
@@ -42,7 +41,7 @@
               <div class="info-row">
                 <div class="info-label">PSČ:</div>
                 <div class="info-value">
-                  {{ userStore.user.zipCode || userStore.user.zip_code || 'Nevyplněno' }}
+                  {{ userStore.user.zipCode || 'Nevyplněno' }}
                 </div>
               </div>
             </div>
@@ -51,15 +50,12 @@
             </div>
           </div>
 
-          <div
-            v-if="userStore.user.companyName || userStore.user.company_name"
-            class="info-section"
-          >
+          <div v-if="userStore.user.companyName" class="info-section">
             <h3>Firemní údaje</h3>
             <div class="info-row">
               <div class="info-label">Název firmy:</div>
               <div class="info-value">
-                {{ userStore.user.companyName || userStore.user.company_name }}
+                {{ userStore.user.companyName }}
               </div>
             </div>
             <div class="info-row">
@@ -101,16 +97,15 @@ export default {
       router.push('/prihlaseni')
     }
 
-    // Debug - log user data on component mount
+    // Log user data for debugging
     onMounted(() => {
-      console.log('User data:', userStore.user)
+      console.log('User data in profile:', userStore.user)
     })
 
     // Kontrola, zda má uživatel vyplněnou alespoň částečnou adresu
     const hasAddress = computed(() => {
       const user = userStore.user || {}
-      // Check for both camelCase and snake_case variants
-      return !!(user.street || user.city || user.zipCode || user.zip_code)
+      return !!(user.street || user.city || user.zipCode)
     })
 
     // Metody

@@ -94,27 +94,6 @@
             </div>
           </div>
 
-          <!-- Filtr dostupnosti -->
-          <div class="filter-group">
-            <div class="filter-header" @click="toggleFilter('availability')">
-              <h4>Dostupnost</h4>
-              <span class="toggle-icon">{{ filters.availability.isOpen ? '−' : '+' }}</span>
-            </div>
-            <div class="filter-content" v-if="filters.availability.isOpen">
-              <div class="filter-option">
-                <label for="availability-in-stock">
-                  <input
-                    type="checkbox"
-                    id="availability-in-stock"
-                    v-model="filters.availability.inStock"
-                    @change="applyFilters"
-                  />
-                  <span class="option-name">Skladem</span>
-                </label>
-              </div>
-            </div>
-          </div>
-
           <!-- Tlačítko pro reset filtrů -->
           <div class="filter-actions">
             <button @click="resetFilters" class="reset-filters">Zrušit filtry</button>
@@ -898,7 +877,6 @@ export default {
         price: Math.floor(Math.random() * 10000) + 500,
         discount: Math.random() > 0.7 ? Math.floor(Math.random() * 30) + 5 : 0,
         image: null, // URL obrázku by zde bylo
-        availability: Math.floor(Math.random() * 4), // 0-skladem, 1-málo kusů, 2-na objednání, 3-nedostupné
         subcategoryId:
           categoryData.value.subcategories[
             Math.floor(Math.random() * categoryData.value.subcategories.length)
@@ -968,13 +946,6 @@ export default {
 
       if (selectedManufacturers.length > 0) {
         result = result.filter((product) => selectedManufacturers.includes(product.manufacturer))
-      }
-
-      // Filtrování podle dostupnosti (skladem)
-      if (filters.value.availability.inStock) {
-        result = result.filter(
-          (product) => product.availability === 0 || product.availability === 1
-        )
       }
 
       // Řazení produktů
@@ -1060,21 +1031,6 @@ export default {
     // Pomocné funkce
     const formatPrice = (price) => {
       return price.toLocaleString('cs-CZ') + ' Kč'
-    }
-
-    const getAvailabilityText = (product) => {
-      switch (product.availability) {
-        case 0:
-          return 'Skladem'
-        case 1:
-          return 'Posledních pár kusů'
-        case 2:
-          return 'Na objednání'
-        case 3:
-          return 'Nedostupné'
-        default:
-          return 'Skladem'
-      }
     }
 
     const getAvailabilityClass = (product) => {

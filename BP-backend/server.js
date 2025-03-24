@@ -10,6 +10,7 @@ const userRoutes = require('./routes/userRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const dunaApiRoutes = require('./routes/dunaApiRoutes');
 const cartRoutes = require('./routes/cartRoutes'); // Contains shipping route
+const orderRoutes = require('./routes/orderRoutes'); // New order routes
 
 // Load environment variables
 dotenv.config();
@@ -124,6 +125,7 @@ app.use('/api/user', userRoutes);
 app.use('/api', contactRoutes);
 app.use('/api', dunaApiRoutes);
 app.use('/api', cartRoutes);
+app.use('/api', orderRoutes); // Add new order routes
 
 // Basic route for checking if server is running
 app.get('/', (req, res) => {
@@ -140,4 +142,3 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`Server běží na portu ${PORT}`);
 });
-

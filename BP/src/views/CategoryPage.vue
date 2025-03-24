@@ -161,9 +161,6 @@
                 <div class="product-price">
                   <div class="current-price">{{ formatPrice(product.price) }}</div>
                 </div>
-                <div class="product-availability" :class="getAvailabilityClass(product)">
-                  {{ getAvailabilityText(product) }}
-                </div>
               </div>
               <div class="product-actions">
                 <!-- Button for authenticated users -->
@@ -284,10 +281,6 @@ export default {
       manufacturer: {
         isOpen: true,
         options: []
-      },
-      availability: {
-        isOpen: true,
-        inStock: false
       }
     })
 
@@ -1000,8 +993,6 @@ export default {
         option.selected = false
       })
 
-      filters.value.availability.inStock = false
-
       filterProducts()
     }
 
@@ -1031,21 +1022,6 @@ export default {
     // Pomocné funkce
     const formatPrice = (price) => {
       return price.toLocaleString('cs-CZ') + ' Kč'
-    }
-
-    const getAvailabilityClass = (product) => {
-      switch (product.availability) {
-        case 0:
-          return 'in-stock'
-        case 1:
-          return 'low-stock'
-        case 2:
-          return 'on-order'
-        case 3:
-          return 'unavailable'
-        default:
-          return 'in-stock'
-      }
     }
 
     // Navigace na detail produktu
@@ -1097,8 +1073,6 @@ export default {
       showPriceFilter,
       sortOption,
       formatPrice,
-      getAvailabilityText,
-      getAvailabilityClass,
       resetFilters,
       applyFilters,
       applyPriceFilter,
@@ -1678,11 +1652,6 @@ h1 {
   color: #e53935;
 }
 
-.product-availability {
-  font-size: 13px;
-  margin-bottom: 15px;
-}
-
 .in-stock {
   color: #4caf50;
 }
@@ -1693,10 +1662,6 @@ h1 {
 
 .on-order {
   color: #2196f3;
-}
-
-.unavailable {
-  color: #e53935;
 }
 
 .product-actions {

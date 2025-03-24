@@ -56,17 +56,9 @@
 
           <!-- Mobilní karty pro menší obrazovky -->
           <div class="orders-mobile">
-            <div
-              v-for="order in filteredOrders"
-              :key="order.id"
-              class="order-card"
-              @click="viewOrderDetail(order.id)"
-            >
+            <div v-for="order in filteredOrders" :key="order.id" class="order-card">
               <div class="order-header">
                 <div class="order-number">Objednávka č. {{ order.number }}</div>
-                <div :class="['order-status', getStatusClass(order.status)]">
-                  {{ getStatusText(order.status) }}
-                </div>
               </div>
               <div class="order-info">
                 <div class="order-row">
@@ -75,18 +67,12 @@
                 </div>
                 <div class="order-row">
                   <div class="info-label">Položky:</div>
-                  <div class="info-value">{{ order.items || '?' }} ks</div>
+                  <div class="info-value">{{ order.items || '0' }} ks</div>
                 </div>
                 <div class="order-row">
                   <div class="info-label">Cena celkem:</div>
                   <div class="info-value price">{{ formatPrice(order.total) }}</div>
                 </div>
-              </div>
-              <div class="order-actions">
-                <button class="view-button">Zobrazit detail</button>
-                <button v-if="canRepeatOrder(order)" class="repeat-button">
-                  Opakovat objednávku
-                </button>
               </div>
             </div>
           </div>
@@ -98,35 +84,16 @@
                 <tr>
                   <th>Č. objednávky</th>
                   <th>Datum</th>
-                  <th>Stav</th>
                   <th>Položky</th>
                   <th>Cena celkem</th>
-                  <th>Akce</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="order in filteredOrders" :key="order.id">
                   <td>{{ order.number }}</td>
                   <td>{{ formatDate(order.date) }}</td>
-                  <td>
-                    <span :class="['status-badge', getStatusClass(order.status)]">
-                      {{ getStatusText(order.status) }}
-                    </span>
-                  </td>
-                  <td>{{ order.items || '?' }} ks</td>
+                  <td>{{ order.items || '0' }} ks</td>
                   <td class="price">{{ formatPrice(order.total) }}</td>
-                  <td class="actions-cell">
-                    <button class="action-btn view-btn" @click="viewOrderDetail(order.id)">
-                      Detail
-                    </button>
-                    <button
-                      v-if="canRepeatOrder(order)"
-                      class="action-btn repeat-btn"
-                      @click="repeatOrder(order.id)"
-                    >
-                      Opakovat
-                    </button>
-                  </td>
                 </tr>
               </tbody>
             </table>
@@ -156,7 +123,6 @@
   </div>
 </template>
 
-<
 <script>
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '../stores'
@@ -221,7 +187,6 @@ export default {
               id: order.id,
               number: orderNumber,
               date: order.created_at,
-              status: order.status,
               items: parseInt(order.item_count) || 0,
               total: order.total_price
             }
@@ -296,37 +261,6 @@ export default {
       return Number(price).toLocaleString('cs-CZ') + ' Kč'
     }
 
-    const getStatusText = (status) => {
-      const statusMap = {
-        new: 'Nová',
-        pending: 'Čeká na zpracování',
-        processing: 'Zpracovává se',
-        shipping: 'Připravena k vyzvednutí/odeslání',
-        completed: 'Dokončeno',
-        cancelled: 'Zrušeno'
-      }
-      return statusMap[status] || status
-    }
-
-    const getStatusClass = (status) => {
-      return `status-${status}`
-    }
-
-    const canRepeatOrder = (order) => {
-      return order.status !== 'new' && order.status !== 'pending' && order.status !== 'processing'
-    }
-
-    // Navigace a akce
-    const viewOrderDetail = (orderId) => {
-      router.push(`/objednavka/${orderId}`)
-    }
-
-    const repeatOrder = (orderId) => {
-      console.log(`Opakuji objednávku ${orderId}`)
-      // Implementace opakování objednávky - přidání položek do košíku
-      // TODO: Přidat implementaci pro opakování objednávky
-    }
-
     // Obnovení seznamu objednávek
     const refreshOrders = () => {
       loadOrders()
@@ -343,18 +277,13 @@ export default {
       totalPages,
       formatDate,
       formatPrice,
-      getStatusText,
-      getStatusClass,
-      canRepeatOrder,
-      viewOrderDetail,
-      repeatOrder,
       refreshOrders
     }
   }
 }
 </script>
+
 <style scoped>
-/* Keep the existing styles */
 .HeadingStrip {
   width: 100%;
   height: 150px;
@@ -537,71 +466,8 @@ h3 {
   color: #333;
 }
 
-.status-badge {
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.status-completed {
-  background-color: #e6f7e6;
-  color: #2e7d32;
-}
-
-.status-new,
-.status-processing,
-.status-shipping,
-.status-in_progress,
-.status-shipped {
-  background-color: #e3f2fd;
-  color: #1976d2;
-}
-
-.status-pending {
-  background-color: #fff8e1;
-  color: #f57f17;
-}
-
-.status-cancelled {
-  background-color: #ffebee;
-  color: #c62828;
-}
-
 .price {
   font-weight: 600;
-}
-
-.actions-cell {
-  white-space: nowrap;
-}
-
-.action-btn {
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-size: 13px;
-  border: none;
-  cursor: pointer;
-  margin-right: 5px;
-}
-
-.view-btn {
-  background-color: #f0f0f0;
-  color: #333;
-}
-
-.repeat-btn {
-  background-color: #f5852a;
-  color: white;
-}
-
-.view-btn:hover {
-  background-color: #e0e0e0;
-}
-
-.repeat-btn:hover {
-  background-color: #e67722;
 }
 
 /* Karty objednávek - pro mobilní zařízení */
@@ -630,13 +496,6 @@ h3 {
   font-weight: 600;
 }
 
-.order-status {
-  font-size: 13px;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
 .order-info {
   padding: 15px;
 }
@@ -651,33 +510,14 @@ h3 {
   margin-bottom: 0;
 }
 
-.order-actions {
-  display: flex;
-  padding: 10px 15px;
-  background-color: #f8f8f8;
-  border-top: 1px solid #eee;
+.info-label {
+  flex: 0 0 100px;
+  font-weight: 500;
+  color: #555;
 }
 
-.view-button,
-.repeat-button {
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 14px;
-  border: none;
-  cursor: pointer;
-  margin-right: 10px;
-}
-
-.view-button {
+.info-value {
   flex: 1;
-  background-color: #f0f0f0;
-  color: #333;
-}
-
-.repeat-button {
-  flex: 1;
-  background-color: #f5852a;
-  color: white;
 }
 
 /* Stránkování */
@@ -759,17 +599,6 @@ h3 {
 
   .orders-section {
     padding: 20px 15px;
-  }
-
-  .order-actions {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .view-button,
-  .repeat-button {
-    width: 100%;
-    margin-right: 0;
   }
 
   .pagination {

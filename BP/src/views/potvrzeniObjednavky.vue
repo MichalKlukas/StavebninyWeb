@@ -147,31 +147,48 @@
           </div>
         </div>
 
-        <!-- Delivery address section - shown only when delivery is selected -->
+        <!-- Replace the current delivery address section with this -->
         <div class="form-section" v-if="formData.shippingMethod === 'delivery'">
           <h3>Adresa doručení</h3>
 
-          <div class="address-info">
-            <div class="info-row">
-              <span class="info-label">Ulice a č.p.:</span>
-              <span class="info-value">{{ userInfo.street || 'Nevyplněno' }}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Město:</span>
-              <span class="info-value">{{ userInfo.city || 'Nevyplněno' }}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">PSČ:</span>
-              <span class="info-value">{{ userInfo.zipCode || 'Nevyplněno' }}</span>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="delivery-street">Ulice a č.p. *</label>
+              <input
+                type="text"
+                id="delivery-street"
+                v-model="formData.address.street"
+                required
+                placeholder="Například: Sokolovská 123/5"
+              />
             </div>
           </div>
 
-          <div v-if="!hasValidAddress" class="address-warning">
-            <p>Pro doručení na adresu je potřeba mít vyplněnou adresu ve vašem profilu.</p>
-            <button @click="goToProfile" class="edit-profile-btn">Upravit profil</button>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="delivery-city">Město *</label>
+              <input
+                type="text"
+                id="delivery-city"
+                v-model="formData.address.city"
+                required
+                placeholder="Například: Praha"
+              />
+            </div>
+            <div class="form-group">
+              <label for="delivery-zip">PSČ *</label>
+              <input
+                type="text"
+                id="delivery-zip"
+                v-model="formData.address.zip"
+                required
+                placeholder="Například: 12000"
+                maxlength="5"
+              />
+            </div>
           </div>
 
-          <div class="form-row" v-if="hasValidAddress">
+          <div class="form-row">
             <div class="form-group">
               <button
                 @click="calculateShippingCost"
@@ -260,7 +277,8 @@ export default {
 
     // Kontrola, zda má uživatel vyplněnou adresu
     const hasValidAddress = computed(() => {
-      return !!(userInfo.value.street && userInfo.value.city && userInfo.value.zipCode)
+      if (formData.shippingMethod !== 'delivery') return true
+      return !!(formData.address.street && formData.address.city && formData.address.zip)
     })
 
     const canCalculateDeliveryCost = computed(() => {
@@ -269,8 +287,7 @@ export default {
 
     const isFormValid = computed(() => {
       // Základní validace
-      const baseValid =
-        formData.pickupDate && (formData.shippingMethod !== 'delivery' || hasValidAddress.value)
+      const baseValid = formData.pickupDate && hasValidAddress.value
 
       // Pokud je zaškrtnuto "Nákup na firmu", zkontrolujeme povinné firemní údaje
       if (formData.isCompanyPurchase) {
@@ -288,11 +305,12 @@ export default {
       }
     }
 
+    // Update the calculateShippingCost function:
     const calculateShippingCost = async () => {
       try {
         // Kontrola, zda má uživatel vyplněnou adresu
         if (!hasValidAddress.value) {
-          alert('Pro výpočet ceny dopravy je potřeba mít vyplněnou adresu.')
+          alert('Pro výpočet ceny dopravy je potřeba vyplnit všechny údaje adresy.')
           return
         }
 
@@ -300,11 +318,7 @@ export default {
         isCalculating.value = true
 
         try {
-          console.log('Calling calculate-shipping API with address:', {
-            street: userInfo.value.street,
-            city: userInfo.value.city,
-            zip: userInfo.value.zipCode
-          })
+          console.log('Calling calculate-shipping API with address:', formData.address)
 
           // Voláme backend endpoint, který nám spočítá vzdálenost
           const response = await fetch(
@@ -316,11 +330,7 @@ export default {
                 Authorization: `Bearer ${userStore.token}`
               },
               body: JSON.stringify({
-                address: {
-                  street: userInfo.value.street,
-                  city: userInfo.value.city,
-                  zip: userInfo.value.zipCode
-                }
+                address: formData.address
               })
             }
           )
@@ -405,14 +415,7 @@ export default {
           })),
           shipping: {
             method: formData.shippingMethod,
-            address:
-              formData.shippingMethod === 'delivery'
-                ? {
-                    street: userInfo.value.street,
-                    city: userInfo.value.city,
-                    zip: userInfo.value.zipCode
-                  }
-                : null,
+            address: formData.shippingMethod === 'delivery' ? formData.address : null,
             cost: deliveryCost.value,
             pickupDate: formData.pickupDate
           },

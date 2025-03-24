@@ -17,6 +17,11 @@
           <p>Načítání objednávek...</p>
         </div>
 
+        <div v-else-if="error" class="error-container">
+          <p>{{ error }}</p>
+          <button @click="refreshOrders" class="refresh-button">Zkusit znovu</button>
+        </div>
+
         <div v-else-if="orders.length === 0" class="no-orders">
           <div class="empty-state">
             <div class="empty-icon">📦</div>
@@ -70,7 +75,7 @@
                 </div>
                 <div class="order-row">
                   <div class="info-label">Položky:</div>
-                  <div class="info-value">{{ order.items }} ks</div>
+                  <div class="info-value">{{ order.items || '?' }} ks</div>
                 </div>
                 <div class="order-row">
                   <div class="info-label">Cena celkem:</div>
@@ -108,7 +113,7 @@
                       {{ getStatusText(order.status) }}
                     </span>
                   </td>
-                  <td>{{ order.items }} ks</td>
+                  <td>{{ order.items || '?' }} ks</td>
                   <td class="price">{{ formatPrice(order.total) }}</td>
                   <td class="actions-cell">
                     <button class="action-btn view-btn" @click="viewOrderDetail(order.id)">
@@ -151,6 +156,7 @@
   </div>
 </template>
 
+<
 <script>
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '../stores'
@@ -173,52 +179,65 @@ export default {
 
     // Stav a proměnné
     const isLoading = ref(true)
-    const orders = ref([]) // Bude naplněno API voláním
+    const orders = ref([])
+    const error = ref(null)
     const searchQuery = ref('')
     const periodFilter = ref('all')
     const currentPage = ref(1)
     const itemsPerPage = 10
 
-    // Pro účely ukázky naplníme dummy daty
-    const loadOrders = () => {
-      // Simulace API volání
-      setTimeout(() => {
-        orders.value = [
+    // Načtení objednávek z API
+    const loadOrders = async () => {
+      isLoading.value = true
+      error.value = null
+
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL || 'https://46.28.108.195.nip.io'}/api/orders`,
           {
-            id: 1,
-            number: '2023040001',
-            date: '2023-04-15',
-            status: 'completed',
-            items: 5,
-            total: 12450.5
-          },
-          {
-            id: 2,
-            number: '2023030002',
-            date: '2023-03-22',
-            status: 'in_progress',
-            items: 3,
-            total: 8345.0
-          },
-          {
-            id: 3,
-            number: '2023020003',
-            date: '2023-02-10',
-            status: 'cancelled',
-            items: 2,
-            total: 2150.0
-          },
-          {
-            id: 4,
-            number: '2023010004',
-            date: '2023-01-05',
-            status: 'completed',
-            items: 7,
-            total: 24680.0
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${userStore.token}`
+            }
           }
-        ]
+        )
+
+        if (!response.ok) {
+          throw new Error('Nepodařilo se načíst objednávky')
+        }
+
+        const result = await response.json()
+
+        if (result.success) {
+          // Transformace dat z API do požadovaného formátu
+          orders.value = result.orders.map((order) => {
+            // Vytvoření čísla objednávky ve formátu OBJ-YYYYMMDD-ID
+            const createdDate = new Date(order.created_at)
+            const datePart = createdDate.toISOString().slice(0, 10).replace(/-/g, '')
+            const orderNumber = `OBJ-${datePart}-${order.id.toString().padStart(4, '0')}`
+
+            return {
+              id: order.id,
+              number: orderNumber,
+              date: order.created_at,
+              status: order.status,
+              items: parseInt(order.item_count) || 0,
+              total: order.total_price
+            }
+          })
+
+          // Seřazení od nejnovějších
+          orders.value.sort((a, b) => new Date(b.date) - new Date(a.date))
+        } else {
+          throw new Error(result.message || 'Nepodařilo se načíst objednávky')
+        }
+      } catch (err) {
+        console.error('Chyba při načítání objednávek:', err)
+        error.value = err.message
+      } finally {
         isLoading.value = false
-      }, 1000)
+      }
     }
 
     // Načtení objednávek při inicializaci stránky
@@ -256,9 +275,6 @@ export default {
         result = result.filter((order) => new Date(order.date) >= cutoffDate)
       }
 
-      // Seřazení od nejnovějších
-      result.sort((a, b) => new Date(b.date) - new Date(a.date))
-
       return result
     })
 
@@ -277,14 +293,15 @@ export default {
     }
 
     const formatPrice = (price) => {
-      return price.toLocaleString('cs-CZ') + ' Kč'
+      return Number(price).toLocaleString('cs-CZ') + ' Kč'
     }
 
     const getStatusText = (status) => {
       const statusMap = {
+        new: 'Nová',
         pending: 'Čeká na zpracování',
-        in_progress: 'Zpracovává se',
-        shipped: 'Odesláno',
+        processing: 'Zpracovává se',
+        shipping: 'Připravena k vyzvednutí/odeslání',
         completed: 'Dokončeno',
         cancelled: 'Zrušeno'
       }
@@ -296,7 +313,7 @@ export default {
     }
 
     const canRepeatOrder = (order) => {
-      return order.status !== 'pending' && order.status !== 'in_progress'
+      return order.status !== 'new' && order.status !== 'pending' && order.status !== 'processing'
     }
 
     // Navigace a akce
@@ -307,12 +324,19 @@ export default {
     const repeatOrder = (orderId) => {
       console.log(`Opakuji objednávku ${orderId}`)
       // Implementace opakování objednávky - přidání položek do košíku
+      // TODO: Přidat implementaci pro opakování objednávky
+    }
+
+    // Obnovení seznamu objednávek
+    const refreshOrders = () => {
+      loadOrders()
     }
 
     return {
       isLoading,
       orders,
-      filteredOrders,
+      error,
+      filteredOrders: paginatedOrders, // Změna na paginatedOrders pro stránkování
       searchQuery,
       periodFilter,
       currentPage,
@@ -323,13 +347,14 @@ export default {
       getStatusClass,
       canRepeatOrder,
       viewOrderDetail,
-      repeatOrder
+      repeatOrder,
+      refreshOrders
     }
   }
 }
 </script>
-
 <style scoped>
+/* Keep the existing styles */
 .HeadingStrip {
   width: 100%;
   height: 150px;
@@ -409,6 +434,27 @@ h3 {
   100% {
     transform: rotate(360deg);
   }
+}
+
+/* Error container */
+.error-container {
+  text-align: center;
+  padding: 40px;
+  color: #d32f2f;
+}
+
+.refresh-button {
+  margin-top: 15px;
+  padding: 8px 16px;
+  background-color: #f5852a;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.refresh-button:hover {
+  background-color: #e67722;
 }
 
 .empty-state {
@@ -504,6 +550,9 @@ h3 {
   color: #2e7d32;
 }
 
+.status-new,
+.status-processing,
+.status-shipping,
 .status-in_progress,
 .status-shipped {
   background-color: #e3f2fd;

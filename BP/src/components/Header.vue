@@ -595,6 +595,18 @@ header {
 .category-link:hover::after {
   width: 100%;
 }
+.router-link-active.category-link {
+  color: #f5852a; /* Your orange brand color */
+  font-weight: 600;
+  border-bottom: 3px solid #f5852a;
+  background-color: rgba(245, 133, 42, 0.1);
+}
+
+/* Optional hover effect for non-active links */
+.category-link:not(.router-link-active):hover {
+  color: #f5852a;
+  background-color: rgba(245, 133, 42, 0.05);
+}
 
 /* Responsive Design */
 @media (max-width: 1300px) {

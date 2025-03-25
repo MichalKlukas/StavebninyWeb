@@ -794,10 +794,10 @@ export default {
           name: 'Sádrokarton',
           subcategories: [
             {
-              id: 'sadrokarton-materialy',
+              id: 'sadrokarton',
               name: 'Sádrokarton',
               count: 5,
-              image: '/images/subcategories/sadrokarton-materialy.jpeg'
+              image: '/images/subcategories/sadrokarton.jpeg'
             },
             {
               id: 'vruty-sadrokarton',
@@ -1195,10 +1195,10 @@ export default {
   text-overflow: ellipsis; /* Add ellipsis for text that overflows */
 }
 .subcategory-image {
-  width: 50px;
-  height: 50px;
-  min-width: 50px;
-  flex: 0 0 50px; /* Don't grow, don't shrink, stay at 50px */
+  width: 60px;
+  height: 60px;
+  min-width: 60px;
+  flex: 0 0 60px; /* Don't grow, don't shrink, stay at 50px */
   display: flex;
   align-items: center;
   justify-content: center;

@@ -433,7 +433,7 @@ export default {
               id: 'extrudovany-polystyren',
               name: 'Extrudovaný polystyren',
               count: 5,
-              image: '/app/assets/images/subcategories/extrudovany-polystyren.jpeg'
+              image: '/images/subcategories/extrudovany-polystyren.jpeg'
             }
           ]
         },

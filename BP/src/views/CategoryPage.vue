@@ -397,7 +397,7 @@ export default {
               id: 'fasadni-omitky',
               name: 'Fasádní omítky',
               count: 5,
-              image: '/assets/images/subcategories/fasadni-omitky.jpeg'
+              image: '/app/assets/images/subcategories/fasadni-omitky.jpeg'
             },
             {
               id: 'natery',
@@ -433,7 +433,7 @@ export default {
               id: 'extrudovany-polystyren',
               name: 'Extrudovaný polystyren',
               count: 5,
-              image: '/assets/images/subcategories/extrudovany-polystyren.jpeg'
+              image: '/app/assets/images/subcategories/extrudovany-polystyren.jpeg'
             }
           ]
         },

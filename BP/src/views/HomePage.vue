@@ -48,17 +48,15 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
 import { defineComponent, ref, watch } from 'vue'
 import ProductCard from '@/components/ProductCard.vue'
 import reusableCarousel from '@/components/reusableCarousel.vue'
-import type { Product } from '@/components/ProductCard.vue'
 import { useCart } from '@/stores/stavKosiku'
 import { useUserStore } from '@/stores'
 
 // Import images directly using ES module imports
 import storeFrontImage from '@/assets/store-front.jpg'
-import weber700Image from '@/assets/weber.jpg'
 
 // Import manufacturer logos
 import ytongLogo from '@/assets/manufacturers/ytong.png'
@@ -104,7 +102,7 @@ export default defineComponent({
     )
 
     // Metoda pro přidání produktu do košíku
-    const handleAddToCart = async (product: any) => {
+    const handleAddToCart = async (product) => {
       // Only proceed if user is authenticated
       if (!userStore.isAuthenticated) {
         return
@@ -143,94 +141,10 @@ export default defineComponent({
   data() {
     return {
       storeFrontImage,
-      bestSellingProducts: [
-        {
-          id: 1,
-          name: 'Lepidlo Weber 700, 25kg',
-          price: '250,47',
-          image: weber700Image,
-          priceUnit: 'balení'
-        },
-        {
-          id: 2,
-          name: 'Sádrokartonová deska Knauf 12,5x1250x2000 mm',
-          price: '189,90',
-          image: '/placeholder.jpg',
-          priceUnit: 'kus'
-        },
-        {
-          id: 3,
-          name: 'Ytong P2-500 300x249x599 mm',
-          price: '93,50',
-          image: '/placeholder.jpg',
-          priceUnit: 'kus'
-        },
-        {
-          id: 4,
-          name: 'Baumit Baumacol FlexUni, 25kg',
-          price: '275,60',
-          image: '/placeholder.jpg',
-          priceUnit: 'balení'
-        },
-        {
-          id: 5,
-          name: 'Primalex Plus Bílý, 15kg',
-          price: '329,00',
-          image: '/placeholder.jpg',
-          priceUnit: 'kus'
-        },
-        {
-          id: 6,
-          name: 'Cement Portland CEM I 42,5R, 25kg',
-          price: '125,00',
-          image: '/placeholder.jpg',
-          priceUnit: 'balení'
-        },
-        {
-          id: 7,
-          name: 'Isover EPS 70F Fasádní polystyren, 100mm',
-          price: '189,00',
-          image: '/placeholder.jpg',
-          priceUnit: 'deska'
-        },
-        {
-          id: 8,
-          name: 'Porotherm 44 P+D, 248x440x238 mm',
-          price: '64,50',
-          image: '/placeholder.jpg',
-          priceUnit: 'kus'
-        },
-        {
-          id: 9,
-          name: 'Fasádní barva Baumit StarColor, 25kg',
-          price: '1450,00',
-          image: '/placeholder.jpg',
-          priceUnit: 'kbelík'
-        },
-        {
-          id: 10,
-          name: 'BEST Zámková dlažba BEATON, 6cm šedá',
-          price: '279,00',
-          image: '/placeholder.jpg',
-          priceUnit: 'm²'
-        },
-        {
-          id: 11,
-          name: 'BEST Zámková dlažba BEATON, 6cm šedá',
-          price: '279,00',
-          image: '/placeholder.jpg',
-          priceUnit: 'm²'
-        },
-        {
-          id: 12,
-          name: 'BEST Zámková dlažba BEATON, 6cm šedá',
-          price: '279,00',
-          image: '/placeholder.jpg',
-          priceUnit: 'm²'
-        }
-      ] as Product[],
-      // Transformed data for reusableCarousel
-      recommendedProducts: [] as any[],
+      // Array of specific product IDs to fetch from the database
+      featuredProductIds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], // Replace with your chosen product IDs
+      // This will store our fetched products
+      recommendedProducts: [],
       manufacturers: [
         {
           id: 1,
@@ -310,15 +224,130 @@ export default defineComponent({
       ]
     }
   },
+  methods: {
+    // Fetch products from the API based on specific product IDs
+    async fetchRecommendedProducts() {
+      try {
+        console.log('Fetching featured products')
+
+        // First try to fetch products by IDs
+        // You can either fetch them all at once or one by one
+        const products = []
+
+        // Option 1: Fetch all at once with a query parameter
+        // This requires backend support for multiple IDs
+        // const ids = this.featuredProductIds.join(',');
+        // const response = await fetch(`/api/products?ids=${ids}`);
+
+        // Option 2: Fetch individually (fallback)
+        for (const id of this.featuredProductIds) {
+          try {
+            const response = await fetch(`/api/products/${id}`)
+
+            if (response.ok) {
+              const result = await response.json()
+              if (result.data && result.data.product) {
+                products.push(result.data.product)
+              }
+            }
+          } catch (error) {
+            console.error(`Error fetching product ${id}:`, error)
+          }
+        }
+
+        // If we got products, format them for the carousel
+        if (products.length > 0) {
+          this.recommendedProducts = products.map((product) => ({
+            id: product.id,
+            name: product.name,
+            imageUrl: product.image_url || '/placeholder.jpg',
+            price: `${product.price} Kč/${product.jednotka || 'kus'}`,
+            priceUnit: product.jednotka || 'kus'
+          }))
+
+          console.log('Fetched featured products:', this.recommendedProducts)
+        } else {
+          // If no products found by ID, fetch random products
+          console.log('No products found by ID, fetching random products')
+          const randomResponse = await fetch('/api/products?limit=12')
+
+          if (randomResponse.ok) {
+            const result = await randomResponse.json()
+
+            if (result.data && result.data.products && result.data.products.length > 0) {
+              this.recommendedProducts = result.data.products.map((product) => ({
+                id: product.id,
+                name: product.name,
+                imageUrl: product.image_url || '/placeholder.jpg',
+                price: `${product.price} Kč/${product.jednotka || 'kus'}`,
+                priceUnit: product.jednotka || 'kus'
+              }))
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching recommended products:', error)
+        // Use fallback data if needed
+        this.useDefaultProducts()
+      }
+    },
+
+    // Fallback method to use default products
+    useDefaultProducts() {
+      console.log('Using default product data')
+      // Define some default products if API fails
+      const defaultProducts = [
+        {
+          id: 1,
+          name: 'Lepidlo Weber 700, 25kg',
+          price: '250,47',
+          priceUnit: 'balení'
+        },
+        {
+          id: 2,
+          name: 'Sádrokartonová deska Knauf 12,5x1250x2000 mm',
+          price: '189,90',
+          priceUnit: 'kus'
+        },
+        {
+          id: 3,
+          name: 'Ytong P2-500 300x249x599 mm',
+          price: '93,50',
+          priceUnit: 'kus'
+        },
+        {
+          id: 4,
+          name: 'Baumit Baumacol FlexUni, 25kg',
+          price: '275,60',
+          priceUnit: 'balení'
+        },
+        {
+          id: 5,
+          name: 'Primalex Plus Bílý, 15kg',
+          price: '329,00',
+          priceUnit: 'kus'
+        },
+        {
+          id: 6,
+          name: 'Cement Portland CEM I 42,5R, 25kg',
+          price: '125,00',
+          priceUnit: 'balení'
+        }
+      ]
+
+      // Transform to expected format
+      this.recommendedProducts = defaultProducts.map((product) => ({
+        id: product.id,
+        name: product.name,
+        imageUrl: '/placeholder.jpg',
+        price: `${product.price} Kč/${product.priceUnit}`,
+        priceUnit: product.priceUnit
+      }))
+    }
+  },
   created() {
-    // Transform bestSellingProducts to match the format needed by reusableCarousel
-    this.recommendedProducts = this.bestSellingProducts.map((product) => ({
-      id: product.id,
-      name: product.name,
-      imageUrl: product.image,
-      price: product.price + ' Kč/' + product.priceUnit,
-      priceUnit: product.priceUnit
-    }))
+    // Fetch products from API
+    this.fetchRecommendedProducts()
   }
 })
 </script>

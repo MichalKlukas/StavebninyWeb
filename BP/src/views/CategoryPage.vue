@@ -850,49 +850,53 @@ export default {
       }
     }
 
-    // Simulace načtení produktů
     const loadProducts = async () => {
       isLoading.value = true
 
-      // Toto by bylo nahrazeno API voláním
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      try {
+        // Build API URL with query parameters
+        let apiUrl = `/api/products?limit=${itemsPerPage * 3}` // Pre-load 3 pages worth of data
 
-      // Vytvoření náhodných produktů pro ukázku
-      const dummyProducts = Array.from({ length: 50 }, (_, i) => ({
-        id: i + 1,
-        name: `Produkt ${i + 1}`,
-        manufacturer: ['DEK', 'Velux', 'Wienerberger', 'Porotherm', 'Ytong'][
-          Math.floor(Math.random() * 5)
-        ],
-        dimension: ['10x20x30 cm', '20x30x40 cm', '15x25x35 cm', '5x15x25 cm'][
-          Math.floor(Math.random() * 4)
-        ],
-        price: Math.floor(Math.random() * 10000) + 500,
-        discount: Math.random() > 0.7 ? Math.floor(Math.random() * 30) + 5 : 0,
-        image: null, // URL obrázku by zde bylo
-        subcategoryId:
-          categoryData.value.subcategories[
-            Math.floor(Math.random() * categoryData.value.subcategories.length)
-          ]?.id
-      }))
-
-      // Přidání vypočítaných hodnot
-      dummyProducts.forEach((product) => {
-        if (product.discount) {
-          product.originalPrice = product.price
-          product.price = Math.round((product.price * (100 - product.discount)) / 100)
+        // Add subcategory filter if selected
+        if (selectedSubcategory.value) {
+          apiUrl += `&subcategory=${selectedSubcategory.value}`
         }
-      })
 
-      allProducts.value = dummyProducts
+        console.log('Fetching products from:', apiUrl)
 
-      // Naplnění filtrů
-      populateFilters()
+        // Fetch products from API
+        const response = await fetch(apiUrl)
 
-      isLoading.value = false
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`)
+        }
 
-      // Počáteční filtrace
-      filterProducts()
+        const result = await response.json()
+        console.log('API response:', result)
+
+        // Transform API response to match your expected format
+        const products = result.data.products.map((product) => ({
+          id: product.id,
+          name: product.name,
+          manufacturer: product.oznaceni || 'Unknown', // Using oznaceni as manufacturer for now
+          dimension: product.zkr_nazev || '',
+          price: parseFloat(product.price) || 0,
+          image: product.image_url || null,
+          subcategoryId: selectedSubcategory.value // Use the selected subcategory
+        }))
+
+        allProducts.value = products
+
+        // Populate filters
+        populateFilters()
+      } catch (error) {
+        console.error('Error loading products:', error)
+        // Fall back to your existing dummy data code here
+        // ...
+      } finally {
+        isLoading.value = false
+        filterProducts()
+      }
     }
 
     // Naplnění filtrů z produktů

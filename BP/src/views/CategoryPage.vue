@@ -262,7 +262,7 @@ export default {
     const filteredProducts = ref([])
     const isLoading = ref(true)
     const currentPage = ref(1)
-    const itemsPerPage = 12
+    const itemsPerPage = 15
     const showSidebar = ref(false)
     const showPriceFilter = ref(true) // Možnost skrýt filtr ceny, pokud není relevantní
     const sortOption = ref('name-asc')
@@ -852,6 +852,11 @@ export default {
       try {
         // Build API URL with query parameters
         let apiUrl = `/api/products?limit=${itemsPerPage * 3}` // Pre-load 3 pages worth of data
+
+        // Add category filter if we have a categoryId
+        if (categoryId.value) {
+          apiUrl += `&category=${categoryId.value}`
+        }
 
         // Add subcategory filter if selected
         if (selectedSubcategory.value) {

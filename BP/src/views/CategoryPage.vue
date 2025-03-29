@@ -69,7 +69,7 @@
           </div>
 
           <!-- Filtr výrobce -->
-          <div class="filter-group">
+          <!-- <div class="filter-group">
             <div class="filter-header" @click="toggleFilter('manufacturer')">
               <h4>Výrobce</h4>
               <span class="toggle-icon">{{ filters.manufacturer.isOpen ? '−' : '+' }}</span>
@@ -92,7 +92,7 @@
                 </label>
               </div>
             </div>
-          </div>
+          </div> -->
 
           <!-- Tlačítko pro reset filtrů -->
           <div class="filter-actions">
@@ -894,25 +894,28 @@ export default {
         filterProducts()
       }
     }
-
-    // Naplnění filtrů z produktů
     const populateFilters = () => {
-      // Výrobci
-      const manufacturers = {}
-      allProducts.value.forEach((product) => {
-        if (!manufacturers[product.manufacturer]) {
-          manufacturers[product.manufacturer] = 0
-        }
-        manufacturers[product.manufacturer]++
-      })
-
-      filters.value.manufacturer.options = Object.keys(manufacturers).map((name) => ({
-        id: name.toLowerCase().replace(/\s+/g, '-'),
-        name,
-        count: manufacturers[name],
-        selected: false
-      }))
+      // We're not using manufacturer filters anymore, but this function is still called
+      // You can leave it empty or remove the call in loadProducts
     }
+    // Naplnění filtrů z produktů
+    // const populateFilters = () => {
+    //   // Výrobci
+    //   const manufacturers = {}
+    //   allProducts.value.forEach((product) => {
+    //     if (!manufacturers[product.manufacturer]) {
+    //       manufacturers[product.manufacturer] = 0
+    //     }
+    //     manufacturers[product.manufacturer]++
+    //   })
+
+    //   filters.value.manufacturer.options = Object.keys(manufacturers).map((name) => ({
+    //     id: name.toLowerCase().replace(/\s+/g, '-'),
+    //     name,
+    //     count: manufacturers[name],
+    //     selected: false
+    //   }))
+    // }
 
     // Filtrace produktů
     const filterProducts = () => {
@@ -933,13 +936,13 @@ export default {
       }
 
       // Filtrování podle výrobce
-      const selectedManufacturers = filters.value.manufacturer.options
-        .filter((m) => m.selected)
-        .map((m) => m.name)
+      // const selectedManufacturers = filters.value.manufacturer.options
+      //   .filter((m) => m.selected)
+      //   .map((m) => m.name)
 
-      if (selectedManufacturers.length > 0) {
-        result = result.filter((product) => selectedManufacturers.includes(product.manufacturer))
-      }
+      //if (selectedManufacturers.length > 0) {
+      //  result = result.filter((product) => selectedManufacturers.includes(product.manufacturer))
+      //}
 
       // Řazení produktů
       sortProductsList(result)
@@ -1022,7 +1025,7 @@ export default {
     // Pomocné funkce
     const formatPrice = (price) => {
       const formattedPrice = parseFloat(price).toFixed(2)
-      return formattedPrice.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' Kč'
+      return formattedPrice.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' Kč s DPH'
     }
 
     // Navigace na detail produktu

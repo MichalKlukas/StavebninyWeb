@@ -1,445 +1,392 @@
 <template>
-  <div class="home-page">
-    <!-- Hero Banner Section -->
-    <div class="hero-banner">
-      <img :src="storeFrontImage" alt="Stavebniny prodejna" class="hero-image" />
-    </div>
+  <div class="carousel-section">
+    <h2 class="section-title">{{ title }}</h2>
+    <div class="carousel-container">
+      <div class="items-container">
+        <div class="items-wrapper">
+          <transition-group name="carousel-slide">
+            <div
+              v-for="item in visibleItems"
+              :key="item.id"
+              class="carousel-item"
+              :class="{ 'product-item': itemType === 'product' }"
+            >
+              <img :src="item.imageUrl" :alt="item.name" />
+              <div class="item-details">
+                <p class="item-name">{{ item.name }}</p>
+                <p v-if="itemType === 'product'" class="item-price">{{ item.price }}</p>
 
-    <!-- Best Selling Products Section -->
-    <reusableCarousel
-      itemType="product"
-      title="Doporučené produkty"
-      :items="recommendedProducts"
-      :displayCount="6"
-      :slideCount="6"
-      :autoSlide="true"
-      @add-to-cart="handleAddToCart"
-      :isAuthenticated="userStore.isAuthenticated"
-    />
+                <!-- Tlačítko Přidat do košíku pouze pro přihlášené uživatele -->
+                <button
+                  v-if="itemType === 'product' && isAuthenticated"
+                  class="add-to-cart-btn"
+                  @click.stop="addToCart(item)"
+                >
+                  <svg
+                    class="cart-icon"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="9" cy="21" r="1"></circle>
+                    <circle cx="20" cy="21" r="1"></circle>
+                    <path
+                      d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
+                    ></path>
+                  </svg>
+                  <span>Přidat do košíku</span>
+                </button>
 
-    <!-- Manufacturers Carousel -->
-    <reusableCarousel
-      itemType="manufacturer"
-      title="Naši výrobci"
-      :items="manufacturers"
-      :displayCount="6"
-      :slideCount="6"
-      :autoSlide="true"
-    />
-
-    <!-- Notifikace o přidání do košíku -->
-    <div class="cart-notification" v-if="showNotification">
-      <div class="notification-content">
-        <svg
-          class="success-icon"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-          <polyline points="22 4 12 14.01 9 11.01"></polyline>
-        </svg>
-        <span>Produkt byl přidán do košíku</span>
+                <!-- Login message for non-authenticated users -->
+                <div
+                  v-if="itemType === 'product' && !isAuthenticated"
+                  class="login-required-message"
+                >
+                  <router-link to="/prihlaseni" class="login-link" @click.stop>
+                    Pro objednání se přihlaste
+                  </router-link>
+                </div>
+              </div>
+            </div>
+          </transition-group>
+        </div>
       </div>
-      <router-link to="/cart" class="view-cart-btn">Přejít do košíku</router-link>
     </div>
   </div>
 </template>
 
 <script>
-import { defineComponent, ref, watch } from 'vue'
-import ProductCard from '@/components/ProductCard.vue'
-import reusableCarousel from '@/components/reusableCarousel.vue'
-import { useCart } from '@/stores/stavKosiku'
-import { useUserStore } from '@/stores'
-
-// Import images directly using ES module imports
-import storeFrontImage from '@/assets/store-front.jpg'
-
-// Import manufacturer logos
-import ytongLogo from '@/assets/manufacturers/ytong.png'
-import dedraLogo from '@/assets/manufacturers/dedra.png'
-import knaufLogo from '@/assets/manufacturers/knauf.png'
-import primalexLogo from '@/assets/manufacturers/primalex.png'
-import baumitLogo from '@/assets/manufacturers/baumit.png'
-import bestLogo from '@/assets/manufacturers/best.png'
-import sigaLogo from '@/assets/manufacturers/siga.png'
-import porfixLogo from '@/assets/manufacturers/porfix.png'
-import porothermLogo from '@/assets/manufacturers/porotherm.png'
-import horizontLogo from '@/assets/manufacturers/horizont.png'
-import rajDrevaLogo from '@/assets/manufacturers/raj_dreva.png'
-import ditonLogo from '@/assets/manufacturers/diton.png'
-import presbetonLogo from '@/assets/manufacturers/presbeton.png'
-import styrotradeLogo from '@/assets/manufacturers/styrotrade.png'
-import bmiBramcaLogo from '@/assets/manufacturers/bramac.png'
-
-export default defineComponent({
-  name: 'HomePage',
-  components: {
-    ProductCard,
-    reusableCarousel
-  },
-  setup() {
-    // Použijeme náš hook pro košík a uživatele
-    const cart = useCart()
-    const userStore = useUserStore()
-    const showNotification = ref(false)
-
-    // Watch for changes to cart.addSuccess
-    watch(
-      () => cart.addSuccess,
-      (newValue) => {
-        if (newValue) {
-          showNotification.value = true
-          // Notification will be auto-hidden by the timer in the cart store
-          setTimeout(() => {
-            showNotification.value = false
-          }, 3000)
-        }
-      }
-    )
-
-    // Metoda pro přidání produktu do košíku
-    const handleAddToCart = async (product) => {
-      // Only proceed if user is authenticated
-      if (!userStore.isAuthenticated) {
-        return
-      }
-
-      // Formátování produktu pro košík, pokud je třeba
-      const cartProduct = {
-        id: product.id,
-        name: product.name,
-        price:
-          typeof product.price === 'string' && product.price.includes('Kč/')
-            ? product.price.split('Kč/')[0].trim()
-            : product.price,
-        image: product.image || product.imageUrl || '/placeholder.jpg',
-        priceUnit: product.priceUnit || 'kus'
-      }
-
-      // Přidání produktu do košíku a show notification only on success
-      const success = await cart.addToCart(cartProduct)
-      if (success) {
-        showNotification.value = true
-        setTimeout(() => {
-          showNotification.value = false
-        }, 3000)
-      }
-
-      console.log('Přidáno do košíku:', cartProduct)
-    }
-
-    return {
-      handleAddToCart,
-      showNotification,
-      userStore
+export default {
+  name: 'ReusableCarousel',
+  props: {
+    // Type of items to display: 'manufacturer' or 'product'
+    itemType: {
+      type: String,
+      default: 'manufacturer',
+      validator: (value) => ['manufacturer', 'product'].includes(value)
+    },
+    // Title to display above the carousel
+    title: {
+      type: String,
+      required: true
+    },
+    // Items to display in the carousel
+    items: {
+      type: Array,
+      required: true
+    },
+    // Number of items to display at once
+    displayCount: {
+      type: Number,
+      default: 6
+    },
+    // Number of items to move when sliding
+    slideCount: {
+      type: Number,
+      default: 6
+    },
+    // Time in milliseconds between automatic slides
+    autoSlideInterval: {
+      type: Number,
+      default: 6000
+    },
+    // Whether to enable automatic sliding
+    autoSlide: {
+      type: Boolean,
+      default: true
+    },
+    // Whether the user is authenticated
+    isAuthenticated: {
+      type: Boolean,
+      default: false
     }
   },
+  // Rest of the component remains the same
   data() {
     return {
-      storeFrontImage,
-      // Array of specific product IDs to fetch from the database
-      featuredProductIds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], // Replace with your chosen product IDs
-      // This will store our fetched products
-      recommendedProducts: [],
-      manufacturers: [
-        {
-          id: 1,
-          name: 'YTONG',
-          imageUrl: ytongLogo
-        },
-        {
-          id: 2,
-          name: 'DEDRA',
-          imageUrl: dedraLogo
-        },
-        {
-          id: 3,
-          name: 'KNAUF',
-          imageUrl: knaufLogo
-        },
-        {
-          id: 4,
-          name: 'PRIMALEX',
-          imageUrl: primalexLogo
-        },
-        {
-          id: 5,
-          name: 'BAUMIT',
-          imageUrl: baumitLogo
-        },
-        {
-          id: 6,
-          name: 'BEST',
-          imageUrl: bestLogo
-        },
-        {
-          id: 7,
-          name: 'SIGA',
-          imageUrl: sigaLogo
-        },
-        {
-          id: 8,
-          name: 'PORFIX',
-          imageUrl: porfixLogo
-        },
-        {
-          id: 9,
-          name: 'POROTHERM',
-          imageUrl: porothermLogo
-        },
-        {
-          id: 10,
-          name: 'HORIZONT',
-          imageUrl: horizontLogo
-        },
-        {
-          id: 11,
-          name: 'RAJ DREVA',
-          imageUrl: rajDrevaLogo
-        },
-        {
-          id: 12,
-          name: 'DITON',
-          imageUrl: ditonLogo
-        },
-        {
-          id: 13,
-          name: 'PRESBETON',
-          imageUrl: presbetonLogo
-        },
-        {
-          id: 14,
-          name: 'STYROTRADE',
-          imageUrl: styrotradeLogo
-        },
-        {
-          id: 15,
-          name: 'BMI BRAMAC',
-          imageUrl: bmiBramcaLogo
-        }
-      ]
+      currentIndex: 0,
+      autoSlideTimer: null
     }
+  },
+  computed: {
+    visibleItems() {
+      return this.items.slice(this.currentIndex, this.currentIndex + this.displayCount)
+    },
+    isFirstSlide() {
+      return this.currentIndex === 0
+    },
+    isLastSlide() {
+      return this.currentIndex >= this.items.length - this.displayCount
+    },
+    effectiveAutoSlideInterval() {
+      // Use the prop value, but if it's a product carousel, use 12 seconds instead of the default
+      return this.itemType === 'product' ? 12000 : 6000
+    }
+  },
+  watch: {
+    // Reset currentIndex when items change
+    items() {
+      this.currentIndex = 0
+      this.resetAutoSlide()
+    }
+  },
+  mounted() {
+    if (this.autoSlide) {
+      this.startAutoSlide()
+    }
+  },
+  beforeUnmount() {
+    this.stopAutoSlide()
   },
   methods: {
-    // Fetch products from the API based on specific product IDs
-    async fetchRecommendedProducts() {
-      try {
-        console.log('Fetching featured products')
-
-        // First try to fetch products by IDs
-        // You can either fetch them all at once or one by one
-        const products = []
-
-        // Option 1: Fetch all at once with a query parameter
-        // This requires backend support for multiple IDs
-        // const ids = this.featuredProductIds.join(',');
-        // const response = await fetch(`/api/products?ids=${ids}`);
-
-        // Option 2: Fetch individually (fallback)
-        for (const id of this.featuredProductIds) {
-          try {
-            const response = await fetch(`/api/products/${id}`)
-
-            if (response.ok) {
-              const result = await response.json()
-              if (result.data && result.data.product) {
-                products.push(result.data.product)
-              }
-            }
-          } catch (error) {
-            console.error(`Error fetching product ${id}:`, error)
-          }
-        }
-
-        // If we got products, format them for the carousel
-        if (products.length > 0) {
-          this.recommendedProducts = products.map((product) => ({
-            id: product.id,
-            name: product.name,
-            imageUrl: product.image_url || '/placeholder.jpg',
-            price: `${product.price} Kč/${product.jednotka || 'kus'}`,
-            priceUnit: product.jednotka || 'kus'
-          }))
-
-          console.log('Fetched featured products:', this.recommendedProducts)
-        } else {
-          // If no products found by ID, fetch random products
-          console.log('No products found by ID, fetching random products')
-          const randomResponse = await fetch('/api/products?limit=12')
-
-          if (randomResponse.ok) {
-            const result = await randomResponse.json()
-
-            if (result.data && result.data.products && result.data.products.length > 0) {
-              this.recommendedProducts = result.data.products.map((product) => ({
-                id: product.id,
-                name: product.name,
-                imageUrl: product.image_url || '/placeholder.jpg',
-                price: `${product.price} Kč/${product.jednotka || 'kus'}`,
-                priceUnit: product.jednotka || 'kus'
-              }))
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching recommended products:', error)
-        // Use fallback data if needed
-        this.useDefaultProducts()
+    slideNext() {
+      if (!this.isLastSlide) {
+        this.currentIndex = Math.min(
+          this.items.length - this.displayCount,
+          this.currentIndex + this.slideCount
+        )
+      } else {
+        // Loop back to the beginning
+        this.currentIndex = 0
       }
     },
+    startAutoSlide() {
+      this.stopAutoSlide() // Clear any existing timer
+      this.autoSlideTimer = setInterval(() => {
+        this.slideNext()
+      }, this.effectiveAutoSlideInterval)
+    },
+    stopAutoSlide() {
+      if (this.autoSlideTimer) {
+        clearInterval(this.autoSlideTimer)
+        this.autoSlideTimer = null
+      }
+    },
+    resetAutoSlide() {
+      if (this.autoSlide) {
+        this.stopAutoSlide()
+        this.startAutoSlide()
+      }
+    },
+    // Nová metoda pro přidání do košíku
+    addToCart(item) {
+      // Zastavíme automatické posouvání při interakci
+      this.stopAutoSlide()
 
-    // Fallback method to use default products
-    useDefaultProducts() {
-      console.log('Using default product data')
-      // Define some default products if API fails
-      const defaultProducts = [
-        {
-          id: 1,
-          name: 'Lepidlo Weber 700, 25kg',
-          price: '250,47',
-          priceUnit: 'balení'
-        },
-        {
-          id: 2,
-          name: 'Sádrokartonová deska Knauf 12,5x1250x2000 mm',
-          price: '189,90',
-          priceUnit: 'kus'
-        },
-        {
-          id: 3,
-          name: 'Ytong P2-500 300x249x599 mm',
-          price: '93,50',
-          priceUnit: 'kus'
-        },
-        {
-          id: 4,
-          name: 'Baumit Baumacol FlexUni, 25kg',
-          price: '275,60',
-          priceUnit: 'balení'
-        },
-        {
-          id: 5,
-          name: 'Primalex Plus Bílý, 15kg',
-          price: '329,00',
-          priceUnit: 'kus'
-        },
-        {
-          id: 6,
-          name: 'Cement Portland CEM I 42,5R, 25kg',
-          price: '125,00',
-          priceUnit: 'balení'
-        }
-      ]
+      // Emitujeme událost nahoru k rodičovské komponentě
+      this.$emit('add-to-cart', item)
 
-      // Transform to expected format
-      this.recommendedProducts = defaultProducts.map((product) => ({
-        id: product.id,
-        name: product.name,
-        imageUrl: '/placeholder.jpg',
-        price: `${product.price} Kč/${product.priceUnit}`,
-        priceUnit: product.priceUnit
-      }))
+      // Obnovíme automatické posouvání po krátké pauze
+      setTimeout(() => {
+        this.resetAutoSlide()
+      }, 1000)
     }
-  },
-  created() {
-    // Fetch products from API
-    this.fetchRecommendedProducts()
   }
-})
+}
 </script>
 
 <style scoped>
-.home-page {
-  width: 100%;
+.carousel-section {
+  padding: 40px 20px;
+  margin: 40px 0;
 }
 
-.hero-banner {
+.section-title {
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 28px;
+  color: #333;
+}
+
+.carousel-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.items-container {
   width: 100%;
-  height: 400px;
   overflow: hidden;
+  position: relative;
 }
 
-.hero-image {
+.items-wrapper {
+  display: flex;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  min-height: 150px;
 }
 
-.cart-notification {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
+.carousel-item {
+  flex: 0 0 calc(100% / 6);
+  width: calc(100% / 6);
+  padding: 10px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.carousel-item img {
+  max-width: 100%;
+  max-height: 80px;
+  object-fit: contain;
+  margin-bottom: 10px;
+  transition: transform 0.3s ease;
+}
+
+.carousel-item:hover img {
+  transform: scale(1.05);
+}
+
+.item-name {
+  font-size: 14px;
+  color: #666;
+  margin-top: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Product-specific styling */
+.product-item {
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 15px;
+  transition: box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.product-item:hover {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.product-item img {
+  max-height: 120px;
+  margin-bottom: 15px;
+}
+
+.item-price {
+  font-weight: bold;
+  color: #f5852a;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+
+.add-to-cart-btn {
+  background-color: #f5852a;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  padding: 15px 20px;
-  z-index: 1000;
-  animation: slideUp 0.3s ease-out;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
 }
 
-.notification-content {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.add-to-cart-btn:hover {
+  background-color: #e67722;
 }
 
-.success-icon {
-  width: 20px;
-  height: 20px;
-  stroke: #4caf50;
+.cart-icon {
+  width: 16px;
+  height: 16px;
+  stroke: white;
 }
 
-.view-cart-btn {
-  margin-left: 20px;
+/* New styles for login message */
+.login-required-message {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.login-link {
   color: #f5852a;
   text-decoration: none;
   font-weight: 500;
+  transition: color 0.2s;
 }
 
-.view-cart-btn:hover {
+.login-link:hover {
+  color: #e67722;
   text-decoration: underline;
 }
 
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
+/* Improved transition for the carousel */
+.carousel-slide-enter-active,
+.carousel-slide-leave-active {
+  transition: all 0.3s ease-out;
+}
+
+.carousel-slide-enter-from {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.carousel-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
+.carousel-slide-move {
+  transition: transform 0.3s ease-out;
+}
+
+/* Responsive styling */
+@media (max-width: 1024px) {
+  .carousel-item {
+    flex: 0 0 calc(100% / 4);
+    width: calc(100% / 4);
   }
 }
 
 @media (max-width: 768px) {
-  .hero-banner {
-    height: 300px;
+  .carousel-item {
+    flex: 0 0 calc(100% / 3);
+    width: calc(100% / 3);
   }
 
-  .cart-notification {
-    left: 20px;
-    right: 20px;
-    flex-direction: column;
-    align-items: flex-start;
+  .add-to-cart-btn {
+    padding: 6px 8px;
+    font-size: 12px;
   }
 
-  .view-cart-btn {
-    margin-left: 0;
-    margin-top: 10px;
-    align-self: flex-end;
+  .cart-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .login-required-message {
+    padding: 6px 8px;
+    font-size: 12px;
   }
 }
 
 @media (max-width: 480px) {
-  .hero-banner {
-    height: 200px;
+  .carousel-item {
+    flex: 0 0 calc(100% / 2);
+    width: calc(100% / 2);
+  }
+
+  .add-to-cart-btn span {
+    display: none;
+  }
+
+  .cart-icon {
+    margin: 0;
   }
 }
 </style>

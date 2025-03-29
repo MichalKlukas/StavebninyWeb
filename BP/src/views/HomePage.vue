@@ -75,7 +75,7 @@ import presbetonLogo from '@/assets/manufacturers/presbeton.png'
 import styrotradeLogo from '@/assets/manufacturers/styrotrade.png'
 import bmiBramcaLogo from '@/assets/manufacturers/bramac.png'
 
-export default defineComponent({
+export default {
   name: 'HomePage',
   components: {
     ProductCard,
@@ -349,7 +349,7 @@ export default defineComponent({
     // Fetch products from API
     this.fetchRecommendedProducts()
   }
-})
+}
 </script>
 
 <style scoped>

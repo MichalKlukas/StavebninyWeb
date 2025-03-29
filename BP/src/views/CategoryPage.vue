@@ -154,10 +154,6 @@
               </div>
               <div class="product-details">
                 <h3 class="product-name">{{ product.name }}</h3>
-                <div class="product-manufacturer">{{ product.manufacturer }}</div>
-                <div class="product-dimension" v-if="product.dimension">
-                  {{ product.dimension }}
-                </div>
                 <div class="product-price">
                   <div class="current-price">{{ formatPrice(product.price) }}</div>
                 </div>
@@ -878,8 +874,8 @@ export default {
         const products = result.data.products.map((product) => ({
           id: product.id,
           name: product.name,
-          manufacturer: product.oznaceni || 'Unknown', // Using oznaceni as manufacturer for now
-          dimension: product.zkr_nazev || '',
+          //manufacturer: product.oznaceni || 'Unknown', // Using oznaceni as manufacturer for now
+          //dimension: product.zkr_nazev || '',
           price: parseFloat(product.price) || 0,
           image: product.image_url || null,
           subcategoryId: selectedSubcategory.value // Use the selected subcategory
@@ -1025,7 +1021,8 @@ export default {
 
     // Pomocné funkce
     const formatPrice = (price) => {
-      return price.toLocaleString('cs-CZ') + ' Kč'
+      const formattedPrice = parseFloat(price).toFixed(2)
+      return formattedPrice.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' Kč'
     }
 
     // Navigace na detail produktu

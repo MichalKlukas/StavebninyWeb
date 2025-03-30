@@ -730,6 +730,12 @@ export default {
               name: 'Hřebíky',
               count: 5,
               image: '/images/subcategories/hrebiky.jpeg'
+            },
+            {
+              id: 'matky-a-podlozky',
+              name: 'Matky a Podložky',
+              count: 5,
+              image: '/images/subcategories/matky-a-podlozky.jpeg'
             }
           ]
         },
@@ -854,9 +860,9 @@ export default {
         let apiUrl = `/api/products?limit=${itemsPerPage * 3}` // Pre-load 3 pages worth of data
 
         // Add category filter if we have a categoryId
-        if (categoryId.value) {
-          apiUrl += `&category=${categoryId.value}`
-        }
+        //if (categoryId.value) {
+        //  apiUrl += `&category=${categoryId.value}`
+        //}
 
         // Add subcategory filter if selected
         if (selectedSubcategory.value) {

@@ -15,7 +15,7 @@
               <!-- Show details only for products, not for manufacturers -->
               <div v-if="itemType === 'product'" class="item-details">
                 <p class="item-name">{{ item.name }}</p>
-                <p class="item-price">{{ formatPrice(item.price) }}</p>
+                <p class="item-price">{{ formatPrice(item.price) }} / {{ item.price_unit }}</p>
 
                 <!-- Tlačítko Přidat do košíku pouze pro přihlášené uživatele -->
                 <button

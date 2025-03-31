@@ -155,7 +155,9 @@
               <div class="product-details">
                 <h3 class="product-name">{{ product.name }}</h3>
                 <div class="product-price">
-                  <div class="current-price">{{ formatPrice(product.price) }}</div>
+                  <div class="current-price">
+                    {{ formatPrice(product.price) }} / {{ product.price_unit }}
+                  </div>
                 </div>
               </div>
               <div class="product-actions">
@@ -764,7 +766,7 @@ export default {
               id: 'halogeny-a-zarovky',
               name: 'Halogeny a žárovky',
               count: 5,
-              image: '/images/subcategories/halogeny-a-zarovky.jpeg'
+              image: '/images/subcategories/halogeny.jpeg'
             },
             {
               id: 'krabice',

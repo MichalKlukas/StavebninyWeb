@@ -15,7 +15,9 @@
               <!-- Show details only for products, not for manufacturers -->
               <div v-if="itemType === 'product'" class="item-details">
                 <p class="item-name">{{ item.name }}</p>
-                <p class="item-price">{{ formatPrice(item.price) }} / {{ item.price_unit }}</p>
+                <p class="item-price">
+                  {{ formatPrice(item.price) }}{{ item.price_unit ? '/' + item.price_unit : '' }}
+                </p>
 
                 <!-- Tlačítko Přidat do košíku pouze pro přihlášené uživatele -->
                 <button
@@ -142,20 +144,25 @@ export default {
   methods: {
     formatPrice(price) {
       // Format price to always show 2 decimal places
+      let formattedPrice = ''
+
       if (typeof price === 'number') {
-        return price.toFixed(2) + ' Kč'
+        formattedPrice = price.toFixed(2) + ' Kč'
       } else if (typeof price === 'string') {
         // Handle string prices that might not have decimal places
         if (price.includes(',') || price.includes('.')) {
           // Already has decimal separator
           const parsedPrice = parseFloat(price.replace(',', '.'))
-          return parsedPrice.toFixed(2) + ' Kč'
+          formattedPrice = parsedPrice.toFixed(2) + ' Kč'
         } else {
           // No decimal separator
-          return parseFloat(price).toFixed(2) + ' Kč'
+          formattedPrice = parseFloat(price).toFixed(2) + ' Kč'
         }
+      } else {
+        return price // Return as is if format is unknown
       }
-      return price // Return as is if format is unknown
+
+      return formattedPrice
     },
     slideNext() {
       if (!this.isLastSlide) {

@@ -12,13 +12,14 @@
               :class="{ 'product-item': itemType === 'product' }"
             >
               <img :src="item.imageUrl" :alt="item.name" />
-              <div class="item-details">
+              <!-- Show details only for products, not for manufacturers -->
+              <div v-if="itemType === 'product'" class="item-details">
                 <p class="item-name">{{ item.name }}</p>
-                <p v-if="itemType === 'product'" class="item-price">{{ item.price }}</p>
+                <p class="item-price">{{ formatPrice(item.price) }}</p>
 
                 <!-- Tlačítko Přidat do košíku pouze pro přihlášené uživatele -->
                 <button
-                  v-if="itemType === 'product' && isAuthenticated"
+                  v-if="isAuthenticated"
                   class="add-to-cart-btn"
                   @click.stop="addToCart(item)"
                 >
@@ -42,10 +43,7 @@
                 </button>
 
                 <!-- Login message for non-authenticated users -->
-                <div
-                  v-if="itemType === 'product' && !isAuthenticated"
-                  class="login-required-message"
-                >
+                <div v-if="!isAuthenticated" class="login-required-message">
                   <router-link to="/prihlaseni" class="login-link" @click.stop>
                     Pro objednání se přihlaste
                   </router-link>
@@ -105,7 +103,6 @@ export default {
       default: false
     }
   },
-  // Rest of the component remains the same
   data() {
     return {
       currentIndex: 0,
@@ -143,6 +140,23 @@ export default {
     this.stopAutoSlide()
   },
   methods: {
+    formatPrice(price) {
+      // Format price to always show 2 decimal places
+      if (typeof price === 'number') {
+        return price.toFixed(2) + ' Kč'
+      } else if (typeof price === 'string') {
+        // Handle string prices that might not have decimal places
+        if (price.includes(',') || price.includes('.')) {
+          // Already has decimal separator
+          const parsedPrice = parseFloat(price.replace(',', '.'))
+          return parsedPrice.toFixed(2) + ' Kč'
+        } else {
+          // No decimal separator
+          return parseFloat(price).toFixed(2) + ' Kč'
+        }
+      }
+      return price // Return as is if format is unknown
+    },
     slideNext() {
       if (!this.isLastSlide) {
         this.currentIndex = Math.min(
@@ -172,7 +186,7 @@ export default {
         this.startAutoSlide()
       }
     },
-    // Nová metoda pro přidání do košíku
+    // Metoda pro přidání do košíku
     addToCart(item) {
       // Zastavíme automatické posouvání při interakci
       this.stopAutoSlide()
@@ -237,6 +251,12 @@ export default {
   object-fit: contain;
   margin-bottom: 10px;
   transition: transform 0.3s ease;
+}
+
+/* For manufacturer items, adjust the image styling */
+.carousel-item:not(.product-item) img {
+  max-height: 100px;
+  margin-bottom: 0; /* Remove margin if there's no text below */
 }
 
 .carousel-item:hover img {
@@ -304,7 +324,7 @@ export default {
   stroke: white;
 }
 
-/* New styles for login message */
+/* Styles for login message */
 .login-required-message {
   margin-top: 8px;
   padding: 8px 10px;
@@ -325,7 +345,7 @@ export default {
   text-decoration: underline;
 }
 
-/* Improved transition for the carousel */
+/* Transition for the carousel */
 .carousel-slide-enter-active,
 .carousel-slide-leave-active {
   transition: all 0.3s ease-out;

@@ -649,6 +649,12 @@ export default {
               image: '/images/subcategories/lepidla-chemie.jpeg'
             },
             {
+              id: 'cistice',
+              name: 'Čističe',
+              count: 5,
+              image: '/images/subcategories/cistice.jpeg'
+            },
+            {
               id: 'vnitrni-natery',
               name: 'Vnitřní nátěry',
               count: 5,
@@ -755,10 +761,10 @@ export default {
               image: '/images/subcategories/spinace-zasuvky.jpeg'
             },
             {
-              id: 'halogeny',
-              name: 'Halogeny',
+              id: 'halogeny-a-zarovky',
+              name: 'Halogeny a žárovky',
               count: 5,
-              image: '/images/subcategories/halogeny.jpeg'
+              image: '/images/subcategories/halogeny-a-zarovky.jpeg'
             },
             {
               id: 'krabice',
@@ -785,10 +791,16 @@ export default {
               image: '/images/subcategories/rucni-naradi.jpeg'
             },
             {
-              id: 'kotouce',
-              name: 'Kotouče',
+              id: 'doplnky',
+              name: 'Doplňky',
               count: 5,
-              image: '/images/subcategories/kotouce.jpeg'
+              image: '/images/subcategories/doplnky-naradi.jpeg'
+            },
+            {
+              id: 'kotouce-a-vrtaky',
+              name: 'Kotouče a vrtáky',
+              count: 5,
+              image: '/images/subcategories/kotouce-a-vrtaky.jpeg'
             }
           ]
         },

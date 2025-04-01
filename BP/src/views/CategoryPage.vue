@@ -882,26 +882,22 @@ export default {
 
       try {
         // Build API URL with query parameters
-        let apiUrl = `/api/products?limit=${itemsPerPage * 3}` // Pre-load 3 pages worth of data
+        let apiUrl = `/api/products?limit=${itemsPerPage * 3}`
 
         // Add category filter if we have a categoryId
         if (categoryId.value) {
           apiUrl += `&category=${categoryId.value}`
         }
 
-        // Add subcategory filter if selected
+        // Add subcategory filter if selected directly in the API call
         if (selectedSubcategory.value) {
           apiUrl += `&subcategory=${selectedSubcategory.value}`
         }
 
         console.log('Fetching products from:', apiUrl)
 
-        // Fetch products from API
         const response = await fetch(apiUrl)
-
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`)
-        }
+        if (!response.ok) throw new Error(`API error: ${response.status}`)
 
         const result = await response.json()
         console.log('API response:', result)
@@ -911,18 +907,16 @@ export default {
           id: product.id,
           name: product.name,
           price: parseFloat(product.price) || 0,
-          image: product.image_url || '/placeholder.png',
+          image: product.image_url || '/placeholder-image.jpg',
           price_unit: product.jednotka || 'ks',
-          subcategoryId: product.subcategory
+          // Store the actual subcategory from the database
+          subcategory: product.subcategory
         }))
 
         allProducts.value = products
-
-        // Populate filters
         populateFilters()
       } catch (error) {
         console.error('Error loading products:', error)
-        // Fall back to dummy data in case of API error
         allProducts.value = []
       } finally {
         isLoading.value = false
@@ -958,7 +952,9 @@ export default {
 
       // Filtrování podle podkategorie
       if (selectedSubcategory.value) {
-        result = result.filter((product) => product.subcategoryId === selectedSubcategory.value)
+        console.log(`Filtering for subcategory: ${selectedSubcategory.value}`)
+        result = result.filter((product) => product.subcategory === selectedSubcategory.value)
+        console.log(`Found ${result.length} products for subcategory: ${selectedSubcategory.value}`)
       }
 
       // Filtrování podle ceny
@@ -969,15 +965,6 @@ export default {
       if (filters.value.price.max) {
         result = result.filter((product) => product.price <= filters.value.price.max)
       }
-
-      // Filtrování podle výrobce
-      // const selectedManufacturers = filters.value.manufacturer.options
-      //   .filter((m) => m.selected)
-      //   .map((m) => m.name)
-
-      //if (selectedManufacturers.length > 0) {
-      //  result = result.filter((product) => selectedManufacturers.includes(product.manufacturer))
-      //}
 
       // Řazení produktů
       sortProductsList(result)

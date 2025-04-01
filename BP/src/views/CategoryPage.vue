@@ -381,6 +381,12 @@ export default {
               image: '/images/subcategories/jakly.jpeg'
             },
             {
+              id: 'profily-zelezo',
+              name: 'Profily',
+              count: 5,
+              image: '/images/subcategories/profily-zelezo.jpeg'
+            },
+            {
               id: 'zarubne',
               name: 'Zárubně',
               count: 5,
@@ -691,12 +697,6 @@ export default {
               name: 'Spreje',
               count: 5,
               image: '/images/subcategories/spreje.jpeg'
-            },
-            {
-              id: 'tonovaci-barvy',
-              name: 'Tónovací barvy',
-              count: 5,
-              image: '/images/subcategories/tonovaci-barvy.jpeg'
             }
           ]
         },
@@ -851,10 +851,22 @@ export default {
               image: '/images/subcategories/obleceni-a-ochranne-pomucky.jpeg'
             },
             {
+              id: 'textilie-a-obalove-materialy',
+              name: 'Textilie a obalové materiály',
+              count: 5,
+              image: '/images/subcategories/textilie-a-obalove-materialy.jpeg'
+            },
+            {
               id: 'auto-moto',
               name: 'Auto-moto',
               count: 5,
               image: '/images/subcategories/auto-moto.jpeg'
+            },
+            {
+              id: 'obkladyy',
+              name: 'Obklady',
+              count: 5,
+              image: '/images/subcategories/obklady.jpeg'
             }
           ]
         }

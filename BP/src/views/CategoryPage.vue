@@ -882,7 +882,7 @@ export default {
 
       try {
         // Build API URL with query parameters
-        let apiUrl = `/api/products?limit=${itemsPerPage * 3}`
+        let apiUrl = `/api/products?limit=${itemsPerPage * 30}`
 
         // Add category filter if we have a categoryId
         if (categoryId.value) {

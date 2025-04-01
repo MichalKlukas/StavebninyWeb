@@ -240,7 +240,7 @@
   </div>
 </template>
 
-<script lang="ts">
+<script>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCart } from '@/stores/stavKosiku'

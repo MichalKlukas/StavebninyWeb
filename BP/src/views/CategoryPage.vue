@@ -240,10 +240,9 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import ztraceneBedneniImage from '@/assets/images/ztracene-bedneni.jpg'
 import { useCart } from '@/stores/stavKosiku'
 import { useUserStore } from '@/stores'
 

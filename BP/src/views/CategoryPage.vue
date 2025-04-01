@@ -882,7 +882,7 @@ export default {
 
       try {
         // Build API URL with query parameters
-        let apiUrl = `/api/products?limit=${itemsPerPage * 30}`
+        let apiUrl = `/api/products?limit=${itemsPerPage * 100}`
 
         // Add category filter if we have a categoryId
         if (categoryId.value) {
@@ -907,7 +907,9 @@ export default {
           id: product.id,
           name: product.name,
           price: parseFloat(product.price) || 0,
-          image: product.image_url || '/placeholder-image.jpg',
+          image: product.image_url
+            ? `${import.meta.env.VITE_API_URL}/images/produkty/${product.image_url}`
+            : '/placeholder-image.jpg',
           price_unit: product.jednotka || 'ks',
           // Store the actual subcategory from the database
           subcategory: product.subcategory

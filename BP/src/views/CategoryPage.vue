@@ -9,7 +9,7 @@
         @click="selectSubcategory(subcategory.id)"
       >
         <div class="subcategory-image">
-          <img :src="subcategory.image || '/placeholder-image.jpg'" :alt="subcategory.name" />
+          <img :src="subcategory.image || '/placeholder.png'" :alt="subcategory.name" />
         </div>
         <div class="subcategory-content">
           {{ subcategory.name }}
@@ -150,7 +150,7 @@
               @click="viewProductDetail(product.id)"
             >
               <div class="product-image">
-                <img :src="product.image || '/placeholder-image.jpg'" :alt="product.name" />
+                <img :src="product.image || '/placeholder.png'" :alt="product.name" />
               </div>
               <div class="product-details">
                 <h3 class="product-name">{{ product.name }}</h3>
@@ -885,9 +885,9 @@ export default {
         let apiUrl = `/api/products?limit=${itemsPerPage * 3}` // Pre-load 3 pages worth of data
 
         // Add category filter if we have a categoryId
-        //if (categoryId.value) {
-        //  apiUrl += `&category=${categoryId.value}`
-        //}
+        if (categoryId.value) {
+          apiUrl += `&category=${categoryId.value}`
+        }
 
         // Add subcategory filter if selected
         if (selectedSubcategory.value) {
@@ -910,11 +910,10 @@ export default {
         const products = result.data.products.map((product) => ({
           id: product.id,
           name: product.name,
-          //manufacturer: product.oznaceni || 'Unknown', // Using oznaceni as manufacturer for now
-          //dimension: product.zkr_nazev || '',
           price: parseFloat(product.price) || 0,
-          image: product.image_url || null,
-          subcategoryId: selectedSubcategory.value // Use the selected subcategory
+          image: product.image_url || '/placeholder.png',
+          price_unit: product.jednotka || 'ks',
+          subcategoryId: product.subcategory
         }))
 
         allProducts.value = products
@@ -923,8 +922,8 @@ export default {
         populateFilters()
       } catch (error) {
         console.error('Error loading products:', error)
-        // Fall back to your existing dummy data code here
-        // ...
+        // Fall back to dummy data in case of API error
+        allProducts.value = []
       } finally {
         isLoading.value = false
         filterProducts()
@@ -1060,8 +1059,10 @@ export default {
 
     // Pomocné funkce
     const formatPrice = (price) => {
+      // Format to exactly 2 decimal places
       const formattedPrice = parseFloat(price).toFixed(2)
-      return formattedPrice.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' Kč s DPH'
+      // Replace dot with comma for Czech format
+      return formattedPrice.replace('.', ',') + ' Kč'
     }
 
     // Navigace na detail produktu
@@ -1082,7 +1083,7 @@ export default {
         id: product.id,
         name: product.name,
         price: typeof product.price === 'number' ? product.price.toString() : product.price,
-        image: product.image || '/placeholder-image.jpg',
+        image: product.image || '/placeholder.png',
         priceUnit: 'kus'
       }
 

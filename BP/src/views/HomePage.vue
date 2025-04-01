@@ -116,7 +116,7 @@ export default {
           typeof product.price === 'string' && product.price.includes('Kč/')
             ? product.price.split('Kč/')[0].trim()
             : product.price,
-        image: product.image || product.imageUrl || '/placeholder.jpg',
+        image: product.image || product.imageUrl || '/placeholder.png',
         priceUnit: product.priceUnit || 'kus'
       }
 
@@ -230,17 +230,13 @@ export default {
       try {
         console.log('Fetching featured products')
 
-        // First try to fetch products by IDs
-        // You can either fetch them all at once or one by one
+        // List of specific product IDs you want to feature
+        // You can change these IDs to any products you prefer
+        const featuredProductIds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
         const products = []
 
-        // Option 1: Fetch all at once with a query parameter
-        // This requires backend support for multiple IDs
-        // const ids = this.featuredProductIds.join(',');
-        // const response = await fetch(`/api/products?ids=${ids}`);
-
-        // Option 2: Fetch individually (fallback)
-        for (const id of this.featuredProductIds) {
+        // Fetch the specific products by ID
+        for (const id of featuredProductIds) {
           try {
             const response = await fetch(`/api/products/${id}`)
 
@@ -255,19 +251,19 @@ export default {
           }
         }
 
-        // If we got products, format them for the carousel
+        // If we got at least some products, format them for the carousel
         if (products.length > 0) {
           this.recommendedProducts = products.map((product) => ({
             id: product.id,
             name: product.name,
-            imageUrl: product.image_url || '/placeholder.jpg',
-            price: `${product.price} Kč/${product.jednotka || 'kus'}`,
-            priceUnit: product.jednotka || 'kus'
+            imageUrl: product.image_url || '/placeholder.png',
+            price: parseFloat(product.price).toFixed(2).replace('.', ',') + ' Kč',
+            price_unit: product.jednotka || 'ks'
           }))
 
           console.log('Fetched featured products:', this.recommendedProducts)
         } else {
-          // If no products found by ID, fetch random products
+          // If no products found by ID, fetch random products as fallback
           console.log('No products found by ID, fetching random products')
           const randomResponse = await fetch('/api/products?limit=12')
 
@@ -278,9 +274,9 @@ export default {
               this.recommendedProducts = result.data.products.map((product) => ({
                 id: product.id,
                 name: product.name,
-                imageUrl: product.image_url || '/placeholder.jpg',
-                price: `${product.price} Kč/${product.jednotka || 'kus'}`,
-                priceUnit: product.jednotka || 'kus'
+                imageUrl: product.image_url || '/placeholder.png',
+                price: parseFloat(product.price).toFixed(2).replace('.', ',') + ' Kč',
+                price_unit: product.jednotka || 'ks'
               }))
             }
           }
@@ -339,7 +335,7 @@ export default {
       this.recommendedProducts = defaultProducts.map((product) => ({
         id: product.id,
         name: product.name,
-        imageUrl: '/placeholder.jpg',
+        imageUrl: '/placeholder.png',
         price: `${product.price} Kč/${product.priceUnit}`,
         priceUnit: product.priceUnit
       }))

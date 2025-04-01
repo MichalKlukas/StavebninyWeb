@@ -15,9 +15,7 @@
               <!-- Show details only for products, not for manufacturers -->
               <div v-if="itemType === 'product'" class="item-details">
                 <p class="item-name">{{ item.name }}</p>
-                <p class="item-price">
-                  {{ formatPrice(item.price) }}{{ item.price_unit ? '/' + item.price_unit : '' }}
-                </p>
+                <p class="item-price">{{ item.price }} / {{ item.price_unit }}</p>
 
                 <!-- Tlačítko Přidat do košíku pouze pro přihlášené uživatele -->
                 <button
@@ -143,26 +141,24 @@ export default {
   },
   methods: {
     formatPrice(price) {
-      // Format price to always show 2 decimal places
-      let formattedPrice = ''
-
+      // If using the formatPrice method (might not be needed since we're pre-formatting)
       if (typeof price === 'number') {
-        formattedPrice = price.toFixed(2) + ' Kč'
+        return price.toFixed(2).replace('.', ',') + ' Kč'
       } else if (typeof price === 'string') {
-        // Handle string prices that might not have decimal places
-        if (price.includes(',') || price.includes('.')) {
-          // Already has decimal separator
-          const parsedPrice = parseFloat(price.replace(',', '.'))
-          formattedPrice = parsedPrice.toFixed(2) + ' Kč'
-        } else {
-          // No decimal separator
-          formattedPrice = parseFloat(price).toFixed(2) + ' Kč'
+        // Handle string prices - check if they already have "Kč" included
+        if (price.includes('Kč')) {
+          return price // Already formatted
         }
-      } else {
-        return price // Return as is if format is unknown
+
+        // Otherwise format as number
+        const numPrice = parseFloat(price.replace(',', '.'))
+        if (!isNaN(numPrice)) {
+          return numPrice.toFixed(2).replace('.', ',') + ' Kč'
+        }
       }
 
-      return formattedPrice
+      // Return as is if unknown format
+      return price
     },
     slideNext() {
       if (!this.isLastSlide) {

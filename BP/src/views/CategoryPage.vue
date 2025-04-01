@@ -908,7 +908,7 @@ export default {
           name: product.name,
           price: parseFloat(product.price) || 0,
           image: product.image_url
-            ? `${import.meta.env.VITE_API_URL}/images/produkty/${product.image_url}`
+            ? `http://46.28.108.195/images/produkty/${product.image_url}`
             : '/placeholder-image.jpg',
           price_unit: product.jednotka || 'ks',
           // Store the actual subcategory from the database

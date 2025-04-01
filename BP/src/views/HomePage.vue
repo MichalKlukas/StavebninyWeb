@@ -274,7 +274,9 @@ export default {
               this.recommendedProducts = result.data.products.map((product) => ({
                 id: product.id,
                 name: product.name,
-                imageUrl: product.image_url || '/placeholder.png',
+                imageUrl: product.image_url
+                  ? `http://46.28.108.195/images/produkty/${product.image_url}`
+                  : '/placeholder-image.jpg',
                 price: parseFloat(product.price).toFixed(2).replace('.', ',') + ' Kč',
                 price_unit: product.jednotka || 'ks'
               }))

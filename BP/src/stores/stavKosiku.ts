@@ -116,23 +116,22 @@ export const useCart = defineStore('cart', () => {
 
       if (resp.data.success) {
         if (resp.data.cartItems && resp.data.cartItems.length > 0) {
-          // Get product cache
-          const cache = getProductCache()
-
           // Transform server cart items to client format
           items.value = resp.data.cartItems.map((item: ServerCartItem) => {
-            const productId = item.product_id
-            const cachedProduct = cache[productId] || {}
+            // Format the image URL
+            let imageUrl = item.image
+            if (imageUrl && !imageUrl.startsWith('http')) {
+              imageUrl = `http://46.28.108.195/images/produkty/${imageUrl}`
+            }
 
-            // Use data from server response if available, fall back to cache
             return {
-              id: productId,
+              id: item.product_id,
               quantity: item.quantity,
               dbId: item.id,
-              name: item.name || cachedProduct.name || `Produkt ${productId}`,
-              price: item.price || cachedProduct.price || 0,
-              image: formatImageUrl(item.image) || cachedProduct.image || '/placeholder.png',
-              priceUnit: item.price_unit || cachedProduct.priceUnit || 'kus'
+              name: item.name || `Produkt ${item.product_id}`,
+              price: item.price || 0,
+              image: imageUrl || '/placeholder.jpg',
+              priceUnit: item.price_unit || 'kus'
             } as CartItem
           })
 

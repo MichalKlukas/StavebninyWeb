@@ -41,7 +41,7 @@
               <div class="info-row">
                 <div class="info-label">PSČ:</div>
                 <div class="info-value">
-                  {{ userStore.user.zip_Code || 'Nevyplněno' }}
+                  {{ userStore.user.zip_code || 'Nevyplněno' }}
                 </div>
               </div>
             </div>
@@ -50,12 +50,12 @@
             </div>
           </div>
 
-          <div v-if="userStore.user.company_Name" class="info-section">
+          <div v-if="userStore.user.company_name" class="info-section">
             <h3>Firemní údaje</h3>
             <div class="info-row">
               <div class="info-label">Název firmy:</div>
               <div class="info-value">
-                {{ userStore.user.company_Name }}
+                {{ userStore.user.company_name }}
               </div>
             </div>
             <div class="info-row">
@@ -105,7 +105,7 @@ export default {
     // Kontrola, zda má uživatel vyplněnou alespoň částečnou adresu
     const hasAddress = computed(() => {
       const user = userStore.user || {}
-      return !!(user.street || user.city || user.zip_Code)
+      return !!(user.street || user.city || user.zip_code)
     })
 
     // Metody

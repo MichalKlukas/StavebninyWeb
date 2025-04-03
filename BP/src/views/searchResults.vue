@@ -281,9 +281,7 @@ export default {
 
       try {
         // API call to your search endpoint
-        const response = await axios.get(
-          `/api/products/search?q=${encodeURIComponent(searchQuery.value)}`
-        )
+        const response = await axios.get(`/api/search?q=${encodeURIComponent(searchQuery.value)}`)
 
         // Process the actual API response
         if (response.data && response.data.products) {
@@ -302,12 +300,20 @@ export default {
           allProducts.value = []
         }
       } catch (error) {
-        console.error('Error loading search results:', error)
+        console.error('Search error details:', {
+          message: error.message,
+          response: error.response
+            ? {
+                status: error.response.status,
+                data: error.response.data
+              }
+            : 'No response',
+          request: error.request ? 'Request was made but no response received' : 'No request'
+        })
         allProducts.value = []
       }
 
-      // Populate filters and apply initial filtering
-      populateFilters()
+      // apply initial filtering
       filterProducts()
       isLoading.value = false
     }

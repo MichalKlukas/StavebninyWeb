@@ -886,7 +886,6 @@ export default {
         }))
 
         allProducts.value = products
-        populateFilters()
       } catch (error) {
         console.error('Error loading products:', error)
         allProducts.value = []
@@ -895,7 +894,6 @@ export default {
         filterProducts()
       }
     }
-    const populateFilters = () => {}
 
     // Filtrace produktů
     const filterProducts = () => {

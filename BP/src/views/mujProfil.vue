@@ -15,7 +15,8 @@
           <div class="info-row">
             <div class="info-label">Jméno a příjmení:</div>
             <div class="info-value">
-              {{ userStore.user.firstName }} {{ userStore.user.lastName }}
+              {{ userStore.user.first_name || userStore.user.firstName }}
+              {{ userStore.user.last_name || userStore.user.lastName }}
             </div>
           </div>
           <div class="info-row">
@@ -41,7 +42,12 @@
               <div class="info-row">
                 <div class="info-label">PSČ:</div>
                 <div class="info-value">
-                  {{ userStore.user.zip_code || 'Nevyplněno' }}
+                  {{
+                    userStore.user.zip_code ||
+                    userStore.user.zipCode ||
+                    userStore.user.zip_Code ||
+                    'Nevyplněno'
+                  }}
                 </div>
               </div>
             </div>
@@ -50,12 +56,17 @@
             </div>
           </div>
 
-          <div v-if="userStore.user.company_name" class="info-section">
+          <div v-if="hasCompanyInfo" class="info-section">
             <h3>Firemní údaje</h3>
             <div class="info-row">
               <div class="info-label">Název firmy:</div>
               <div class="info-value">
-                {{ userStore.user.company_name }}
+                {{
+                  userStore.user.company_name ||
+                  userStore.user.companyName ||
+                  userStore.user.company_Name ||
+                  'Nevyplněno'
+                }}
               </div>
             </div>
             <div class="info-row">
@@ -105,7 +116,13 @@ export default {
     // Kontrola, zda má uživatel vyplněnou alespoň částečnou adresu
     const hasAddress = computed(() => {
       const user = userStore.user || {}
-      return !!(user.street || user.city || user.zip_code)
+      return !!(user.street || user.city || user.zip_code || user.zipCode || user.zip_Code)
+    })
+
+    // Kontrola, zda má uživatel vyplněné firemní údaje
+    const hasCompanyInfo = computed(() => {
+      const user = userStore.user || {}
+      return !!(user.company_name || user.companyName || user.company_Name || user.ico || user.dic)
     })
 
     // Metody
@@ -116,6 +133,7 @@ export default {
     return {
       userStore,
       hasAddress,
+      hasCompanyInfo,
       editProfile
     }
   }

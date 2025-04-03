@@ -50,7 +50,7 @@
             </div>
           </div>
 
-          <div v-if="userStore.user.companyName" class="info-section">
+          <div v-if="userStore.user.company_Name" class="info-section">
             <h3>Firemní údaje</h3>
             <div class="info-row">
               <div class="info-label">Název firmy:</div>
@@ -105,7 +105,7 @@ export default {
     // Kontrola, zda má uživatel vyplněnou alespoň částečnou adresu
     const hasAddress = computed(() => {
       const user = userStore.user || {}
-      return !!(user.street || user.city || user.zipCode)
+      return !!(user.street || user.city || user.zip_Code)
     })
 
     // Metody

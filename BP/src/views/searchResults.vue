@@ -53,53 +53,6 @@
             </div>
           </div>
 
-          <!-- Filtr výrobce -->
-          <div class="filter-group">
-            <div class="filter-header" @click="toggleFilter('manufacturer')">
-              <h4>Výrobce</h4>
-              <span class="toggle-icon">{{ filters.manufacturer.isOpen ? '−' : '+' }}</span>
-            </div>
-            <div class="filter-content" v-if="filters.manufacturer.isOpen">
-              <div
-                v-for="manufacturer in filters.manufacturer.options"
-                :key="manufacturer.id"
-                class="filter-option"
-              >
-                <label :for="'manufacturer-' + manufacturer.id">
-                  <input
-                    type="checkbox"
-                    :id="'manufacturer-' + manufacturer.id"
-                    v-model="manufacturer.selected"
-                    @change="applyFilters"
-                  />
-                  <span class="option-name">{{ manufacturer.name }}</span>
-                  <span class="option-count">({{ manufacturer.count }})</span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <!-- Filtr dostupnosti -->
-          <div class="filter-group">
-            <div class="filter-header" @click="toggleFilter('availability')">
-              <h4>Dostupnost</h4>
-              <span class="toggle-icon">{{ filters.availability.isOpen ? '−' : '+' }}</span>
-            </div>
-            <div class="filter-content" v-if="filters.availability.isOpen">
-              <div class="filter-option">
-                <label for="availability-in-stock">
-                  <input
-                    type="checkbox"
-                    id="availability-in-stock"
-                    v-model="filters.availability.inStock"
-                    @change="applyFilters"
-                  />
-                  <span class="option-name">Skladem</span>
-                </label>
-              </div>
-            </div>
-          </div>
-
           <!-- Tlačítko pro reset filtrů -->
           <div class="filter-actions">
             <button @click="resetFilters" class="reset-filters">Zrušit filtry</button>
@@ -175,15 +128,11 @@
               </div>
               <div class="product-details">
                 <h3 class="product-name">{{ product.name }}</h3>
-                <div class="product-manufacturer">{{ product.manufacturer }}</div>
                 <div class="product-dimension" v-if="product.dimension">
                   {{ product.dimension }}
                 </div>
                 <div class="product-price">
                   <div class="current-price">{{ formatPrice(product.price) }}</div>
-                </div>
-                <div class="product-availability" :class="getAvailabilityClass(product)">
-                  {{ getAvailabilityText(product) }}
                 </div>
               </div>
               <div class="product-actions">
@@ -283,25 +232,12 @@ export default {
         isOpen: true,
         min: null,
         max: null
-      },
-      manufacturer: {
-        isOpen: true,
-        options: []
-      },
-      availability: {
-        isOpen: true,
-        inStock: false
       }
     })
 
     // Kontrola, zda jsou použity filtry
     const filtersApplied = computed(() => {
-      return (
-        filters.value.price.min != null ||
-        filters.value.price.max != null ||
-        filters.value.manufacturer.options.some((m) => m.selected) ||
-        filters.value.availability.inStock
-      )
+      return filters.value.price.min != null || filters.value.price.max != null
     })
 
     // Načtení hledaného výrazu z URL parametru
@@ -345,20 +281,22 @@ export default {
 
       try {
         // API call to your search endpoint
-        const response = await axios.get(`/api/search?q=${encodeURIComponent(searchQuery.value)}`)
+        const response = await axios.get(
+          `/api/products/search?q=${encodeURIComponent(searchQuery.value)}`
+        )
 
         // Process the actual API response
         if (response.data && response.data.products) {
           allProducts.value = response.data.products.map((product) => ({
             id: product.id,
             name: product.name,
-            price: parseFloat(product.price) || 0,
-            image: product.imageUrl
-              ? `http://46.28.108.195/images/produkty/${product.imageUrl}`
-              : '/placeholder-image.jpg',
-            price_unit: product.priceUnit || 'ks',
-            category: product.categoryName,
-            subcategory: product.subcategoryName
+            price: parseFloat(product.price || 0),
+            image: product.image_url
+              ? `http://46.28.108.195/images/produkty/${product.image_url}`
+              : '/placeholder.png',
+            price_unit: product.price_unit || product.jednotka || 'ks',
+            category: product.category || '',
+            subcategory: product.subcategory || ''
           }))
         } else {
           allProducts.value = []
@@ -385,22 +323,6 @@ export default {
 
       if (filters.value.price.max) {
         result = result.filter((product) => product.price <= filters.value.price.max)
-      }
-
-      // Filtrování podle výrobce
-      const selectedManufacturers = filters.value.manufacturer.options
-        .filter((m) => m.selected)
-        .map((m) => m.name)
-
-      if (selectedManufacturers.length > 0) {
-        result = result.filter((product) => selectedManufacturers.includes(product.manufacturer))
-      }
-
-      // Filtrování podle dostupnosti (skladem)
-      if (filters.value.availability.inStock) {
-        result = result.filter(
-          (product) => product.availability === 0 || product.availability === 1
-        )
       }
 
       // Řazení produktů
@@ -436,14 +358,6 @@ export default {
     const resetFilters = () => {
       filters.value.price.min = null
       filters.value.price.max = null
-
-      if (filters.value.manufacturer.options) {
-        filters.value.manufacturer.options.forEach((option) => {
-          option.selected = false
-        })
-      }
-
-      filters.value.availability.inStock = false
 
       filterProducts()
     }
@@ -517,8 +431,6 @@ export default {
       sortOption,
       filtersApplied,
       formatPrice,
-      getAvailabilityText,
-      getAvailabilityClass,
       resetFilters,
       applyFilters,
       applyPriceFilter,
@@ -943,12 +855,6 @@ h1 {
   -webkit-line-clamp: 2;
 }
 
-.product-manufacturer {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 5px;
-}
-
 .product-dimension {
   font-size: 13px;
   color: #888;
@@ -967,11 +873,6 @@ h1 {
   font-size: 18px;
   font-weight: 600;
   color: #e53935;
-}
-
-.product-availability {
-  font-size: 13px;
-  margin-bottom: 15px;
 }
 
 .in-stock {

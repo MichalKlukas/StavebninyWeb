@@ -16,7 +16,11 @@
 
           <div v-for="(item, index) in cartItems" :key="index" class="cart-item">
             <div class="item-product">
-              <img :src="item.image" :alt="item.name" class="item-image" />
+              <img
+                ::src="item.image ? (item.image.startsWith('http') ? item.image : `http://46.28.108.195/images/produkty/${item.image}`) : '/placeholder-image.jpg'"
+                :alt="item.name"
+                class="item-image"
+              />
               <div class="item-details">
                 <h3 class="item-name">{{ item.name }}</h3>
                 <p class="item-unit">Jednotka: {{ item.priceUnit || 'kus' }}</p>
@@ -136,7 +140,7 @@
 
 <script>
 import { useCart } from '@/stores/stavKosiku'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 
 export default {
   name: 'CartView',
@@ -151,6 +155,11 @@ export default {
 
     // This local ref is optional; you can also just bind directly to cart.shippingMethod
     const selectedShippingMethod = ref(cart.shippingMethod)
+
+    // Fetch the cart data when component mounts
+    onMounted(() => {
+      cart.fetchCart()
+    })
 
     // Watch for changes from the store
     watch(

@@ -995,7 +995,7 @@ export default {
 
     // Navigace na detail produktu
     const viewProductDetail = (productId) => {
-      router.push(`/produkt/${productId}`)
+      //router.push(`/produkt/${productId}`)
     }
 
     // Přidání produktu do košíku

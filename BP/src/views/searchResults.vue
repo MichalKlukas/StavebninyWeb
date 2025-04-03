@@ -344,69 +344,34 @@ export default {
       isLoading.value = true
 
       try {
-        // Skutečné API volání
+        // API call to your search endpoint
         const response = await axios.get(`/api/search?q=${encodeURIComponent(searchQuery.value)}`)
 
-        // Zpracování výsledků
+        // Process the actual API response
         if (response.data && response.data.products) {
-          allProducts.value = response.data.products
+          allProducts.value = response.data.products.map((product) => ({
+            id: product.id,
+            name: product.name,
+            price: parseFloat(product.price) || 0,
+            image: product.imageUrl
+              ? `http://46.28.108.195/images/produkty/${product.imageUrl}`
+              : '/placeholder-image.jpg',
+            price_unit: product.priceUnit || 'ks',
+            category: product.categoryName,
+            subcategory: product.subcategoryName
+          }))
         } else {
-          // Fallback pokud API selže nebo vrátí neočekávaný formát
           allProducts.value = []
         }
       } catch (error) {
-        console.error('Chyba při načítání výsledků vyhledávání:', error)
-
-        // Simulace dat pro vývoj a testování (jen když API selže)
-        // V produkci by toto bylo nahrazeno vhodnějším zpracováním chyb
-        allProducts.value = generateDummyProducts()
+        console.error('Error loading search results:', error)
+        allProducts.value = []
       }
 
-      // Naplnění filtrů
+      // Populate filters and apply initial filtering
       populateFilters()
-
-      // Počáteční filtrace
       filterProducts()
-
       isLoading.value = false
-    }
-
-    // Simulace dat pro vývoj a testování
-    const generateDummyProducts = () => {
-      // Vytvoření náhodných produktů pro ukázku
-      return Array.from({ length: 20 }, (_, i) => ({
-        id: i + 1,
-        name: `Výsledek pro "${searchQuery.value}" ${i + 1}`,
-        manufacturer: ['DEK', 'Velux', 'Wienerberger', 'Porotherm', 'Ytong'][
-          Math.floor(Math.random() * 5)
-        ],
-        dimension: ['10x20x30 cm', '20x30x40 cm', '15x25x35 cm', '5x15x25 cm'][
-          Math.floor(Math.random() * 4)
-        ],
-        price: Math.floor(Math.random() * 10000) + 500,
-        discount: Math.random() > 0.7 ? Math.floor(Math.random() * 30) + 5 : 0,
-        image: null, // URL obrázku by zde bylo
-        availability: Math.floor(Math.random() * 4) // 0-skladem, 1-málo kusů, 2-na objednání, 3-nedostupné
-      }))
-    }
-
-    // Naplnění filtrů z produktů
-    const populateFilters = () => {
-      // Výrobci
-      const manufacturers = {}
-      allProducts.value.forEach((product) => {
-        if (!manufacturers[product.manufacturer]) {
-          manufacturers[product.manufacturer] = 0
-        }
-        manufacturers[product.manufacturer]++
-      })
-
-      filters.value.manufacturer.options = Object.keys(manufacturers).map((name) => ({
-        id: name.toLowerCase().replace(/\s+/g, '-'),
-        name,
-        count: manufacturers[name],
-        selected: false
-      }))
     }
 
     // Filtrace produktů
@@ -464,10 +429,6 @@ export default {
         case 'price-desc':
           products.sort((a, b) => b.price - a.price)
           break
-        case 'newest':
-          // Pro ukázku - normálně by bylo řazení podle data
-          products.sort((a, b) => b.id - a.id)
-          break
       }
     }
 
@@ -513,36 +474,6 @@ export default {
     // Pomocné funkce
     const formatPrice = (price) => {
       return price.toLocaleString('cs-CZ') + ' Kč'
-    }
-
-    const getAvailabilityText = (product) => {
-      switch (product.availability) {
-        case 0:
-          return 'Skladem'
-        case 1:
-          return 'Posledních pár kusů'
-        case 2:
-          return 'Na objednání'
-        case 3:
-          return 'Nedostupné'
-        default:
-          return 'Skladem'
-      }
-    }
-
-    const getAvailabilityClass = (product) => {
-      switch (product.availability) {
-        case 0:
-          return 'in-stock'
-        case 1:
-          return 'low-stock'
-        case 2:
-          return 'on-order'
-        case 3:
-          return 'unavailable'
-        default:
-          return 'in-stock'
-      }
     }
 
     // Navigace na detail produktu

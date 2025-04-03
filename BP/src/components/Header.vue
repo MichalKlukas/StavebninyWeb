@@ -170,6 +170,7 @@ import { defineComponent, ref, onMounted, onUnmounted, computed } from 'vue'
 import { useUserStore } from '../stores'
 import { useRouter } from 'vue-router'
 import { useCart } from '@/stores/stavKosiku.ts'
+import axios from 'axios'
 
 export default defineComponent({
   name: 'Header',

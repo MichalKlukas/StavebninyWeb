@@ -1004,10 +1004,6 @@ export default {
         case 'price-desc':
           products.sort((a, b) => b.price - a.price)
           break
-        case 'newest':
-          // Pro ukázku - normálně by bylo řazení podle data
-          products.sort((a, b) => b.id - a.id)
-          break
       }
     }
 

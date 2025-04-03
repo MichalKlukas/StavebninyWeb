@@ -249,26 +249,22 @@ export default {
       isSubmitting.value = true
 
       try {
-        // Příprava dat pro odeslání s přesným názvem polí pro backend
+        // Prepare data with correct field names
         const updateData = {
-          // Pro osobní údaje použijeme snake_case, aby to odpovídalo backendu
           first_name: profileData.value.firstName,
           last_name: profileData.value.lastName,
           phone: profileData.value.phone,
           street: profileData.value.street,
           city: profileData.value.city,
-          // Použijeme správný název pole pro PSČ
           zip_code: profileData.value.zipCode
         }
 
-        // Přidání firemních údajů, pokud jsou vyplněny
+        // Add company data if needed
         if (isCompany.value) {
-          // Použijeme správný název pole pro název firmy
           updateData.company_name = profileData.value.companyName
           updateData.ico = profileData.value.ico
           updateData.dic = profileData.value.dic
         } else {
-          // Pokud není zaškrtnuto, vynulujeme firemní údaje
           updateData.company_name = null
           updateData.ico = null
           updateData.dic = null
@@ -276,25 +272,22 @@ export default {
 
         console.log('Sending update data to server:', updateData)
 
-        // Získání API URL
+        // Get the API base URL from environment or use default
         const baseUrl = import.meta.env.VITE_API_URL || 'https://46.28.108.195.nip.io'
+        const token = localStorage.getItem('token')
 
-        // Odeslání dat na server - upravena cesta podle vašeho API
-        const response = await axios.put(`${baseUrl}/api/users/profile`, updateData, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
+        // The correct endpoint based on your server.js
+        const response = await axios.put(`${baseUrl}/api/user/profile`, updateData, {
+          headers: { Authorization: `Bearer ${token}` }
         })
 
         console.log('Server response:', response.data)
 
-        // Aktualizace uživatelských dat ve store
+        // Update user store and show success message
         await userStore.fetchUser()
-
-        // Zobrazení úspěšné zprávy
         successMessage.value = 'Profil byl úspěšně aktualizován'
 
-        // Přesměrování po 2 sekundách
+        // Redirect after 2 seconds
         setTimeout(() => {
           router.push('/muj-profil')
         }, 2000)

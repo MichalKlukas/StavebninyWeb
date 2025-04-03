@@ -256,10 +256,19 @@ export default {
           phone: profileData.value.phone,
           street: profileData.value.street,
           city: profileData.value.city,
-          zipCode: profileData.value.zipCode,
-          companyName: profileData.value.companyName,
-          ico: profileData.value.ico,
-          dic: profileData.value.dic
+          zipCode: profileData.value.zipCode
+        }
+
+        // Only add company fields if the company checkbox is checked
+        if (isCompany.value) {
+          updateData.companyName = profileData.value.companyName
+          updateData.ico = profileData.value.ico
+          updateData.dic = profileData.value.dic
+        } else {
+          // Set company fields to null if not using company
+          updateData.companyName = null
+          updateData.ico = null
+          updateData.dic = null
         }
 
         console.log('Sending update data to server:', updateData)
@@ -273,9 +282,29 @@ export default {
 
         console.log('Server response:', response.data)
 
-        await userStore.fetchUser()
+        // Check if userStore has a fetchUser method
+        if (typeof userStore.fetchUser === 'function') {
+          await userStore.fetchUser()
+        } else {
+          // Alternative: manually refresh user data
+          console.log('fetchUser method not found, using alternative')
+
+          // You might need to adjust this based on your actual API endpoint
+          const userResponse = await axios.get(`${baseUrl}/api/user/profile`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+
+          if (userResponse.data && userResponse.data.user) {
+            // Update the user store manually if possible
+            if (typeof userStore.setUser === 'function') {
+              userStore.setUser(userResponse.data.user)
+            }
+          }
+        }
+
         successMessage.value = 'Profil byl úspěšně aktualizován'
 
+        // Redirect after 2 seconds
         setTimeout(() => {
           router.push('/muj-profil')
         }, 2000)

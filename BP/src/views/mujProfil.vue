@@ -55,7 +55,7 @@
             <div class="info-row">
               <div class="info-label">Název firmy:</div>
               <div class="info-value">
-                {{ userStore.user.companyName }}
+                {{ userStore.user.company_Name }}
               </div>
             </div>
             <div class="info-row">

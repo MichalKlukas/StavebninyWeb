@@ -249,15 +249,42 @@ export default {
       isSubmitting.value = true
 
       try {
-        // Same data preparation as before...
+        // Prepare data with correct field names
+        const updateData = {
+          first_name: profileData.value.firstName,
+          last_name: profileData.value.lastName,
+          phone: profileData.value.phone,
+          street: profileData.value.street,
+          city: profileData.value.city,
+          zip_code: profileData.value.zipCode
+        }
 
+        // Add company data if needed
+        if (isCompany.value) {
+          updateData.company_name = profileData.value.companyName
+          updateData.ico = profileData.value.ico
+          updateData.dic = profileData.value.dic
+        } else {
+          updateData.company_name = null
+          updateData.ico = null
+          updateData.dic = null
+        }
+
+        console.log('Sending update data to server:', updateData)
+
+        // Get the API base URL from environment or use default
+        const baseUrl = import.meta.env.VITE_API_URL || 'https://46.28.108.195.nip.io'
+        const token = localStorage.getItem('token')
+
+        // The correct endpoint based on your server.js
         const response = await axios.put(`${baseUrl}/api/user/profile`, updateData, {
           headers: { Authorization: `Bearer ${token}` }
         })
 
         console.log('Server response:', response.data)
 
-        // Skip trying to fetch user data since we're redirecting anyway
+        // Update user store and show success message
+        await userStore.fetchUser()
         successMessage.value = 'Profil byl úspěšně aktualizován'
 
         // Redirect after 2 seconds
@@ -265,7 +292,13 @@ export default {
           router.push('/muj-profil')
         }, 2000)
       } catch (error) {
-        // Error handling as before...
+        console.error('Chyba při aktualizaci profilu:', error)
+
+        if (error.response && error.response.data && error.response.data.error) {
+          errorMessage.value = error.response.data.error
+        } else {
+          errorMessage.value = 'Došlo k chybě při ukládání profilu. Zkuste to prosím znovu.'
+        }
       } finally {
         isSubmitting.value = false
       }

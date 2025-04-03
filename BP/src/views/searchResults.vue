@@ -207,6 +207,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCart } from '@/stores/stavKosiku'
 import axios from 'axios'
+import api from '@/services/api'
 
 export default {
   name: 'SearchResults',
@@ -278,7 +279,7 @@ export default {
     // Načtení výsledků vyhledávání
     const fetchSearchResults = async () => {
       isLoading.value = true
-
+      const response = await api.get(`/api/search?q=${encodeURIComponent(searchQuery.value)}`)
       try {
         // API call to your search endpoint
         const response = await axios.get(

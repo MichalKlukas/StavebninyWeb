@@ -249,45 +249,33 @@ export default {
       isSubmitting.value = true
 
       try {
-        // Prepare data with correct field names
+        // Use camelCase field names to match what the controller expects
         const updateData = {
-          first_name: profileData.value.firstName,
-          last_name: profileData.value.lastName,
+          firstName: profileData.value.firstName,
+          lastName: profileData.value.lastName,
           phone: profileData.value.phone,
           street: profileData.value.street,
           city: profileData.value.city,
-          zip_code: profileData.value.zipCode
-        }
-
-        // Add company data if needed
-        if (isCompany.value) {
-          updateData.company_name = profileData.value.companyName
-          updateData.ico = profileData.value.ico
-          updateData.dic = profileData.value.dic
-        } else {
-          updateData.company_name = null
-          updateData.ico = null
-          updateData.dic = null
+          zipCode: profileData.value.zipCode,
+          companyName: profileData.value.companyName,
+          ico: profileData.value.ico,
+          dic: profileData.value.dic
         }
 
         console.log('Sending update data to server:', updateData)
 
-        // Get the API base URL from environment or use default
         const baseUrl = import.meta.env.VITE_API_URL || 'https://46.28.108.195.nip.io'
         const token = localStorage.getItem('token')
 
-        // The correct endpoint based on your server.js
         const response = await axios.put(`${baseUrl}/api/user/profile`, updateData, {
           headers: { Authorization: `Bearer ${token}` }
         })
 
         console.log('Server response:', response.data)
 
-        // Update user store and show success message
         await userStore.fetchUser()
         successMessage.value = 'Profil byl úspěšně aktualizován'
 
-        // Redirect after 2 seconds
         setTimeout(() => {
           router.push('/muj-profil')
         }, 2000)

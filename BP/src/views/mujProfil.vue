@@ -41,7 +41,7 @@
               <div class="info-row">
                 <div class="info-label">PSČ:</div>
                 <div class="info-value">
-                  {{ userStore.user.zipCode || 'Nevyplněno' }}
+                  {{ userStore.user.zip_Code || 'Nevyplněno' }}
                 </div>
               </div>
             </div>

@@ -1,4 +1,3 @@
-import API_URL from '@/config/api.js';
 <template>
   <div class="HeadingStrip">
     <h1>Úprava profilu</h1>
@@ -202,32 +201,45 @@ export default {
     const successMessage = ref('')
     const errorMessage = ref('')
 
+    // Debug funkce
+    const logUserData = () => {
+      console.log('Current user data in store:', userStore.user)
+    }
+
     // Načtení dat uživatele
     onMounted(() => {
+      // Zobrazení dat pro ladění
+      logUserData()
+
       if (userStore.user) {
         const user = userStore.user
 
         profileData.value = {
-          firstName: user.firstName || '',
-          lastName: user.lastName || '',
+          firstName: user.firstName || user.first_name || '',
+          lastName: user.lastName || user.last_name || '',
           email: user.email || '',
           phone: user.phone || '',
           street: user.street || '',
           city: user.city || '',
-          zipCode: user.zip_code || '',
-          companyName: user.company_name || '',
+          // Zajistíme, že se PSČ načte správně bez ohledu na název pole
+          zipCode: user.zipCode || user.zip_code || user.zip_Code || '',
+          // Zajistíme, že se název firmy načte správně bez ohledu na název pole
+          companyName: user.companyName || user.company_name || user.company_Name || '',
           ico: user.ico || '',
           dic: user.dic || ''
         }
 
+        // Zobrazení načtených dat pro ladění
+        console.log('Loaded profile data:', profileData.value)
+
         // Nastavení přepínače firemních údajů
-        isCompany.value = !!user.company_name
+        isCompany.value = !!(profileData.value.companyName || profileData.value.ico)
       }
     })
 
     // Funkce pro zrušení úprav
     const cancelEdit = () => {
-      router.push('/profil')
+      router.push('/muj-profil') // Změněno na správnou cestu
     }
 
     // Funkce pro uložení profilu
@@ -237,44 +249,54 @@ export default {
       isSubmitting.value = true
 
       try {
-        // Příprava dat pro odeslání
+        // Příprava dat pro odeslání s přesným názvem polí pro backend
         const updateData = {
-          firstName: profileData.value.firstName,
-          lastName: profileData.value.lastName,
+          // Pro osobní údaje použijeme snake_case, aby to odpovídalo backendu
+          first_name: profileData.value.firstName,
+          last_name: profileData.value.lastName,
           phone: profileData.value.phone,
           street: profileData.value.street,
           city: profileData.value.city,
-          zipCode: profileData.value.zipCode
+          // Použijeme správný název pole pro PSČ
+          zip_code: profileData.value.zipCode
         }
 
         // Přidání firemních údajů, pokud jsou vyplněny
         if (isCompany.value) {
-          updateData.companyName = profileData.value.companyName
+          // Použijeme správný název pole pro název firmy
+          updateData.company_name = profileData.value.companyName
           updateData.ico = profileData.value.ico
           updateData.dic = profileData.value.dic
         } else {
           // Pokud není zaškrtnuto, vynulujeme firemní údaje
-          updateData.companyName = null
+          updateData.company_name = null
           updateData.ico = null
           updateData.dic = null
         }
 
-        // Odeslání dat na server
-        const response = await axios.put('/api/user/profile', updateData, {
+        console.log('Sending update data to server:', updateData)
+
+        // Získání API URL
+        const baseUrl = import.meta.env.VITE_API_URL || 'https://46.28.108.195.nip.io'
+
+        // Odeslání dat na server - upravena cesta podle vašeho API
+        const response = await axios.put(`${baseUrl}/api/users/profile`, updateData, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`
           }
         })
 
+        console.log('Server response:', response.data)
+
         // Aktualizace uživatelských dat ve store
-        userStore.updateProfile(response.data.user)
+        await userStore.fetchUser()
 
         // Zobrazení úspěšné zprávy
         successMessage.value = 'Profil byl úspěšně aktualizován'
 
         // Přesměrování po 2 sekundách
         setTimeout(() => {
-          router.push('/profil')
+          router.push('/muj-profil')
         }, 2000)
       } catch (error) {
         console.error('Chyba při aktualizaci profilu:', error)

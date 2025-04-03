@@ -281,7 +281,9 @@ export default {
 
       try {
         // API call to your search endpoint
-        const response = await axios.get(`/api/search?q=${encodeURIComponent(searchQuery.value)}`)
+        const response = await axios.get(
+          `http://46.28.108.195/api/search?q=${encodeURIComponent(searchQuery.value)}`
+        )
 
         // Process the actual API response
         if (response.data && response.data.products) {

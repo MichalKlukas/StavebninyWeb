@@ -284,7 +284,6 @@ export default {
         console.log('Server response:', response.data)
 
         // Update user store and show success message
-        await userStore.fetchUser()
         successMessage.value = 'Profil byl úspěšně aktualizován'
 
         // Redirect after 2 seconds

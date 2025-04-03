@@ -16,11 +16,7 @@
 
           <div v-for="(item, index) in cartItems" :key="index" class="cart-item">
             <div class="item-product">
-              <img
-                ::src="item.image ? (item.image.startsWith('http') ? item.image : `http://46.28.108.195/images/produkty/${item.image}`) : '/placeholder-image.jpg'"
-                :alt="item.name"
-                class="item-image"
-              />
+              <img :src="formatImageSrc(item.image)" :alt="item.name" class="item-image" />
               <div class="item-details">
                 <h3 class="item-name">{{ item.name }}</h3>
                 <p class="item-unit">Jednotka: {{ item.priceUnit || 'kus' }}</p>
@@ -39,7 +35,7 @@
               <button @click="increaseQuantity(index)" class="quantity-btn">+</button>
             </div>
             <div class="item-total">
-              {{ formatPrice(parseFloat(item.price) * item.quantity) }}
+              {{ formatPrice(calculateItemTotal(item)) }}
             </div>
             <div class="item-actions">
               <button @click="removeFromCart(index)" class="remove-btn">
@@ -141,11 +137,18 @@
 <script>
 import { useCart } from '@/stores/stavKosiku'
 import { computed, ref, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
 export default {
   name: 'CartView',
   setup() {
     const cart = useCart()
+    const router = useRouter()
+
+    // Fetch cart data when the component mounts
+    onMounted(() => {
+      cart.loadServerCart()
+    })
 
     // Create a computed property for cart items to make it reactive
     const cartItems = computed(() => cart.items)
@@ -155,11 +158,6 @@ export default {
 
     // This local ref is optional; you can also just bind directly to cart.shippingMethod
     const selectedShippingMethod = ref(cart.shippingMethod)
-
-    // Fetch the cart data when component mounts
-    onMounted(() => {
-      cart.fetchCart()
-    })
 
     // Watch for changes from the store
     watch(
@@ -179,7 +177,32 @@ export default {
       return selectedShippingMethod.value === 'delivery' ? 0 : 0
     })
 
-    // Example for updating item quantity
+    // Calculate total for a single item
+    const calculateItemTotal = (item) => {
+      let price = 0
+
+      if (typeof item.price === 'number') {
+        price = item.price
+      } else if (typeof item.price === 'string') {
+        price = parseFloat(item.price.replace(',', '.'))
+      }
+
+      if (isNaN(price)) {
+        console.warn(`Invalid price format: ${item.price}`)
+        price = 0
+      }
+
+      return price * item.quantity
+    }
+
+    // Format image source
+    const formatImageSrc = (image) => {
+      if (!image) return '/placeholder-image.jpg'
+      if (image.startsWith('http')) return image
+      return `http://46.28.108.195/images/produkty/${image}`
+    }
+
+    // Update item quantity
     const updateCartItem = (index) => {
       const item = cartItems.value[index]
       cart.updateQuantity(index, item.quantity)
@@ -187,15 +210,11 @@ export default {
 
     // Helper functions for increasing/decreasing quantity
     const increaseQuantity = (index) => {
-      const item = cartItems.value[index]
-      cart.updateQuantity(index, item.quantity + 1)
+      cart.increaseQuantity(index)
     }
 
     const decreaseQuantity = (index) => {
-      const item = cartItems.value[index]
-      if (item.quantity > 1) {
-        cart.updateQuantity(index, item.quantity - 1)
-      }
+      cart.decreaseQuantity(index)
     }
 
     // Format price
@@ -213,16 +232,23 @@ export default {
       )
     }
 
+    // Remove item from cart
+    const removeFromCart = (index) => {
+      cart.removeFromCart(index)
+    }
+
     return {
       cartItems,
       cartTotal,
       currentShippingCost,
       selectedShippingMethod,
-      removeFromCart: cart.removeFromCart,
+      removeFromCart,
       updateCartItem,
       increaseQuantity,
       decreaseQuantity,
-      formatPrice
+      formatPrice,
+      calculateItemTotal,
+      formatImageSrc
     }
   },
   methods: {
@@ -236,7 +262,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style>
 .HeadingStrip {
   width: 100%;
   height: 150px;

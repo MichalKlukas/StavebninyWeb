@@ -14,6 +14,11 @@ interface ServerCartItem {
   quantity: number
   created_at: string
   updated_at: string
+  // Added fields from the updated backend
+  name?: string
+  price?: string | number
+  image?: string
+  price_unit?: string
 }
 
 interface CartItem {
@@ -82,6 +87,17 @@ export const useCart = defineStore('cart', () => {
 
   const userStore = useUserStore()
 
+  // Format image URL function
+  function formatImageUrl(imageUrl: string | undefined): string {
+    if (!imageUrl) return '/placeholder.png'
+
+    // If it's already a full URL, use it as is
+    if (imageUrl.startsWith('http')) return imageUrl
+
+    // Otherwise, prepend the base API URL for images
+    return `http://46.28.108.195/images/produkty/${imageUrl}`
+  }
+
   // Load the server cart (only if logged in)
   async function loadServerCart() {
     if (!userStore.isAuthenticated || !userStore.token) {
@@ -108,14 +124,15 @@ export const useCart = defineStore('cart', () => {
             const productId = item.product_id
             const cachedProduct = cache[productId] || {}
 
+            // Use data from server response if available, fall back to cache
             return {
               id: productId,
               quantity: item.quantity,
               dbId: item.id,
-              name: cachedProduct.name || `Produkt ${productId}`,
-              price: cachedProduct.price || 0,
-              image: cachedProduct.image || '/placeholder.jpg',
-              priceUnit: cachedProduct.priceUnit || 'kus'
+              name: item.name || cachedProduct.name || `Produkt ${productId}`,
+              price: item.price || cachedProduct.price || 0,
+              image: formatImageUrl(item.image) || cachedProduct.image || '/placeholder.png',
+              priceUnit: item.price_unit || cachedProduct.priceUnit || 'kus'
             } as CartItem
           })
 
@@ -163,22 +180,42 @@ export const useCart = defineStore('cart', () => {
       }
       saveProductCache(cache)
 
+      // Note: The backend now handles fetching product details, so we only need to send productId and quantity
       const resp = await axios.post(
         `${API_URL}/cart`,
         {
           productId: product.id,
-          quantity,
-          price,
-          name: product.name,
-          image: product.image || '/placeholder.jpg',
-          priceUnit: product.priceUnit || 'kus'
+          quantity
         },
         { headers: { Authorization: `Bearer ${userStore.token}` } }
       )
 
       if (resp.data.success) {
-        // Reload the entire cart
-        await loadServerCart()
+        // Check if we have a cartItem in the response
+        if (resp.data.cartItem) {
+          // Find if the item already exists in the cart
+          const existingIndex = items.value.findIndex((item) => item.id === product.id)
+
+          if (existingIndex !== -1) {
+            // Update existing item
+            items.value[existingIndex].quantity = resp.data.cartItem.quantity
+          } else {
+            // Add new item
+            items.value.push({
+              id: product.id,
+              dbId: resp.data.cartItem.id,
+              quantity: resp.data.cartItem.quantity,
+              name: product.name,
+              price: price,
+              image: formatImageUrl(product.image),
+              priceUnit: product.priceUnit || 'kus'
+            })
+          }
+        } else {
+          // If we don't have cartItem details, reload the entire cart
+          await loadServerCart()
+        }
+
         addSuccess.value = true
 
         // Reset success flag after 3 seconds
@@ -227,13 +264,21 @@ export const useCart = defineStore('cart', () => {
       loading.value = true
       const item = items.value[index]
       if (item?.dbId) {
-        await axios.put(
+        const response = await axios.put(
           `${API_URL}/cart/${item.dbId}`,
           { quantity },
           { headers: { Authorization: `Bearer ${userStore.token}` } }
         )
+
+        // If we get updated item details back from the server, use them
+        if (response.data.success && response.data.cartItem) {
+          items.value[index].quantity = response.data.cartItem.quantity
+        } else {
+          items.value[index].quantity = quantity
+        }
+      } else {
+        items.value[index].quantity = quantity
       }
-      items.value[index].quantity = quantity
     } catch (err) {
       console.error('Error updating quantity:', err)
       error.value = 'Nepodařilo se aktualizovat množství'

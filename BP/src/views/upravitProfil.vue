@@ -288,7 +288,7 @@ export default {
 
     // Funkce pro zrušení úprav
     const cancelEdit = () => {
-      router.push('/muj-profil')
+      router.push('/profil')
     }
 
     // Funkce pro uložení profilu
@@ -359,7 +359,7 @@ export default {
 
         // Redirect after 2 seconds
         setTimeout(() => {
-          window.location.href = '/muj-profil'
+          window.location.href = '/profil'
         }, 2000)
       } catch (error) {
         console.error('Error updating profile:', error)

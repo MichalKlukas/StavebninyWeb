@@ -162,10 +162,9 @@
 
 <script>
 import { ref, onMounted, computed } from 'vue'
-import { useUserStore } from '../stores'
+import { useUserStore } from '../stores/user' // Make sure this path is correct
 import { useRouter } from 'vue-router'
 import ProfileSidebar from '@/components/ProfileSidebar.vue'
-import axios from 'axios'
 
 export default {
   name: 'UpravitProfil',
@@ -179,6 +178,7 @@ export default {
     // Bezpečnostní kontrola - přesměrování na přihlášení, pokud uživatel není přihlášen
     if (!userStore.isAuthenticated) {
       router.push('/prihlaseni')
+      return {} // Early return if not authenticated
     }
 
     // Formulářová data
@@ -207,13 +207,17 @@ export default {
     }
 
     // Načtení dat uživatele
-    onMounted(() => {
-      // Zobrazení dat pro ladění
+    onMounted(async () => {
+      // First refresh user data from API to ensure latest data
+      await userStore.refreshUserData()
+
+      // Log data for debugging
       logUserData()
 
       if (userStore.user) {
         const user = userStore.user
 
+        // Careful mapping of fields - prefer camelCase if available for UI consistency
         profileData.value = {
           firstName: user.firstName || user.first_name || '',
           lastName: user.lastName || user.last_name || '',
@@ -221,15 +225,13 @@ export default {
           phone: user.phone || '',
           street: user.street || '',
           city: user.city || '',
-          // Zajistíme, že se PSČ načte správně bez ohledu na název pole
-          zipCode: user.zipCode || user.zip_code || user.zip_Code || '',
-          // Zajistíme, že se název firmy načte správně bez ohledu na název pole
-          companyName: user.companyName || user.company_name || user.company_Name || '',
+          zipCode: user.zipCode || user.zip_code || '',
+          companyName: user.companyName || user.company_name || '',
           ico: user.ico || '',
           dic: user.dic || ''
         }
 
-        // Zobrazení načtených dat pro ladění
+        // Log loaded data for debugging
         console.log('Loaded profile data:', profileData.value)
 
         // Nastavení přepínače firemních údajů
@@ -239,17 +241,17 @@ export default {
 
     // Funkce pro zrušení úprav
     const cancelEdit = () => {
-      router.push('/muj-profil') // Změněno na správnou cestu
+      router.push('/muj-profil')
     }
 
-    // Funkce pro uložení profilu
+    // Funkce pro uložení profilu - UPDATED to use store method
     const saveProfile = async () => {
       errorMessage.value = ''
       successMessage.value = ''
       isSubmitting.value = true
 
       try {
-        // Prepare data with correct field names
+        // Prepare data with correct field names for the API
         const updateData = {
           first_name: profileData.value.firstName,
           last_name: profileData.value.lastName,
@@ -272,32 +274,27 @@ export default {
 
         console.log('Sending update data to server:', updateData)
 
-        // Get the API base URL from environment or use default
-        const baseUrl = import.meta.env.VITE_API_URL || 'https://46.28.108.195.nip.io'
-        const token = localStorage.getItem('token')
+        // Use the store's updateProfile method
+        const result = await userStore.updateProfile(updateData)
 
-        // The correct endpoint based on your server.js
-        const response = await axios.put(`${baseUrl}/api/user/profile`, updateData, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        if (result.success) {
+          successMessage.value = result.message || 'Profil byl úspěšně aktualizován'
 
-        console.log('Server response:', response.data)
+          // Ensure we have the latest user data
+          await userStore.refreshUserData()
 
-        // Update user store and show success message
-        successMessage.value = 'Profil byl úspěšně aktualizován'
+          console.log('User data after refresh:', userStore.user)
 
-        // Redirect after 2 seconds
-        setTimeout(() => {
-          router.push('/muj-profil')
-        }, 2000)
+          // Redirect after 2 seconds
+          setTimeout(() => {
+            router.push('/muj-profil')
+          }, 2000)
+        } else {
+          errorMessage.value = result.message || 'Došlo k chybě při ukládání profilu'
+        }
       } catch (error) {
         console.error('Chyba při aktualizaci profilu:', error)
-
-        if (error.response && error.response.data && error.response.data.error) {
-          errorMessage.value = error.response.data.error
-        } else {
-          errorMessage.value = 'Došlo k chybě při ukládání profilu. Zkuste to prosím znovu.'
-        }
+        errorMessage.value = 'Došlo k chybě při ukládání profilu. Zkuste to prosím znovu.'
       } finally {
         isSubmitting.value = false
       }

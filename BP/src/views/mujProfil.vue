@@ -11,21 +11,19 @@
       <!-- Hlavní obsah - osobní údaje -->
       <div class="user-info-section">
         <h2>Osobní údaje</h2>
-        <div class="info-card">
+        <div v-if="userStore.loading" class="loading-state">Načítání...</div>
+        <div v-else class="info-card">
           <div class="info-row">
             <div class="info-label">Jméno a příjmení:</div>
-            <div class="info-value">
-              {{ userStore.user.first_name || userStore.user.firstName }}
-              {{ userStore.user.last_name || userStore.user.lastName }}
-            </div>
+            <div class="info-value">{{ getUserFirstName() }} {{ getUserLastName() }}</div>
           </div>
           <div class="info-row">
             <div class="info-label">E-mail:</div>
-            <div class="info-value">{{ userStore.user.email }}</div>
+            <div class="info-value">{{ userStore.user?.email || 'Nenalezeno' }}</div>
           </div>
           <div class="info-row">
             <div class="info-label">Telefon:</div>
-            <div class="info-value">{{ userStore.user.phone || 'Nevyplněno' }}</div>
+            <div class="info-value">{{ userStore.user?.phone || 'Nevyplněno' }}</div>
           </div>
 
           <div class="info-section">
@@ -33,21 +31,16 @@
             <div v-if="hasAddress" class="address-info">
               <div class="info-row">
                 <div class="info-label">Ulice a č.p.:</div>
-                <div class="info-value">{{ userStore.user.street || 'Nevyplněno' }}</div>
+                <div class="info-value">{{ userStore.user?.street || 'Nevyplněno' }}</div>
               </div>
               <div class="info-row">
                 <div class="info-label">Město:</div>
-                <div class="info-value">{{ userStore.user.city || 'Nevyplněno' }}</div>
+                <div class="info-value">{{ userStore.user?.city || 'Nevyplněno' }}</div>
               </div>
               <div class="info-row">
                 <div class="info-label">PSČ:</div>
                 <div class="info-value">
-                  {{
-                    userStore.user.zip_code ||
-                    userStore.user.zipCode ||
-                    userStore.user.zip_Code ||
-                    'Nevyplněno'
-                  }}
+                  {{ getUserZipCode() || 'Nevyplněno' }}
                 </div>
               </div>
             </div>
@@ -61,21 +54,16 @@
             <div class="info-row">
               <div class="info-label">Název firmy:</div>
               <div class="info-value">
-                {{
-                  userStore.user.company_name ||
-                  userStore.user.companyName ||
-                  userStore.user.company_Name ||
-                  'Nevyplněno'
-                }}
+                {{ getUserCompanyName() || 'Nevyplněno' }}
               </div>
             </div>
             <div class="info-row">
               <div class="info-label">IČO:</div>
-              <div class="info-value">{{ userStore.user.ico || 'Nevyplněno' }}</div>
+              <div class="info-value">{{ userStore.user?.ico || 'Nevyplněno' }}</div>
             </div>
             <div class="info-row">
               <div class="info-label">DIČ:</div>
-              <div class="info-value">{{ userStore.user.dic || 'Nevyplněno' }}</div>
+              <div class="info-value">{{ userStore.user?.dic || 'Nevyplněno' }}</div>
             </div>
           </div>
 
@@ -90,7 +78,7 @@
 
 <script>
 import { computed, onMounted } from 'vue'
-import { useUserStore } from '../stores'
+import { useUserStore } from '../stores/user' // Make sure this path is correct
 import { useRouter } from 'vue-router'
 import ProfileSidebar from '@/components/ProfileSidebar.vue'
 
@@ -106,23 +94,42 @@ export default {
     // Bezpečnostní kontrola - přesměrování na přihlášení, pokud uživatel není přihlášen
     if (!userStore.isAuthenticated) {
       router.push('/prihlaseni')
+      return {} // Early return if not authenticated
     }
 
-    // Log user data for debugging
-    onMounted(() => {
-      console.log('User data in profile:', userStore.user)
+    // Helper methods to get user data safely
+    const getUserFirstName = () => {
+      return userStore.user?.firstName || userStore.user?.first_name || 'Nevyplněno'
+    }
+
+    const getUserLastName = () => {
+      return userStore.user?.lastName || userStore.user?.last_name || 'Nevyplněno'
+    }
+
+    const getUserZipCode = () => {
+      return userStore.user?.zipCode || userStore.user?.zip_code || ''
+    }
+
+    const getUserCompanyName = () => {
+      return userStore.user?.companyName || userStore.user?.company_name || ''
+    }
+
+    // Refresh user data when component mounts
+    onMounted(async () => {
+      await userStore.refreshUserData()
+      console.log('User data in profile view:', userStore.user)
     })
 
     // Kontrola, zda má uživatel vyplněnou alespoň částečnou adresu
     const hasAddress = computed(() => {
       const user = userStore.user || {}
-      return !!(user.street || user.city || user.zip_code || user.zipCode || user.zip_Code)
+      return !!(user.street || user.city || user.zip_code || user.zipCode)
     })
 
     // Kontrola, zda má uživatel vyplněné firemní údaje
     const hasCompanyInfo = computed(() => {
       const user = userStore.user || {}
-      return !!(user.company_name || user.companyName || user.company_Name || user.ico || user.dic)
+      return !!(user.company_name || user.companyName || user.ico || user.dic)
     })
 
     // Metody
@@ -134,7 +141,11 @@ export default {
       userStore,
       hasAddress,
       hasCompanyInfo,
-      editProfile
+      editProfile,
+      getUserFirstName,
+      getUserLastName,
+      getUserZipCode,
+      getUserCompanyName
     }
   }
 }
@@ -149,7 +160,11 @@ export default {
   justify-content: center;
   align-items: center;
 }
-
+.loading-state {
+  text-align: center;
+  padding: 20px;
+  color: #777;
+}
 h1 {
   color: #0e0e0e;
   margin: 100px auto 80px auto;

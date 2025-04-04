@@ -162,7 +162,7 @@
 
 <script>
 import { ref, onMounted, computed } from 'vue'
-import { useUserStore } from '../stores/user' // Make sure this path is correct
+import { useUserStore } from '@/stores/user' // Make sure this path is correct
 import { useRouter } from 'vue-router'
 import ProfileSidebar from '@/components/ProfileSidebar.vue'
 

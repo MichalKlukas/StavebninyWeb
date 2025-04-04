@@ -291,73 +291,6 @@ export default {
       router.push('/muj-profil')
     }
 
-    // Manual profile update function if store method doesn't exist
-    const updateProfile = async (profileData) => {
-      try {
-        if (typeof userStore.updateProfile === 'function') {
-          console.log('Using store updateProfile method')
-          return await userStore.updateProfile(profileData)
-        } else {
-          console.log('Store updateProfile not found, using manual update')
-
-          const baseUrl = import.meta.env.VITE_API_URL || 'https://46.28.108.195.nip.io'
-          const token = localStorage.getItem('token')
-
-          const response = await axios.put(`${baseUrl}/api/user/profile`, profileData, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-
-          console.log('Profile update response:', response.data)
-
-          if (response.data && response.data.user) {
-            // Update the user in store
-            if (typeof userStore.setUser === 'function') {
-              userStore.setUser({
-                ...userStore.user,
-                ...response.data.user
-              })
-            } else {
-              // Direct update
-              userStore.user = {
-                ...userStore.user,
-                ...response.data.user
-              }
-
-              // Manual mapping
-              if (response.data.user.first_name) {
-                userStore.user.firstName = response.data.user.first_name
-              }
-              if (response.data.user.last_name) {
-                userStore.user.lastName = response.data.user.last_name
-              }
-              if (response.data.user.zip_code) {
-                userStore.user.zipCode = response.data.user.zip_code
-              }
-              if (response.data.user.company_name) {
-                userStore.user.companyName = response.data.user.company_name
-              }
-            }
-
-            return {
-              success: true,
-              message: response.data.message || 'Profil byl úspěšně aktualizován'
-            }
-          }
-
-          return {
-            success: false,
-            message: 'Profil byl aktualizován, ale došlo k chybě při obnovení dat.'
-          }
-        }
-      } catch (error) {
-        console.error('Error updating profile:', error)
-        return {
-          success: false,
-          message: error.response?.data?.error || 'Došlo k chybě při aktualizaci profilu.'
-        }
-      }
-    }
-
     // Funkce pro uložení profilu
     // Funkce pro uložení profilu - fixed to handle undefined result
     const saveProfile = async () => {
@@ -404,6 +337,7 @@ export default {
         successMessage.value = response.data.message || 'Profil byl úspěšně aktualizován'
 
         // Update user data in store if possible
+        // Update user data in store if possible
         if (response.data && response.data.user) {
           if (userStore.user) {
             userStore.user = {
@@ -425,7 +359,7 @@ export default {
 
         // Redirect after 2 seconds
         setTimeout(() => {
-          router.push('/muj-profil')
+          window.location.href = '/muj-profil'
         }, 2000)
       } catch (error) {
         console.error('Error updating profile:', error)

@@ -359,6 +359,7 @@ export default {
     }
 
     // Funkce pro uložení profilu
+    // Funkce pro uložení profilu - fixed to handle undefined result
     const saveProfile = async () => {
       errorMessage.value = ''
       successMessage.value = ''
@@ -370,16 +371,16 @@ export default {
           first_name: profileData.value.firstName,
           last_name: profileData.value.lastName,
           phone: profileData.value.phone,
-          street: profileData.value.street,
-          city: profileData.value.city,
-          zip_code: profileData.value.zipCode
+          street: profileData.value.street || null,
+          city: profileData.value.city || null,
+          zip_code: profileData.value.zipCode || null
         }
 
         // Add company data if needed
         if (isCompany.value) {
-          updateData.company_name = profileData.value.companyName
-          updateData.ico = profileData.value.ico
-          updateData.dic = profileData.value.dic
+          updateData.company_name = profileData.value.companyName || null
+          updateData.ico = profileData.value.ico || null
+          updateData.dic = profileData.value.dic || null
         } else {
           updateData.company_name = null
           updateData.ico = null
@@ -388,27 +389,49 @@ export default {
 
         console.log('Sending update data to server:', updateData)
 
-        // Use our safe update method
-        const result = await updateProfile(updateData)
+        // Direct API call without using store
+        const baseUrl = import.meta.env.VITE_API_URL || 'https://46.28.108.195.nip.io'
+        const token = localStorage.getItem('token')
 
-        if (result.success) {
-          successMessage.value = result.message || 'Profil byl úspěšně aktualizován'
+        console.log('Making API call to update profile')
+        const response = await axios.put(`${baseUrl}/api/user/profile`, updateData, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
 
-          // Ensure we have the latest user data
-          await fetchUserData()
+        console.log('Profile update response:', response.data)
 
-          console.log('User data after refresh:', userStore.user)
+        // Direct success handling
+        successMessage.value = response.data.message || 'Profil byl úspěšně aktualizován'
 
-          // Redirect after 2 seconds
-          setTimeout(() => {
-            router.push('/muj-profil')
-          }, 2000)
-        } else {
-          errorMessage.value = result.message || 'Došlo k chybě při ukládání profilu'
+        // Update user data in store if possible
+        if (response.data && response.data.user) {
+          if (userStore.user) {
+            userStore.user = {
+              ...userStore.user,
+              ...response.data.user
+            }
+
+            // Manual mapping for component compatibility
+            if (response.data.user.first_name)
+              userStore.user.firstName = response.data.user.first_name
+            if (response.data.user.last_name) userStore.user.lastName = response.data.user.last_name
+            if (response.data.user.zip_code) userStore.user.zipCode = response.data.user.zip_code
+            if (response.data.user.company_name)
+              userStore.user.companyName = response.data.user.company_name
+          }
         }
+
+        console.log('User data after update:', userStore.user)
+
+        // Redirect after 2 seconds
+        setTimeout(() => {
+          router.push('/muj-profil')
+        }, 2000)
       } catch (error) {
-        console.error('Chyba při aktualizaci profilu:', error)
-        errorMessage.value = 'Došlo k chybě při ukládání profilu. Zkuste to prosím znovu.'
+        console.error('Error updating profile:', error)
+        errorMessage.value =
+          error.response?.data?.error ||
+          'Došlo k chybě při ukládání profilu. Zkuste to prosím znovu.'
       } finally {
         isSubmitting.value = false
       }

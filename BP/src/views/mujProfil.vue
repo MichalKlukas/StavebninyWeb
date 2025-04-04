@@ -11,7 +11,7 @@
       <!-- Hlavní obsah - osobní údaje -->
       <div class="user-info-section">
         <h2>Osobní údaje</h2>
-        <div v-if="userStore.loading" class="loading-state">Načítání...</div>
+        <div v-if="loading" class="loading-state">Načítání...</div>
         <div v-else class="info-card">
           <div class="info-row">
             <div class="info-label">Jméno a příjmení:</div>
@@ -77,10 +77,11 @@
 </template>
 
 <script>
-import { computed, onMounted } from 'vue'
-import { useUserStore } from '@/stores/user' // Make sure this path is correct
+import { computed, onMounted, ref } from 'vue'
+import { useUserStore } from '../stores/user' // Make sure this path is correct
 import { useRouter } from 'vue-router'
 import ProfileSidebar from '@/components/ProfileSidebar.vue'
+import axios from 'axios'
 
 export default {
   name: 'MujProfil',
@@ -90,11 +91,12 @@ export default {
   setup() {
     const userStore = useUserStore()
     const router = useRouter()
+    const loading = ref(true)
 
     // Bezpečnostní kontrola - přesměrování na přihlášení, pokud uživatel není přihlášen
     if (!userStore.isAuthenticated) {
       router.push('/prihlaseni')
-      return {} // Early return if not authenticated
+      return { loading } // Early return if not authenticated
     }
 
     // Helper methods to get user data safely
@@ -114,9 +116,59 @@ export default {
       return userStore.user?.companyName || userStore.user?.company_name || ''
     }
 
+    // Manual user data fetch function
+    const fetchUserData = async () => {
+      try {
+        loading.value = true
+
+        // Check if refreshUserData exists in the store
+        if (typeof userStore.refreshUserData === 'function') {
+          console.log('Using store refreshUserData method')
+          await userStore.refreshUserData()
+        } else {
+          console.log('Store refreshUserData not found, using manual fetch')
+          // Manual fetch implementation
+          const baseUrl = import.meta.env.VITE_API_URL || 'https://46.28.108.195.nip.io'
+          const token = localStorage.getItem('token')
+
+          const response = await axios.get(`${baseUrl}/api/user/profile`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+
+          if (response.data && response.data.user) {
+            console.log('Got user data:', response.data.user)
+            if (typeof userStore.setUser === 'function') {
+              userStore.setUser(response.data.user)
+            } else {
+              // Direct assignment if setUser doesn't exist
+              userStore.user = response.data.user
+
+              // Manual mapping of fields
+              if (response.data.user.first_name) {
+                userStore.user.firstName = response.data.user.first_name
+              }
+              if (response.data.user.last_name) {
+                userStore.user.lastName = response.data.user.last_name
+              }
+              if (response.data.user.zip_code) {
+                userStore.user.zipCode = response.data.user.zip_code
+              }
+              if (response.data.user.company_name) {
+                userStore.user.companyName = response.data.user.company_name
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error)
+      } finally {
+        loading.value = false
+      }
+    }
+
     // Refresh user data when component mounts
     onMounted(async () => {
-      await userStore.refreshUserData()
+      await fetchUserData()
       console.log('User data in profile view:', userStore.user)
     })
 
@@ -139,6 +191,7 @@ export default {
 
     return {
       userStore,
+      loading,
       hasAddress,
       hasCompanyInfo,
       editProfile,

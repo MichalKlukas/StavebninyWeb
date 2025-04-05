@@ -230,13 +230,11 @@ export default {
       try {
         console.log('Fetching featured products')
 
-        // List of specific product IDs you want to feature
-        // You can change these IDs to any products you prefer
-        const featuredProductIds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        // Using featuredProductIds from data - no redundant declaration
         const products = []
 
         // Fetch the specific products by ID
-        for (const id of featuredProductIds) {
+        for (const id of this.featuredProductIds) {
           try {
             const response = await fetch(`/api/products/${id}`)
 
@@ -262,7 +260,9 @@ export default {
           }))
 
           console.log('Fetched featured products:', this.recommendedProducts)
-        } else {
+        }
+        /* Commented out the else block for random products fallback
+        else {
           // If no products found by ID, fetch random products as fallback
           console.log('No products found by ID, fetching random products')
           const randomResponse = await fetch('/api/products?limit=12')
@@ -283,15 +283,16 @@ export default {
             }
           }
         }
+        */
       } catch (error) {
         console.error('Error fetching recommended products:', error)
-        // Use fallback data if needed
-        this.useDefaultProducts()
+        // Fallback method is commented out, so we'll just set to empty array
+        this.recommendedProducts = []
       }
-    },
+    }
 
-    // Fallback method to use default products
-    useDefaultProducts() {
+    // Fallback method to use default products (commented out as requested)
+    /*useDefaultProducts() {
       console.log('Using default product data')
       // Define some default products if API fails
       const defaultProducts = [
@@ -341,7 +342,7 @@ export default {
         price: `${product.price} Kč/${product.priceUnit}`,
         priceUnit: product.priceUnit
       }))
-    }
+    }*/
   },
   created() {
     // Fetch products from API

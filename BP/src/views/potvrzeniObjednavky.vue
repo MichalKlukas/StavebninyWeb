@@ -402,61 +402,26 @@ export default {
           return
         }
 
-        // Vytvoření dat pro odeslání objednávky
-        const orderData = {
-          items: cartItems.value.map((item) => ({
-            productId: item.id,
-            quantity: item.quantity,
-            price:
-              typeof item.price === 'string'
-                ? parseFloat(item.price.replace(',', '.'))
-                : item.price,
-            name: item.name
-          })),
-          shipping: {
-            method: formData.shippingMethod,
-            address: formData.shippingMethod === 'delivery' ? formData.address : null,
-            cost: deliveryCost.value,
-            pickupDate: formData.pickupDate
-          },
-          customer: {
-            name: `${userInfo.value.firstName} ${userInfo.value.lastName}`,
-            email: userInfo.value.email,
-            phone: userInfo.value.phone,
-            company: formData.isCompanyPurchase ? formData.company : null,
-            ico: formData.isCompanyPurchase ? formData.ico : null,
-            dic: formData.isCompanyPurchase ? formData.dic : null
-          },
-          note: formData.note,
-          total: cartTotal.value + deliveryCost.value
+        const orderDetails = {
+          name: `${userInfo.value.firstName} ${userInfo.value.lastName}`,
+          email: userInfo.value.email,
+          phone: userInfo.value.phone,
+          company: formData.isCompanyPurchase ? formData.company : null,
+          ico: formData.isCompanyPurchase ? formData.ico : null,
+          dic: formData.isCompanyPurchase ? formData.dic : null,
+          pickupDate: formData.pickupDate,
+          shippingMethod: formData.shippingMethod,
+          deliveryAddress: formData.shippingMethod === 'delivery' ? formData.address : null,
+          deliveryCost: deliveryCost.value,
+          note: formData.note
         }
 
-        console.log('Odesílám objednávku:', orderData)
-
-        // Zde by byl kód pro odeslání objednávky na server pomocí API
-        // Místo createOrder ze store použijeme standardní axios
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL || 'https://46.28.108.195.nip.io'}/api/orders`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${userStore.token}`
-            },
-            body: JSON.stringify(orderData)
-          }
-        )
-
-        if (!response.ok) {
-          throw new Error(`Chyba při odesílání objednávky: ${response.status}`)
-        }
-
-        const result = await response.json()
+        // Use the cart store's createOrder method
+        const result = await cart.createOrder(orderDetails)
 
         if (result.success) {
           alert('Vaše objednávka byla úspěšně vytvořena!')
-          // Vyčistit košík
-          cart.clearCart()
+          // The cart is already cleared in the store's createOrder method
           // Přesměrovat na domovskou stránku
           router.push('/')
         } else {

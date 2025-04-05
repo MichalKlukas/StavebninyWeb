@@ -279,11 +279,10 @@ export default {
     // Načtení výsledků vyhledávání
     const fetchSearchResults = async () => {
       isLoading.value = true
-      const response = await api.get(`/api/search?q=${encodeURIComponent(searchQuery.value)}`)
       try {
         // API call to your search endpoint
         const response = await axios.get(
-          `http://46.28.108.195/api/search?q=${encodeURIComponent(searchQuery.value)}`
+          `https://api.stavebninylysa.cz/api/search?q=${encodeURIComponent(searchQuery.value)}`
         )
 
         // Process the actual API response
@@ -293,7 +292,7 @@ export default {
             name: product.name,
             price: parseFloat(product.price || 0),
             image: product.image_url
-              ? `http://46.28.108.195/images/produkty/${product.image_url}`
+              ? `https://api.stavebninylysa.cz/images/produkty/${product.image_url}`
               : '/placeholder.png',
             price_unit: product.price_unit || product.jednotka || 'ks',
             category: product.category || '',

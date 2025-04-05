@@ -878,8 +878,8 @@ export default {
           name: product.name,
           price: parseFloat(product.price) || 0,
           image: product.image_url
-            ? `http://46.28.108.195/images/produkty/${product.image_url}`
-            : '/placeholder-image.jpg',
+            ? `https://api.stavebninylysa.cz/images/produkty/${product.image_url}`
+            : '/placeholder.png',
           price_unit: product.jednotka || 'ks',
           // Store the actual subcategory from the database
           subcategory: product.subcategory

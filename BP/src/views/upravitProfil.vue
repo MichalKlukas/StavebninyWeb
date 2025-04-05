@@ -360,7 +360,7 @@ export default {
         // Redirect after 2 seconds
         setTimeout(() => {
           window.location.href = '/profil'
-        }, 2000)
+        }, 1500)
       } catch (error) {
         console.error('Error updating profile:', error)
         errorMessage.value =

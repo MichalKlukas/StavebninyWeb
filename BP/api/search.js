@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Search query is required' })
   }
 
-  const BACKEND_URL = process.env.BACKEND_URL || 'http://46.28.108.195:3000'
+  const BACKEND_URL = process.env.BACKEND_URL || 'https://api.stavebninylysa.cz'
 
   try {
     console.log(`Searching for: ${q}`)

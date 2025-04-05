@@ -98,12 +98,12 @@ import API_URL from '@/config/api.js';
         </div>
 
         <!-- Přihlášení přes Google -->
-        <div class="social-login" v-if="!showForgotPassword && !formSubmitted">
+        <!--<div class="social-login" v-if="!showForgotPassword && !formSubmitted">
           <button @click="loginWithGoogle" class="google-button">
             <span class="google-icon">G</span>
             <span>Přihlásit přes Google</span>
           </button>
-        </div>
+        </div>-->
 
         <!-- Potvrzení úspěšného přihlášení -->
         <div v-if="formSubmitted" class="success-message">
@@ -158,34 +158,35 @@ export default {
     }
   },
   methods: {
-   async submitLogin() {
-  this.isSubmitting = true
-  this.errorMessage = ''
+    async submitLogin() {
+      this.isSubmitting = true
+      this.errorMessage = ''
 
-  try {
-    // Use relative URL (will work with proxy)
-    console.log('Attempting login');
-    const response = await axios.post('/api/login', this.loginData);
-    
-    console.log('Login successful:', response.data);
-    this.userStore.login(response.data.user, response.data.token);
-    this.formSubmitted = true;
-    
-    setTimeout(() => {
-      this.$router.push('/');
-    }, 1500);
-  } catch (error) {
-    console.error('Login error:', error);
-    
-    if (error.response && error.response.data && error.response.data.error) {
-      this.errorMessage = error.response.data.error;
-    } else {
-      this.errorMessage = 'Nepodařilo se přihlásit. Zkontrolujte své přihlašovací údaje a zkuste to znovu.';
-    }
-  } finally {
-    this.isSubmitting = false;
-  }
-},
+      try {
+        // Use relative URL (will work with proxy)
+        console.log('Attempting login')
+        const response = await axios.post('/api/login', this.loginData)
+
+        console.log('Login successful:', response.data)
+        this.userStore.login(response.data.user, response.data.token)
+        this.formSubmitted = true
+
+        setTimeout(() => {
+          this.$router.push('/')
+        }, 1500)
+      } catch (error) {
+        console.error('Login error:', error)
+
+        if (error.response && error.response.data && error.response.data.error) {
+          this.errorMessage = error.response.data.error
+        } else {
+          this.errorMessage =
+            'Nepodařilo se přihlásit. Zkontrolujte své přihlašovací údaje a zkuste to znovu.'
+        }
+      } finally {
+        this.isSubmitting = false
+      }
+    },
 
     async submitForgotPassword() {
       // Nastavení indikátoru odesílání a resetování zpráv
@@ -221,9 +222,9 @@ export default {
       } finally {
         this.isSubmitting = false
       }
-    },
+    }
 
-    loginWithGoogle() {
+    /*loginWithGoogle() {
       // Zde by byla implementace přihlášení přes Google OAuth
       // Pro kompletní implementaci je potřeba využít knihovnu jako je vue-google-oauth2
 
@@ -236,7 +237,7 @@ export default {
           this.$router.push('/')
         }, 1500)
       }, 1000)
-    }
+    }*/
   }
 }
 </script>
@@ -459,7 +460,7 @@ label {
   margin-bottom: 25px;
 }
 
-.google-button {
+/*.google-button {
   width: 100%;
   display: flex;
   align-items: center;
@@ -494,7 +495,7 @@ label {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-}
+}*/
 
 .register-section {
   margin-top: 40px;

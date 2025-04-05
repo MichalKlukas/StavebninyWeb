@@ -86,7 +86,7 @@ export const useCart = defineStore('cart', () => {
   const lastOrderId = ref<number | null>(null)
 
   const userStore = useUserStore()
-
+  const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://api.stavebninylysa.cz'
   // Format image URL function
   function formatImageUrl(imageUrl: string | undefined): string {
     if (!imageUrl) return '/placeholder.png'
@@ -95,7 +95,7 @@ export const useCart = defineStore('cart', () => {
     if (imageUrl.startsWith('http')) return imageUrl
 
     // Otherwise, prepend the base API URL for images
-    return `http://46.28.108.195/images/produkty/${imageUrl}`
+    return `${apiBaseUrl}/images/produkty/${imageUrl}`
   }
 
   // Load the server cart (only if logged in)
@@ -121,7 +121,7 @@ export const useCart = defineStore('cart', () => {
             // Format the image URL
             let imageUrl = item.image
             if (imageUrl && !imageUrl.startsWith('http')) {
-              imageUrl = `http://46.28.108.195/images/produkty/${imageUrl}`
+              imageUrl = `https://api.stavebninylysa.cz/images/produkty/${imageUrl}`
             }
 
             return {

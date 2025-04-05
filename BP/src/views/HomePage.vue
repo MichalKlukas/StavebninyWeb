@@ -142,7 +142,7 @@ export default {
     return {
       storeFrontImage,
       // Array of specific product IDs to fetch from the database
-      featuredProductIds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], // Replace with your chosen product IDs
+      featuredProductIds: [1835, 1451, 11, 2947, 2089, 4136, 1291, 3001, 2785, 10, 11, 12], // Replace with your chosen product IDs
       // This will store our fetched products
       recommendedProducts: [],
       manufacturers: [
@@ -275,8 +275,8 @@ export default {
                 id: product.id,
                 name: product.name,
                 imageUrl: product.image_url
-                  ? `http://46.28.108.195/images/produkty/${product.image_url}`
-                  : '/placeholder-image.jpg',
+                  ? `https://api.stavebninylysa.cz/images/produkty/${product.image_url}`
+                  : '/placeholder.png',
                 price: parseFloat(product.price).toFixed(2).replace('.', ',') + ' Kč',
                 price_unit: product.jednotka || 'ks'
               }))

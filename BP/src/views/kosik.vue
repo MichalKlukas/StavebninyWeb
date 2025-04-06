@@ -224,7 +224,7 @@ export default {
     // Add image error handler
     const onImageError = (event) => {
       event.target.onerror = null
-      event.target.src = '/placeholder.png'
+      event.target.src = 'https://api.stavebninylysa.cz/images/produkty/placeholder.png'
     }
     // Helper functions for increasing/decreasing quantity
     const increaseQuantity = (index) => {

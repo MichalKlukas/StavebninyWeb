@@ -1035,7 +1035,7 @@ export default {
     const onImageError = (event) => {
       // Replace the broken image with the placeholder
       event.target.onerror = null
-      event.target.src = '/placeholder.png'
+      event.target.src = 'https://api.stavebninylysa.cz/images/produkty/placeholder.png'
     }
     return {
       categoryData,

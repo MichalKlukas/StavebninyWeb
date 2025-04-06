@@ -89,17 +89,16 @@ export const useCart = defineStore('cart', () => {
   const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://api.stavebninylysa.cz'
   // Format image URL function
   function formatImageUrl(imageUrl: string | undefined): string {
-    if (!imageUrl) return '/placeholder.png'
+    // Use full URL for placeholder instead of relative path
+    if (!imageUrl) return `${apiBaseUrl}/images/produkty/placeholder.png`
 
-    // If it's already a full URL, use it as is
+    // Rest of function stays the same...
     if (imageUrl.startsWith('http')) return imageUrl
 
-    // If path already starts with /images/produkty/, don't add it again
     if (imageUrl.startsWith('/images/produkty/')) {
       return `${apiBaseUrl}${imageUrl}`
     }
 
-    // Otherwise, prepend the base API URL for images
     return `${apiBaseUrl}/images/produkty/${imageUrl}`
   }
 
@@ -172,7 +171,7 @@ export const useCart = defineStore('cart', () => {
       cache[product.id] = {
         name: product.name,
         price: price,
-        image: product.image || '/placeholder.jpg',
+        image: product.image || '/placeholder.png',
         priceUnit: product.priceUnit || 'kus'
       }
       saveProductCache(cache)

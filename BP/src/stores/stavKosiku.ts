@@ -94,6 +94,11 @@ export const useCart = defineStore('cart', () => {
     // If it's already a full URL, use it as is
     if (imageUrl.startsWith('http')) return imageUrl
 
+    // If path already starts with /images/produkty/, don't add it again
+    if (imageUrl.startsWith('/images/produkty/')) {
+      return `${apiBaseUrl}${imageUrl}`
+    }
+
     // Otherwise, prepend the base API URL for images
     return `${apiBaseUrl}/images/produkty/${imageUrl}`
   }
@@ -116,21 +121,14 @@ export const useCart = defineStore('cart', () => {
 
       if (resp.data.success) {
         if (resp.data.cartItems && resp.data.cartItems.length > 0) {
-          // Transform server cart items to client format
           items.value = resp.data.cartItems.map((item: ServerCartItem) => {
-            // Format the image URL
-            let imageUrl = item.image
-            if (imageUrl && !imageUrl.startsWith('http')) {
-              imageUrl = `https://api.stavebninylysa.cz/images/produkty/${imageUrl}`
-            }
-
             return {
               id: item.product_id,
               quantity: item.quantity,
               dbId: item.id,
               name: item.name || `Produkt ${item.product_id}`,
               price: item.price || 0,
-              image: imageUrl || '/placeholder.png',
+              image: formatImageUrl(item.image), // Use our improved function instead of inline logic
               priceUnit: item.price_unit || 'kus'
             } as CartItem
           })

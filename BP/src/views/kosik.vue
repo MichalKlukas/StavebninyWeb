@@ -203,8 +203,17 @@ export default {
     // Format image source
     const formatImageSrc = (image) => {
       if (!image) return 'https://api.stavebninylysa.cz/images/produkty/placeholder.png'
+
+      // If already a full URL, return as is
       if (image.startsWith('http')) return image
-      return `https://api.stavebninylysa.cz${image}`
+
+      // If path already starts with /images/produkty/, don't add it again
+      if (image.startsWith('/images/produkty/')) {
+        return `https://api.stavebninylysa.cz${image}`
+      }
+
+      // Otherwise, add the full path
+      return `https://api.stavebninylysa.cz/images/produkty/${image}`
     }
 
     // Update item quantity
@@ -212,6 +221,7 @@ export default {
       const item = cartItems.value[index]
       cart.updateQuantity(index, item.quantity)
     }
+    // Add image error handler
     const onImageError = (event) => {
       event.target.src = 'https://api.stavebninylysa.cz/images/produkty/placeholder.png'
     }

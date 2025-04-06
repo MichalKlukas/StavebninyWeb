@@ -367,8 +367,17 @@ export default {
     }
     const formatImageUrl = (url) => {
       if (!url) return 'https://api.stavebninylysa.cz/images/produkty/placeholder.png'
+
+      // If already a full URL, return as is
       if (url.startsWith('http')) return url
-      return `https://api.stavebninylysa.cz${url}`
+
+      // If path already starts with /images/produkty/, don't add it again
+      if (url.startsWith('/images/produkty/')) {
+        return `https://api.stavebninylysa.cz${url}`
+      }
+
+      // Otherwise, add the full path
+      return `https://api.stavebninylysa.cz/images/produkty/${url}`
     }
     const onImageError = (event) => {
       event.target.src = 'https://api.stavebninylysa.cz/images/produkty/placeholder.png'

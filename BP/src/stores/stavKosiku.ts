@@ -327,6 +327,15 @@ export const useCart = defineStore('cart', () => {
     // Clear items in the local state regardless of server success
     items.value = []
   }
+  function setShippingMethod(method: 'pickup' | 'delivery') {
+    shippingMethod.value = method
+
+    // Reset delivery cost if switching to pickup
+    if (method === 'pickup') {
+      deliveryCost.value = 0
+      deliveryDistance.value = 0
+    }
+  }
   // Set delivery address
   function setDeliveryAddress(address: DeliveryAddress) {
     deliveryAddress.value = address

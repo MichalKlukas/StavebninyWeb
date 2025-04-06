@@ -203,6 +203,7 @@ export default {
       }, 1000)
     },
     onImageError(event) {
+      event.target.onerror = null
       event.target.src = '/placeholder.png'
     }
   }

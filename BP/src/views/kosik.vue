@@ -223,6 +223,7 @@ export default {
     }
     // Add image error handler
     const onImageError = (event) => {
+      event.target.onerror = null
       event.target.src = '/placeholder.png'
     }
     // Helper functions for increasing/decreasing quantity

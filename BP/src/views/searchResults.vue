@@ -380,6 +380,7 @@ export default {
       return `https://api.stavebninylysa.cz/images/produkty/${url}`
     }
     const onImageError = (event) => {
+      event.target.onerror = null
       event.target.src = '/placeholder.png'
     }
     // Reset filtrů

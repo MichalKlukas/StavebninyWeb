@@ -1034,6 +1034,7 @@ export default {
     }
     const onImageError = (event) => {
       // Replace the broken image with the placeholder
+      event.target.onerror = null
       event.target.src = '/placeholder.png'
     }
     return {

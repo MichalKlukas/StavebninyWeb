@@ -17,9 +17,10 @@
           <div v-for="(item, index) in cartItems" :key="index" class="cart-item">
             <div class="item-product">
               <img
-                :src="formatImageSrc(item.image || item.imageURL)"
+                :src="formatImageSrc(item.image || item.imageURL || item.imageUrl)"
                 :alt="item.name"
                 class="item-image"
+                @error="onImageError"
               />
               <div class="item-details">
                 <h3 class="item-name">{{ item.name }}</h3>
@@ -211,7 +212,9 @@ export default {
       const item = cartItems.value[index]
       cart.updateQuantity(index, item.quantity)
     }
-
+    const onImageError = (event) => {
+      event.target.src = 'https://api.stavebninylysa.cz/images/produkty/placeholder.png'
+    }
     // Helper functions for increasing/decreasing quantity
     const increaseQuantity = (index) => {
       cart.increaseQuantity(index)
@@ -252,7 +255,8 @@ export default {
       decreaseQuantity,
       formatPrice,
       calculateItemTotal,
-      formatImageSrc
+      formatImageSrc,
+      onImageError
     }
   },
   methods: {

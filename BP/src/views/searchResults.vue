@@ -124,7 +124,11 @@
               @click="viewProductDetail(product.id)"
             >
               <div class="product-image">
-                <img :src="product.image || '/placeholder.png'" :alt="product.name" />
+                <img
+                  :src="formatImageUrl(product.image || product.imageUrl)"
+                  :alt="product.name"
+                  @error="onImageError"
+                />
               </div>
               <div class="product-details">
                 <h3 class="product-name">{{ product.name }}</h3>
@@ -361,7 +365,14 @@ export default {
           break
       }
     }
-
+    const formatImageUrl = (url) => {
+      if (!url) return 'https://api.stavebninylysa.cz/images/produkty/placeholder.png'
+      if (url.startsWith('http')) return url
+      return `https://api.stavebninylysa.cz${url}`
+    }
+    const onImageError = (event) => {
+      event.target.src = 'https://api.stavebninylysa.cz/images/produkty/placeholder.png'
+    }
     // Reset filtrů
     const resetFilters = () => {
       filters.value.price.min = null
@@ -396,11 +407,6 @@ export default {
     // Pomocné funkce
     const formatPrice = (price) => {
       return price.toLocaleString('cs-CZ') + ' Kč'
-    }
-
-    // Navigace na detail produktu
-    const viewProductDetail = (productId) => {
-      router.push(`/produkt/${productId}`)
     }
 
     // Přidání do košíku
@@ -444,9 +450,10 @@ export default {
       applyPriceFilter,
       toggleFilter,
       sortProducts,
-      viewProductDetail,
       addToCart,
-      showNotification
+      showNotification,
+      onImageError,
+      formatImageUrl
     }
   }
 }

@@ -9,7 +9,11 @@
         @click="selectSubcategory(subcategory.id)"
       >
         <div class="subcategory-image">
-          <img :src="subcategory.image || '/placeholder.png'" :alt="subcategory.name" />
+          <img
+            :src="subcategory.image || '/placeholder.png'"
+            :alt="subcategory.name"
+            @error="onImageError"
+          />
         </div>
         <div class="subcategory-content">
           {{ subcategory.name }}
@@ -832,7 +836,7 @@ export default {
               image: '/images/subcategories/auto-moto.jpeg'
             },
             {
-              id: 'obkladyy',
+              id: 'obklady',
               name: 'Obklady',
               count: 5,
               image: '/images/subcategories/obklady.jpeg'
@@ -1028,6 +1032,10 @@ export default {
         }, 3000)
       }
     }
+    const onImageError = (event) => {
+      // Replace the broken image with the placeholder
+      event.target.src = '/placeholder.png'
+    }
     return {
       categoryData,
       selectedSubcategory,
@@ -1039,6 +1047,7 @@ export default {
       totalPages,
       filters,
       showSidebar,
+      onImageError,
       showPriceFilter,
       sortOption,
       formatPrice,

@@ -199,7 +199,7 @@ export default {
     const formatImageSrc = (image) => {
       if (!image) return '/placeholder-image.jpg'
       if (image.startsWith('http')) return image
-      return `https://api.stavebninylysa.cz/images/produkty/${image}`
+      return `https://api.stavebninylysa.cz/${image}`
     }
 
     // Update item quantity

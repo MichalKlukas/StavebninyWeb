@@ -1,7 +1,11 @@
 <template>
   <div class="product-card" @click="navigateToProduct">
     <div class="product-image">
-      <img :src="product.image || product.imageUrl || '/placeholder.jpg'" :alt="product.name" />
+      <img
+        :src="product.image || product.imageUrl || '/placeholder.png'"
+        :alt="product.name"
+        @error="onImageError"
+      />
     </div>
     <h3 class="product-name">{{ product.name }}</h3>
     <div class="product-price">
@@ -92,6 +96,10 @@ export default defineComponent({
       }
       // Otherwise return as is or "XXX Kč"
       return typeof product.price === 'string' ? product.price : `${product.price} Kč`
+    },
+    onImageError(event: Event) {
+      // Type assertion for TypeScript; change to your preferred placeholder path
+      ;(event.target as HTMLImageElement).src = '/placeholder.png'
     }
   }
 })

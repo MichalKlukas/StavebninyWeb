@@ -11,7 +11,7 @@
               class="carousel-item"
               :class="{ 'product-item': itemType === 'product' }"
             >
-              <img :src="item.imageUrl" :alt="item.name" />
+              <img :src="item.imageUrl" :alt="item.name" @error="onImageError" />
               <!-- Show details only for products, not for manufacturers -->
               <div v-if="itemType === 'product'" class="item-details">
                 <p class="item-name">{{ item.name }}</p>
@@ -201,6 +201,9 @@ export default {
       setTimeout(() => {
         this.resetAutoSlide()
       }, 1000)
+    },
+    onImageError(event) {
+      event.target.src = '/placeholder.png'
     }
   }
 }

@@ -281,45 +281,73 @@ export default {
     )
 
     // Načtení výsledků vyhledávání
+    // Update the fetchSearchResults function in your SearchResults.vue component
+
     const fetchSearchResults = async () => {
       isLoading.value = true
       try {
+        console.log(`Searching for: "${searchQuery.value}"`)
+
         // API call to your search endpoint
         const response = await axios.get(
           `https://api.stavebninylysa.cz/api/search?q=${encodeURIComponent(searchQuery.value)}`
         )
 
+        // Debug to see what's actually being returned
+        console.log('Search API response:', response.data)
+
         // Process the actual API response
-        if (response.data && response.data.products) {
-          allProducts.value = response.data.products.map((product) => ({
-            id: product.id,
-            name: product.name,
-            price: parseFloat(product.price || 0),
-            image: product.image_url
-              ? `https://api.stavebninylysa.cz${product.image_url}` // Prepend domain directly
-              : 'https://api.stavebninylysa.cz/images/produkty/placeholder.png',
-            price_unit: product.price_unit || product.jednotka || 'ks',
-            category: product.category || '',
-            subcategory: product.subcategory || ''
-          }))
+        if (response.data && response.data.products && response.data.products.length > 0) {
+          // Log the first item to see its structure
+          console.log('First product in search results:', response.data.products[0])
+
+          allProducts.value = response.data.products.map((product) => {
+            // Create a new object with consistent properties
+            const processedProduct = {
+              id: product.id,
+              name: product.name,
+              price: parseFloat(product.price || 0),
+              // Handle both possible image property names and formats
+              image: null,
+              price_unit: product.priceUnit || product.price_unit || 'ks',
+              category: product.category || '',
+              subcategory: product.subcategory || ''
+            }
+
+            // Log image URL formats for debugging
+            console.log(`Product ${product.id} image properties:`, {
+              imageUrl: product.imageUrl,
+              image_url: product.image_url
+            })
+
+            // Handle image URL formats from the API
+            if (product.imageUrl) {
+              processedProduct.image = product.imageUrl.startsWith('/')
+                ? `https://api.stavebninylysa.cz${product.imageUrl}`
+                : product.imageUrl
+            } else if (product.image_url) {
+              processedProduct.image = product.image_url.startsWith('/')
+                ? `https://api.stavebninylysa.cz${product.image_url}`
+                : product.image_url
+            } else {
+              processedProduct.image =
+                'https://api.stavebninylysa.cz/images/produkty/placeholder.png'
+            }
+
+            return processedProduct
+          })
+
+          console.log(`Processed ${allProducts.value.length} products for display`)
         } else {
+          console.log('No products found in search results')
           allProducts.value = []
         }
       } catch (error) {
-        console.error('Search error details:', {
-          message: error.message,
-          response: error.response
-            ? {
-                status: error.response.status,
-                data: error.response.data
-              }
-            : 'No response',
-          request: error.request ? 'Request was made but no response received' : 'No request'
-        })
+        console.error('Search error details:', error)
         allProducts.value = []
       }
 
-      // apply initial filtering
+      // Apply initial filtering
       filterProducts()
       isLoading.value = false
     }
@@ -366,13 +394,16 @@ export default {
       }
     }
     const formatImageUrl = (url) => {
+      // Debug logging
+      console.log('Formatting image URL:', url)
+
       if (!url) return 'https://api.stavebninylysa.cz/images/produkty/placeholder.png'
 
       // If already a full URL, return as is
       if (url.startsWith('http')) return url
 
       // If path already starts with /images/produkty/, don't add it again
-      if (url.startsWith('/images/produkty/')) {
+      if (url.startsWith('/images/produkty/') || url.startsWith('/images/produkty')) {
         return `https://api.stavebninylysa.cz${url}`
       }
 

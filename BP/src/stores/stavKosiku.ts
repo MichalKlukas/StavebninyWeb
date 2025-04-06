@@ -299,35 +299,34 @@ export const useCart = defineStore('cart', () => {
     }
   }
 
-  // Clear cart
+  // Clear cart - updated to handle 404 errors gracefully
+  // Clear cart - updated to handle 404 errors gracefully
   async function clearCart() {
     if (userStore.isAuthenticated && userStore.token && items.value.length > 0) {
-      for (const item of items.value) {
+      const deletePromises = items.value.map(async (item) => {
         if (item.dbId) {
           try {
             await axios.delete(`${API_URL}/cart/${item.dbId}`, {
               headers: { Authorization: `Bearer ${userStore.token}` }
             })
-          } catch (err) {
-            console.error('Error clearing item from server:', err)
+          } catch (error: any) {
+            // Silently handle 404 errors (item already deleted by server)
+            if (error.response && error.response.status === 404) {
+              console.log(`Cart item ${item.dbId} was already deleted on server`)
+            } else {
+              console.error('Error clearing item from server:', error)
+            }
           }
         }
-      }
+      })
+
+      // Wait for all delete operations to complete
+      await Promise.allSettled(deletePromises)
     }
+
+    // Clear items in the local state regardless of server success
     items.value = []
   }
-
-  // Set shipping method
-  function setShippingMethod(method: 'pickup' | 'delivery') {
-    shippingMethod.value = method
-
-    // Reset delivery cost if switching to pickup
-    if (method === 'pickup') {
-      deliveryCost.value = 0
-      deliveryDistance.value = 0
-    }
-  }
-
   // Set delivery address
   function setDeliveryAddress(address: DeliveryAddress) {
     deliveryAddress.value = address

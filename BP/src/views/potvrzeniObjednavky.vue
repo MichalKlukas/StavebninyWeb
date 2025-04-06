@@ -402,6 +402,14 @@ export default {
           return
         }
 
+        // Show immediate processing message
+        alert('Zpracováváme vaši objednávku...')
+
+        // Empty the cart in UI immediately for better UX
+        // We keep a copy for the order creation
+        const cartItemsCopy = [...cartItems.value]
+        cart.items.value = []
+
         const orderDetails = {
           name: `${userInfo.value.firstName} ${userInfo.value.lastName}`,
           email: userInfo.value.email,
@@ -416,15 +424,15 @@ export default {
           note: formData.note
         }
 
-        // Use the cart store's createOrder method
+        // Use the cart store's createOrder method with the original items
         const result = await cart.createOrder(orderDetails)
 
         if (result.success) {
           alert('Vaše objednávka byla úspěšně vytvořena!')
-          // The cart is already cleared in the store's createOrder method
-          // Přesměrovat na domovskou stránku
           router.push('/')
         } else {
+          // If failed, restore cart items
+          cart.items.value = cartItemsCopy
           throw new Error(result.message || 'Nepodařilo se vytvořit objednávku')
         }
       } catch (error) {

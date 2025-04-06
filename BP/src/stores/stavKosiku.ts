@@ -130,7 +130,7 @@ export const useCart = defineStore('cart', () => {
               dbId: item.id,
               name: item.name || `Produkt ${item.product_id}`,
               price: item.price || 0,
-              image: imageUrl || '/placeholder.jpg',
+              image: imageUrl || '/placeholder.png',
               priceUnit: item.price_unit || 'kus'
             } as CartItem
           })

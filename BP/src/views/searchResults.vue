@@ -124,7 +124,7 @@
               @click="viewProductDetail(product.id)"
             >
               <div class="product-image">
-                <img :src="product.image || '/placeholder-image.jpg'" :alt="product.name" />
+                <img :src="product.image || '/placeholder.png'" :alt="product.name" />
               </div>
               <div class="product-details">
                 <h3 class="product-name">{{ product.name }}</h3>
@@ -292,8 +292,8 @@ export default {
             name: product.name,
             price: parseFloat(product.price || 0),
             image: product.image_url
-              ? `https://api.stavebninylysa.cz/images/produkty/${product.image_url}`
-              : '/placeholder.png',
+              ? `https://api.stavebninylysa.cz${product.image_url}` // Prepend domain directly
+              : 'https://api.stavebninylysa.cz/images/produkty/placeholder.png',
             price_unit: product.price_unit || product.jednotka || 'ks',
             category: product.category || '',
             subcategory: product.subcategory || ''
@@ -410,7 +410,7 @@ export default {
         id: product.id,
         name: product.name,
         price: product.price.toString(),
-        image: product.image || '/placeholder-image.jpg',
+        image: product.image || '/placeholder.png',
         priceUnit: 'kus' // nebo jiná jednotka, pokud je k dispozici
       }
 

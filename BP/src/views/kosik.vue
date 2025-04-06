@@ -16,7 +16,11 @@
 
           <div v-for="(item, index) in cartItems" :key="index" class="cart-item">
             <div class="item-product">
-              <img :src="formatImageSrc(item.image)" :alt="item.name" class="item-image" />
+              <img
+                :src="formatImageSrc(item.image || item.imageURL)"
+                :alt="item.name"
+                class="item-image"
+              />
               <div class="item-details">
                 <h3 class="item-name">{{ item.name }}</h3>
                 <p class="item-unit">Jednotka: {{ item.priceUnit || 'kus' }}</p>
@@ -197,9 +201,9 @@ export default {
 
     // Format image source
     const formatImageSrc = (image) => {
-      if (!image) return '/placeholder-image.jpg'
+      if (!image) return 'https://api.stavebninylysa.cz/images/produkty/placeholder.png'
       if (image.startsWith('http')) return image
-      return `https://api.stavebninylysa.cz/${image}`
+      return `https://api.stavebninylysa.cz${image}`
     }
 
     // Update item quantity

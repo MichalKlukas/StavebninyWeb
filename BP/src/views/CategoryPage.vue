@@ -878,7 +878,7 @@ export default {
           name: product.name,
           price: parseFloat(product.price) || 0,
           image: product.image_url
-            ? `https://api.stavebninylysa.cz/images/produkty/${product.image_url}`
+            ? `https://api.stavebninylysa.cz${product.image_url}` // Just prepend the domain
             : 'https://api.stavebninylysa.cz/images/produkty/placeholder.png',
           price_unit: product.jednotka || 'ks',
           // Store the actual subcategory from the database

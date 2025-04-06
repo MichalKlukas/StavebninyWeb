@@ -255,7 +255,7 @@ export default {
             id: product.id,
             name: product.name,
             imageUrl: product.image_url
-              ? `https://api.stavebninylysa.cz/images/produkty/${product.image_url}`
+              ? `https://api.stavebninylysa.cz${product.image_url}` // Just prepend the domain
               : 'https://api.stavebninylysa.cz/images/produkty/placeholder.png',
             price: parseFloat(product.price).toFixed(2).replace('.', ',') + ' Kč',
             price_unit: product.jednotka || 'ks'

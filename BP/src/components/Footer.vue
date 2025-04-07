@@ -41,7 +41,7 @@
                   class="icon-img"
                 />
               </span>
-              <span class="contact-text">po-pá 7:00 - 16:00, so 7:00 - 12:00</span>
+              <span class="contact-text">po-pá 7:00 - 17:00, so 7:00 - 12:00</span>
             </li>
             <li class="contact-item">
               <span class="icon">

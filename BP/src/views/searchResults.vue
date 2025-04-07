@@ -293,32 +293,34 @@ export default {
           `https://api.stavebninylysa.cz/api/search?q=${encodeURIComponent(searchQuery.value)}`
         )
 
-        // Debug to see what's actually being returned
-        console.log('Search API response:', response.data)
+        // Debug to see what's being returned
+        console.log(
+          'Search API response first 3 items:',
+          response.data.products?.slice(0, 3).map((p) => ({
+            name: p.name,
+            score: p.score, // Backend's sort score
+            sort_rank: p.sort_rank // Backend's sort rank (if present)
+          }))
+        )
 
-        // Process the actual API response
         if (response.data && response.data.products && response.data.products.length > 0) {
           // Log the first item to see its structure
           console.log('First product in search results:', response.data.products[0])
 
-          allProducts.value = response.data.products.map((product) => {
+          // Keep track of the original order from the backend
+          allProducts.value = response.data.products.map((product, index) => {
             // Create a new object with consistent properties
             const processedProduct = {
               id: product.id,
               name: product.name,
               price: parseFloat(product.price || 0),
-              // Handle both possible image property names and formats
               image: null,
               price_unit: product.priceUnit || product.price_unit || 'ks',
               category: product.category || '',
-              subcategory: product.subcategory || ''
+              subcategory: product.subcategory || '',
+              // Preserve backend ranking - use score, sort_rank, or fallback to the index
+              original_rank: product.sort_rank || product.score || 1000 - index
             }
-
-            // Log image URL formats for debugging
-            console.log(`Product ${product.id} image properties:`, {
-              imageUrl: product.imageUrl,
-              image_url: product.image_url
-            })
 
             // Handle image URL formats from the API
             if (product.imageUrl) {
@@ -347,13 +349,13 @@ export default {
         allProducts.value = []
       }
 
-      // Apply initial filtering
-      filterProducts()
+      // Apply initial filtering but don't sort - preserve backend order
+      filterProducts(false)
       isLoading.value = false
     }
 
     // Filtrace produktů
-    const filterProducts = () => {
+    const filterProducts = (applySort = true) => {
       let result = [...allProducts.value]
 
       // Filtrování podle ceny
@@ -365,16 +367,24 @@ export default {
         result = result.filter((product) => product.price <= filters.value.price.max)
       }
 
-      // Řazení produktů
-      sortProductsList(result)
+      // Only sort if explicitly asked to (e.g., user clicked sort dropdown)
+      if (applySort) {
+        console.log('Applying user-requested sort:', sortOption.value)
+        sortProductsList(result)
+      } else {
+        // Keep the original order from the backend
+        console.log('Preserving backend sort order')
+        result.sort((a, b) => b.original_rank - a.original_rank)
+      }
 
       filteredProducts.value = result
       currentPage.value = 1
     }
 
-    // Řazení produktů
+    // 3. Updated sortProducts function - explicitly calls for sorting
     const sortProducts = () => {
-      sortProductsList(filteredProducts.value)
+      // When user changes sort option, always apply the sort
+      filterProducts(true)
     }
 
     const sortProductsList = (products) => {

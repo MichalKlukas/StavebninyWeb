@@ -230,28 +230,27 @@ export default {
       try {
         console.log('Fetching featured products')
 
-        // Using featuredProductIds from data - no redundant declaration
-        const products = []
+        // NEW CODE: Fetch all products in parallel with Promise.all
+        const fetchPromises = this.featuredProductIds.map((id) =>
+          fetch(`/api/products/${id}`)
+            .then((response) => (response.ok ? response.json() : null))
+            .catch((error) => {
+              console.error(`Error fetching product ${id}:`, error)
+              return null
+            })
+        )
 
-        // Fetch the specific products by ID
-        for (const id of this.featuredProductIds) {
-          try {
-            const response = await fetch(`/api/products/${id}`)
+        // Wait for all fetches to complete simultaneously
+        const results = await Promise.all(fetchPromises)
 
-            if (response.ok) {
-              const result = await response.json()
-              if (result.data && result.data.product) {
-                products.push(result.data.product)
-              }
-            }
-          } catch (error) {
-            console.error(`Error fetching product ${id}:`, error)
-          }
-        }
+        // Process the results
+        const validProducts = results
+          .filter((result) => result && result.data && result.data.product)
+          .map((result) => result.data.product)
 
         // If we got at least some products, format them for the carousel
-        if (products.length > 0) {
-          this.recommendedProducts = products.map((product) => ({
+        if (validProducts.length > 0) {
+          this.recommendedProducts = validProducts.map((product) => ({
             id: product.id,
             name: product.name,
             imageUrl: product.image_url
@@ -264,35 +263,34 @@ export default {
           console.log('Fetched featured products:', this.recommendedProducts)
         }
         /* Commented out the else block for random products fallback
-        else {
-          // If no products found by ID, fetch random products as fallback
-          console.log('No products found by ID, fetching random products')
-          const randomResponse = await fetch('/api/products?limit=12')
+    else {
+      // If no products found by ID, fetch random products as fallback
+      console.log('No products found by ID, fetching random products')
+      const randomResponse = await fetch('/api/products?limit=12')
 
-          if (randomResponse.ok) {
-            const result = await randomResponse.json()
+      if (randomResponse.ok) {
+        const result = await randomResponse.json()
 
-            if (result.data && result.data.products && result.data.products.length > 0) {
-              this.recommendedProducts = result.data.products.map((product) => ({
-                id: product.id,
-                name: product.name,
-                imageUrl: product.image_url
-                  ? `https://api.stavebninylysa.cz/images/produkty/${product.image_url}`
-                  : '/placeholder.png',
-                price: parseFloat(product.price).toFixed(2).replace('.', ',') + ' Kč',
-                price_unit: product.jednotka || 'ks'
-              }))
-            }
-          }
+        if (result.data && result.data.products && result.data.products.length > 0) {
+          this.recommendedProducts = result.data.products.map((product) => ({
+            id: product.id,
+            name: product.name,
+            imageUrl: product.image_url
+              ? `https://api.stavebninylysa.cz/images/produkty/${product.image_url}`
+              : '/placeholder.png',
+            price: parseFloat(product.price).toFixed(2).replace('.', ',') + ' Kč',
+            price_unit: product.jednotka || 'ks'
+          }))
         }
-        */
+      }
+    }
+    */
       } catch (error) {
         console.error('Error fetching recommended products:', error)
         // Fallback method is commented out, so we'll just set to empty array
         this.recommendedProducts = []
       }
     }
-
     // Fallback method to use default products (commented out as requested)
     /*useDefaultProducts() {
       console.log('Using default product data')

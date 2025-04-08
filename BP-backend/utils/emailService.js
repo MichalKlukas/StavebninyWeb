@@ -115,7 +115,7 @@ const emailService = {
 
       const mailOptions = {
         from: `"Stavebniny Baroch" <${process.env.EMAIL_USER}>`,
-        to: process.env.CONTACT_EMAIL || 'michalik123456789@seznam.cz',
+        to: process.env.CONTACT_EMAIL || 'stavebninybaroch@seznam.cz' || 'michalik123456789@seznam.cz',
         subject: `${emailSubject}: ${formData.subject}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

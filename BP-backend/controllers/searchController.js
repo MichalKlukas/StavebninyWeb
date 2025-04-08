@@ -1,58 +1,140 @@
-// Add this to your backend server
-// For example in a new file called searchController.js
-
 const db = require('../config/db');
 
-// Search controller
 const searchController = {
   async searchProducts(req, res) {
     try {
       const { q } = req.query;
-      
       if (!q) {
         return res.status(400).json({ error: 'Search query is required' });
       }
-      
+
       // Convert query to lowercase for case-insensitive search
-      const searchTerm = q.toLowerCase();
-      console.log(`Searching for products with term: ${searchTerm}`);
+      const searchTerm = q.toLowerCase().trim();
+      console.log(`Searching for products with term: "${searchTerm}"`);
+
+      // Split search term into words for better matching
+      const searchWords = searchTerm.split(/\s+/).filter(word => word.length > 0);
+      console.log(`Search words: ${JSON.stringify(searchWords)}`);
+
+      // If no valid search words, return empty result
+      if (searchWords.length === 0) {
+        return res.status(200).json({
+          products: [],
+          count: 0,
+          query: q
+        });
+      }
+
+      // This is the exact standalone term we're checking for
+      const exactTerm = searchTerm;
+
+      let query = `
+        WITH search_results AS (
+          SELECT
+            id,
+            name,
+            price,
+            image_url as "imageUrl",
+            price_unit as "priceUnit",
+            category,
+            subcategory,
+            lower(name) as lower_name,
+            CASE
+              -- Explicit check for exact match
+              WHEN LOWER(name) = $1 THEN 100
+              
+              -- Most explicit check for standalone word
+              WHEN (
+                LOWER(name) ~ '^${exactTerm}[^a-z0-9]' OR   -- Starts with term followed by non-alphanumeric
+                LOWER(name) ~ ' ${exactTerm}[^a-z0-9]' OR   -- Has space, then term, then non-alphanumeric  
+                LOWER(name) ~ '[^a-z0-9]${exactTerm} ' OR   -- Has non-alphanumeric, then term, then space
+                LOWER(name) ~ '[^a-z0-9]${exactTerm}$' OR   -- Has non-alphanumeric, then term at end
+                LOWER(name) ~ '^${exactTerm} ' OR           -- Starts with term then space
+                LOWER(name) ~ ' ${exactTerm}$' OR           -- Has space then term at end
+                LOWER(name) ~ '^${exactTerm}$'              -- Is exactly the term
+              ) THEN 90
+              
+              -- Plain name contains
+              WHEN LOWER(name) LIKE '%${exactTerm}%' THEN 70
+              
+              -- Other fields contain
+              WHEN LOWER(category) LIKE '%${exactTerm}%' THEN 50  
+              WHEN LOWER(subcategory) LIKE '%${exactTerm}%' THEN 40
+              
+              -- Default
+              ELSE 10
+            END as score
+          FROM
+            products
+          WHERE `;
       
-      // SQL query using ILIKE for case-insensitive partial matching
-      // Searching in product name, description, and categories
-      const query = `
-        SELECT 
-          p.id, 
-          p.name, 
-          p.price, 
-          p.image_url as "imageUrl", 
-          p.price_unit as "priceUnit",
-          c.name as "categoryName",
-          sc.name as "subcategoryName"
-        FROM 
-          products p
-        LEFT JOIN 
-          categories c ON p.category_id = c.id
-        LEFT JOIN 
-          subcategories sc ON p.subcategory_id = sc.id
-        WHERE 
-          LOWER(p.name) ILIKE $1 OR
-          LOWER(p.description) ILIKE $1 OR
-          LOWER(c.name) ILIKE $1 OR
-          LOWER(sc.name) ILIKE $1
-        ORDER BY 
-          p.name ASC
-        LIMIT 50
+      const queryParams = [exactTerm]; // First parameter is the exact term
+      let paramIndex = 2;
+      
+      // Add conditions for each search word
+      const conditions = [];
+      searchWords.forEach(word => {
+        if (word.length >= 1) {
+          const wordCondition = `(
+            LOWER(name) ILIKE $${paramIndex} OR
+            LOWER(category) ILIKE $${paramIndex} OR
+            LOWER(subcategory) ILIKE $${paramIndex}
+          )`;
+          conditions.push(wordCondition);
+          queryParams.push(`%${word}%`);
+          paramIndex++;
+        }
+      });
+
+      // If we have word conditions, add them to the query
+      if (conditions.length > 0) {
+        query += conditions.join(' AND ');
+      } else {
+        // Fall back to the original search
+        query += `LOWER(name) ILIKE $2`;
+        queryParams.push(`%${exactTerm}%`);
+      }
+
+      // Close the CTE and select from it
+      query += `
+        )
+        SELECT *, 
+           score as sort_rank,
+           -- Create debug info column
+           CASE 
+             WHEN lower_name ~ ' ${exactTerm} ' THEN 'MATCH: Surrounded by spaces'
+             WHEN lower_name ~ '^${exactTerm} ' THEN 'MATCH: At start with space after'
+             WHEN lower_name ~ ' ${exactTerm}$' THEN 'MATCH: At end with space before'
+             WHEN lower_name ~ '${exactTerm}' THEN 'CONTAINS: As substring'
+             ELSE 'NO MATCH'
+           END as match_description
+        FROM search_results
+        ORDER BY score DESC, name ASC
       `;
+
+      console.log('Executing query with params:', queryParams);
       
-      // Execute the query with the search term (adding % for partial matching)
-      const result = await db.query(query, [`%${searchTerm}%`]);
-      
+      // Execute the query with the parameters
+      const result = await db.query(query, queryParams);
       console.log(`Found ${result.rows.length} products matching "${searchTerm}"`);
       
-      // Return the products
+      if (result.rows.length > 0) {
+        // Log the top 10 results with detailed info
+        console.log("Top 10 results with scores and match info:");
+        result.rows.slice(0, 10).forEach((row, idx) => {
+          console.log(`${idx+1}. [Score: ${row.score}] [${row.match_description}] "${row.name}" (lower: "${row.lower_name}")`);
+        });
+      }
+      
+      // Important: Return the sort_rank in the response so frontend can use it
+      const cleanResults = result.rows.map(row => {
+        const { lower_name, match_description, ...cleanRow } = row;
+        return cleanRow;
+      });
+      
       res.status(200).json({
-        products: result.rows,
-        count: result.rows.length,
+        products: cleanResults,
+        count: cleanResults.length,
         query: q
       });
     } catch (error) {

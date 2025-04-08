@@ -142,7 +142,7 @@ export default {
     return {
       storeFrontImage,
       // Array of specific product IDs to fetch from the database
-      featuredProductIds: [725, 1451, 11, 2947, 2089, 4136, 1291, 3001, 2785, 244, 413, 13], // Replace with your chosen product IDs
+      featuredProductIds: [725, 1451, 2742, 2947, 2089, 4136, 1291, 3001, 2785, 244, 413, 13], // Replace with your chosen product IDs
       // This will store our fetched products
       recommendedProducts: [],
       manufacturers: [

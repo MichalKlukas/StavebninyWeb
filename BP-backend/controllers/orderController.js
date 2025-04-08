@@ -123,43 +123,50 @@ const orderController = {
     }
   },
 
-  // Get all orders for the authenticated user
-  async getUserOrders(req, res) {
-    try {
-      const userId = req.user.id;
-      console.log(`Getting orders for user ID: ${userId}`);
 
-      const result = await db.query(
-        `SELECT
-          o.id,
-          o.status,
-          o.shipping_method,
-          o.shipping_cost,
-          o.pickup_date,
-          o.total_price,
-          o.created_at
-        FROM
-          orders o
-        WHERE
-          o.user_id = $1
-        ORDER BY
-          o.created_at DESC`,
-        [userId]
-      );
+// Update the getUserOrders method in orderController.js
+async getUserOrders(req, res) {
+  try {
+    const userId = req.user.id;
+    console.log(`Getting orders for user ID: ${userId}`);
 
-      res.status(200).json({
-        success: true,
-        orders: result.rows
-      });
-    } catch (error) {
-      console.error('Get user orders error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Při načítání objednávek došlo k chybě',
-        error: error.message
-      });
-    }
-  },
+    // Get basic order information
+    const ordersResult = await db.query(
+      `SELECT
+        o.id,
+        o.status,
+        o.shipping_method,
+        o.shipping_cost,
+        o.pickup_date,
+        o.total_price,
+        o.created_at,
+        COUNT(oi.id) as item_count
+      FROM
+        orders o
+      LEFT JOIN
+        order_items oi ON o.id = oi.order_id
+      WHERE
+        o.user_id = $1
+      GROUP BY
+        o.id
+      ORDER BY
+        o.created_at DESC`,
+      [userId]
+    );
+
+    res.status(200).json({
+      success: true,
+      orders: ordersResult.rows
+    });
+  } catch (error) {
+    console.error('Get user orders error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Při načítání objednávek došlo k chybě',
+      error: error.message
+    });
+  }
+},
 
   // Get specific order by ID
   async getOrderById(req, res) {

@@ -11,6 +11,8 @@ const contactRoutes = require('./routes/contactRoutes');
 const dunaApiRoutes = require('./routes/dunaApiRoutes');
 const cartRoutes = require('./routes/cartRoutes'); // Contains shipping route
 const orderRoutes = require('./routes/orderRoutes'); // New order routes
+const productRoutes = require('./routes/productRoutes');
+const searchRoutes = require('./routes/searchRoutes');
 
 // Load environment variables
 dotenv.config();
@@ -20,19 +22,75 @@ console.log('Node environment:', process.env.NODE_ENV);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 1. CORS configuration
-const corsOptions = {
-  origin: 'https://stavebniny-web.vercel.app', // or array/function if you need multiple
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-};
+// Serve static files from /var/www/html
+app.use('/images', express.static('/var/www/html/images'));
 
-// 2. Use CORS for all routes
-app.use(cors(corsOptions));
+// CORS configuration - PLACE THIS FIRST, before other middleware
+app.use((req, res, next) => {
+  // Allow specific origins
+  const allowedOrigins = [
+    'https://stavebninylysa.cz',
+    'https://www.stavebninylysa.cz',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ];
+  const origin = req.headers.origin;
 
-// 3. Explicitly allow OPTIONS for all routes
-app.options('*', cors(corsOptions));
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+
+  // Request methods you wish to allow
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+
+  // Request headers you wish to allow
+  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,Authorization');
+
+  // Set to true if you need the website to include cookies in the requests
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  next();
+});
+
+// Now include the standard cors middleware as a backup
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      const allowedOrigins = [
+        'https://stavebninylysa.cz',
+        'https://www.stavebninylysa.cz',
+        'http://localhost:5173',
+        'http://localhost:3000'
+      ];
+      // Allow requests with no origin (mobile apps, curl requests)
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        console.log('CORS blocked origin:', origin);
+        callback(null, false);
+      }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    credentials: true,
+    optionsSuccessStatus: 200
+  })
+);
+
+// *** Security Header Middleware ***
+// This sets the Permissions-Policy header to disable features you don't intend to use.
+//app.use((req, res, next) => {
+//  res.setHeader(
+//    "Permissions-Policy",
+//    "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+//  );
+//  next();
+//});
 
 // Middleware for parsing requests
 app.use(express.json());
@@ -126,6 +184,8 @@ app.use('/api', contactRoutes);
 app.use('/api', dunaApiRoutes);
 app.use('/api', cartRoutes);
 app.use('/api', orderRoutes); // Add new order routes
+app.use('/api/products', productRoutes);
+app.use('/api/search', searchRoutes);
 
 // Basic route for checking if server is running
 app.get('/', (req, res) => {
@@ -142,3 +202,4 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`Server běží na portu ${PORT}`);
 });
+

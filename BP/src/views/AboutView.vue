@@ -25,8 +25,8 @@
       <p class="margin">Asistentka prodeje: Monika Jůzová</p>
     </div>
     <div class="about-images">
-      <img src="@/assets/woman1.jpg" alt="Obrázek ženy 1" />
-      <img src="@/assets/woman2.jpg" alt="Obrázek ženy 2" />
+      <!--<img src="@/assets/woman1.jpg" alt="Obrázek ženy 1" />
+      <img src="@/assets/woman2.jpg" alt="Obrázek ženy 2" />-->
     </div>
   </div>
 

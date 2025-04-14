@@ -89,7 +89,6 @@
               <option value="name-desc">Název (Z-A)</option>
               <option value="price-asc">Cena (nejnižší)</option>
               <option value="price-desc">Cena (nejvyšší)</option>
-              <option value="newest">Nejnovější</option>
             </select>
           </div>
         </div>
@@ -136,7 +135,9 @@
                   {{ product.dimension }}
                 </div>
                 <div class="product-price">
-                  <div class="current-price">{{ formatPrice(product.price) }}</div>
+                  <div class="current-price">
+                    {{ formatPrice(product.price) }} / {{ product.price_unit }}
+                  </div>
                 </div>
               </div>
               <div class="product-actions">

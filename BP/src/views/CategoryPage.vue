@@ -103,7 +103,6 @@
               <option value="name-desc">Název (Z-A)</option>
               <option value="price-asc">Cena (nejnižší)</option>
               <option value="price-desc">Cena (nejvyšší)</option>
-              <option value="newest">Nejnovější</option>
             </select>
           </div>
         </div>

@@ -9,14 +9,21 @@
       "destination": "/index.html"
     }
   ],
-  "routes": [
+  "redirects": [
     {
-      "src": "/(\\.env|\\.git|\\.htaccess|config\\.json|\\.DS_Store|Thumbs\\.db)(.*)?",
-      "headers": {
-        "cache-control": "no-store"
-      },
-      "status": 403,
-      "continue": false
+      "source": "/.env",
+      "destination": "/403",
+      "statusCode": 403
+    },
+    {
+      "source": "/.git/:path*",
+      "destination": "/403",
+      "statusCode": 403
+    },
+    {
+      "source": "/config.json",
+      "destination": "/403",
+      "statusCode": 403
     }
   ],
   "headers": [
@@ -42,10 +49,6 @@
         {
           "key": "Referrer-Policy",
           "value": "strict-origin-when-cross-origin"
-        },
-        {
-          "key": "Permissions-Policy",
-          "value": "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
         }
       ]
     }

@@ -9,6 +9,23 @@
       "destination": "/index.html"
     }
   ],
+  "redirects": [
+    {
+      "source": "/.env",
+      "destination": "/403",
+      "statusCode": 403
+    },
+    {
+      "source": "/.git/:path*",
+      "destination": "/403",
+      "statusCode": 403
+    },
+    {
+      "source": "/config.json",
+      "destination": "/403",
+      "statusCode": 403
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

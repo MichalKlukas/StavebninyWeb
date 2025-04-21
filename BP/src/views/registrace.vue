@@ -222,12 +222,12 @@
         </div>
 
         <!-- Registrace přes Google -->
-        <div class="social-login" v-if="!formSubmitted">
+        <!-- <div class="social-login" v-if="!formSubmitted">
           <button @click="registerWithGoogle" class="google-button" :disabled="isSubmitting">
             <span class="google-icon">G</span>
             <span>Registrovat přes Google</span>
           </button>
-        </div>
+        </div> -->
       </div>
 
       <!-- Sekce pro již registrované uživatele -->
@@ -242,7 +242,7 @@
 
 <script>
 import axios from 'axios'
-import API_URL from '@/config/api.js';
+import API_URL from '@/config/api.js'
 
 export default {
   name: 'RegistrationPage',
@@ -394,28 +394,28 @@ export default {
       }
     },
 
-    registerWithGoogle() {
-      // Zde by byla implementace registrace přes Google OAuth
-      // Pro kompletní implementaci je potřeba využít knihovnu jako je vue-google-oauth2
+    //registerWithGoogle() {
+    // Zde by byla implementace registrace přes Google OAuth
+    // Pro kompletní implementaci je potřeba využít knihovnu jako je vue-google-oauth2
 
-      // Příklad implementace s využitím Google OAuth knihovny:
-      // this.$gAuth.signIn().then(googleUser => {
-      //   const idToken = googleUser.getAuthResponse().id_token
-      //   return axios.post(`${import.meta.env.VITE_API_URL}/api/register/google`, { token: idToken })
-      // }).then(response => {
-      //   this.formSubmitted = true
-      // }).catch(error => {
-      //   console.error('Google register error:', error)
-      //   this.errorMessage = 'Registrace přes Google se nezdařila. Zkuste to prosím znovu.'
-      // })
+    // Příklad implementace s využitím Google OAuth knihovny:
+    // this.$gAuth.signIn().then(googleUser => {
+    //   const idToken = googleUser.getAuthResponse().id_token
+    //   return axios.post(`${import.meta.env.VITE_API_URL}/api/register/google`, { token: idToken })
+    // }).then(response => {
+    //   this.formSubmitted = true
+    // }).catch(error => {
+    //   console.error('Google register error:', error)
+    //   this.errorMessage = 'Registrace přes Google se nezdařila. Zkuste to prosím znovu.'
+    // })
 
-      // Simulace pro ukázku
-      this.isSubmitting = true
-      setTimeout(() => {
-        this.isSubmitting = false
-        this.formSubmitted = true
-      }, 1000)
-    },
+    // Simulace pro ukázku
+    //   this.isSubmitting = true
+    //   setTimeout(() => {
+    //     this.isSubmitting = false
+    //     this.formSubmitted = true
+    //   }, 1000)
+    // },
 
     showTermsModal() {
       // Zobrazení modálního okna s obchodními podmínkami
@@ -734,7 +734,7 @@ label {
   margin-bottom: 25px;
 }
 
-.google-button {
+/* .google-button {
   width: 100%;
   display: flex;
   align-items: center;
@@ -750,21 +750,21 @@ label {
   transition:
     background-color 0.3s,
     border-color 0.3s;
-}
+} */
 
-.google-button:hover {
+/* .google-button:hover {
   background-color: #f5f5f5;
   border-color: #ccc;
-}
+} */
 
-.google-button:disabled {
+/* .google-button:disabled {
   background-color: #f5f5f5;
   border-color: #eee;
   color: #aaa;
   cursor: not-allowed;
-}
+} */
 
-.google-icon {
+/* .google-icon {
   background-color: #fff;
   color: #4285f4;
   font-weight: bold;
@@ -776,7 +776,7 @@ label {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-}
+} */
 
 .login-section {
   margin-top: 40px;

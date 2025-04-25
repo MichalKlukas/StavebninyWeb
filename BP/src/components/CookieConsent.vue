@@ -9,6 +9,7 @@ import * as CookieConsent from 'vanilla-cookieconsent'
 export default {
   name: 'CookieConsent',
   mounted() {
+    console.log('CookieConsent init...')
     CookieConsent.run({
       current_lang: 'cs',
       autoclear_cookies: true,

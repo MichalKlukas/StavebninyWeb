@@ -245,22 +245,32 @@ export default {
 
         // Process the results
         const validProducts = results
-          .filter((result) => result && result.data && result.data.product)
+          .filter((result) => result !== null && result.data && result.data.product)
           .map((result) => result.data.product)
 
         // If we got at least some products, format them for the carousel
         if (validProducts.length > 0) {
-          this.recommendedProducts = validProducts.map((product) => ({
-            id: product.id,
-            name: product.name,
-            imageUrl: product.image_url
-              ? `https://api.stavebninylysa.cz${product.image_url}` // Just prepend the domain
-              : 'https://api.stavebninylysa.cz/images/produkty/placeholder.png',
-            price: parseFloat(product.price).toFixed(2).replace('.', ',') + ' Kč',
-            price_unit: product.jednotka || 'ks'
-          }))
+          this.recommendedProducts = validProducts.map((product) => {
+            // Zajistit, že price je validní číslo
+            let formattedPrice = '0,00 Kč'
+            if (product.price !== undefined && product.price !== null) {
+              try {
+                formattedPrice = parseFloat(product.price).toFixed(2).replace('.', ',') + ' Kč'
+              } catch (e) {
+                console.warn(`Neplatná cena pro produkt ${product.id}:`, product.price)
+              }
+            }
 
-          console.log('Fetched featured products:', this.recommendedProducts)
+            return {
+              id: product.id,
+              name: product.name || 'Produkt bez názvu',
+              imageUrl: product.image_url
+                ? `https://api.stavebninylysa.cz${product.image_url}`
+                : 'https://api.stavebninylysa.cz/images/produkty/placeholder.png',
+              price: formattedPrice,
+              price_unit: product.jednotka || 'ks'
+            }
+          })
         }
         /* Commented out the else block for random products fallback
     else {

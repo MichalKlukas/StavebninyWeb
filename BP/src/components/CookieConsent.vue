@@ -19,7 +19,7 @@ export default {
           consent_modal: {
             title: 'Používáme cookies',
             description:
-              'Tento web používá cookies pro zlepšení vašeho zážitku a analýzu návštěvnosti. Kliknutím na "Přijmout vše" souhlasíte s jejich použitím.',
+              'Tento web používá cookies pro zlepšení vašeho zážitku a analýzu návštěvnosti.',
             primary_btn: {
               text: 'Přijmout vše',
               role: 'accept_all'
@@ -58,8 +58,7 @@ export default {
               },
               {
                 title: 'Analytické cookies',
-                description:
-                  'Umožňují nám analyzovat využití webu, abychom mohli měřit a zlepšovat jeho výkon.',
+                description: 'Umožňují nám analyzovat využití webu.',
                 toggle: {
                   value: 'analytics',
                   enabled: false,
@@ -77,12 +76,6 @@ export default {
               }
             ]
           }
-        }
-      },
-      // Vypnutí GA, pokud uživatel nesouhlasí s analytickými cookies
-      onAccept: function () {
-        if (!this.acceptedCategory('analytics')) {
-          window['ga-disable-G-KY9ER5K6Z4'] = true
         }
       }
     })

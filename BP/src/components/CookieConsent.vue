@@ -41,10 +41,12 @@ export default {
             reject_all_btn: 'Odmítnout vše',
             close_btn_label: 'Zavřít',
             cookie_table_headers: [
-              { col1: 'Název' },
-              { col2: 'Doména' },
-              { col3: 'Expirace' },
-              { col4: 'Popis' }
+              {
+                col1: 'Název',
+                col2: 'Doména',
+                col3: 'Expirace',
+                col4: 'Popis'
+              }
             ],
             blocks: [
               {

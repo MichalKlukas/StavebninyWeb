@@ -118,8 +118,14 @@ export const useCart = defineStore('cart', () => {
 
       console.log('Server cart response:', resp.data)
 
-      if (resp.data.success) {
-        if (resp.data.cartItems && resp.data.cartItems.length > 0) {
+      // Přidat důkladnější ověření struktury odpovědi
+      if (resp.data && resp.data.success) {
+        // Kontrola, že cartItems je pole
+        if (
+          resp.data.cartItems &&
+          Array.isArray(resp.data.cartItems) &&
+          resp.data.cartItems.length > 0
+        ) {
           items.value = resp.data.cartItems.map((item: ServerCartItem) => {
             return {
               id: item.product_id,
@@ -127,20 +133,24 @@ export const useCart = defineStore('cart', () => {
               dbId: item.id,
               name: item.name || `Produkt ${item.product_id}`,
               price: item.price || 0,
-              image: formatImageUrl(item.image), // Use our improved function instead of inline logic
+              image: formatImageUrl(item.image),
               priceUnit: item.price_unit || 'kus'
             } as CartItem
           })
 
           console.log('Cart loaded with items:', items.value)
         } else {
-          console.log('Cart is empty')
+          console.log('Cart is empty or cartItems is not an array')
           items.value = []
         }
+      } else {
+        console.log('Invalid response format or success flag is false')
+        items.value = []
       }
     } catch (err) {
       console.error('Error loading server cart:', err)
       error.value = 'Nepodařilo se načíst košík'
+      items.value = [] // Resetujte košík i při chybě
     } finally {
       loading.value = false
     }

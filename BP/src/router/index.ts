@@ -17,9 +17,6 @@ import ResetHesla from '@/views/resetHesla.vue'
 import SearchResults from '@/views/searchResults.vue'
 import PotvrzeniObjednavky from '@/views/potvrzeniObjednavky.vue'
 
-// Volitelně: Komponenta pro stránku 404
-import NotFound from '@/views/NotFound.vue'
-
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [

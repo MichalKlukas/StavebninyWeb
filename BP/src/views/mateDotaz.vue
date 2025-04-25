@@ -119,7 +119,7 @@ export default {
         {
           question: 'Jaká je otevírací doba vašich poboček?',
           answer:
-            'Naše pobočky jsou otevřeny od pondělí do pátku od 7:00 do 17:00, v sobotu od 8:00 do 12:00. V neděli a o povinných svátcích máme zavřeno. V zimním období(listopad - únor) od 7:00 do 16:00 a o víkendu od 7:00 do 11:00',
+            'Naše pobočky jsou otevřeny od pondělí do pátku od 7:00 do 17:00, v sobotu od 7:00 do 12:00. V neděli a o povinných svátcích máme zavřeno. V zimním období(listopad - únor) od 7:00 do 16:00 a o víkendu od 7:00 do 11:00',
           isOpen: false
         },
         {

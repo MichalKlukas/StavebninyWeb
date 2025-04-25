@@ -15,6 +15,39 @@ const pinia = createPinia()
 app.use(pinia)
 app.use(router)
 app.mount('#app')
+router.afterEach((to) => {
+  const defaultTitle = 'Stavebniny Lysá'
+  const defaultDescription =
+    'Široký sortiment stavebních materiálů v Lysé nad Labem. Hrubá stavba, fasáda, dřevo, železo, barvy, elektro, chemie a další. Osobní odběr, odborné poradenství.'
+
+  // Najdi meta.title v poslední matched routě
+  const nearestWithTitle = to.matched
+    .slice()
+    .reverse()
+    .find((r) => r.meta && r.meta.title)
+  document.title =
+    nearestWithTitle && nearestWithTitle.meta.title
+      ? (nearestWithTitle.meta.title as string)
+      : defaultTitle
+
+  // Najdi meta.description v poslední matched routě
+  const nearestWithDesc = to.matched
+    .slice()
+    .reverse()
+    .find((r) => r.meta && r.meta.description)
+  let meta = document.querySelector('meta[name="description"]')
+  if (!meta) {
+    meta = document.createElement('meta')
+    meta.setAttribute('name', 'description')
+    document.head.appendChild(meta)
+  }
+  meta.setAttribute(
+    'content',
+    nearestWithDesc && nearestWithDesc.meta.description
+      ? (nearestWithDesc.meta.description as string)
+      : defaultDescription
+  )
+})
 
 // Now that Pinia is created, get the stores:
 const userStore = useUserStore(pinia)

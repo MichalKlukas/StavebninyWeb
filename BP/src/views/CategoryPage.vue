@@ -35,7 +35,7 @@
       <!-- Levý panel s filtry a podkategoriemi -->
       <div class="sidebar" :class="{ 'sidebar-open': showSidebar }">
         <div class="sidebar-header mobile-only">
-          <h3>Filtry a kategorie</h3>
+          <h3>Filtry</h3>
           <button @click="showSidebar = false" class="close-sidebar">×</button>
         </div>
 
@@ -83,7 +83,7 @@
       <div class="product-section">
         <!-- Mobilní tlačítko pro zobrazení filtrů -->
         <button class="show-filters-btn mobile-only" @click="showSidebar = true">
-          <span class="filter-icon">🔍</span> Filtry a kategorie
+          <span class="filter-icon">🔍</span> Filtry
         </button>
 
         <!-- Horní lišta se sortem a počtem produktů -->

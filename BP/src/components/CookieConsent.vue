@@ -10,6 +10,13 @@ export default {
   name: 'CookieConsent',
   mounted() {
     console.log('CookieConsent init...')
+    console.log('languages config', {
+      cs: {
+        consent_modal: 'obsah skryt', // nebo celý objekt, pokud chceš
+        settings_modal: 'obsah skryt'
+      }
+    })
+
     CookieConsent.run({
       current_lang: 'cs',
       autoclear_cookies: true,
@@ -19,7 +26,7 @@ export default {
           consent_modal: {
             title: 'Používáme cookies',
             description:
-              'Tento web používá cookies pro zlepšení vašeho zážitku a analýzu návštěvnosti.',
+              'Tento web používá cookies pro zlepšení vašeho zážitku a analýzu návštěvnosti. Kliknutím na "Přijmout vše" souhlasíte s jejich použitím.',
             primary_btn: {
               text: 'Přijmout vše',
               role: 'accept_all'
@@ -58,7 +65,8 @@ export default {
               },
               {
                 title: 'Analytické cookies',
-                description: 'Umožňují nám analyzovat využití webu.',
+                description:
+                  'Umožňují nám analyzovat využití webu, abychom mohli měřit a zlepšovat jeho výkon.',
                 toggle: {
                   value: 'analytics',
                   enabled: false,

@@ -10,6 +10,11 @@ export default {
   name: 'CookieConsent',
   mounted() {
     console.log('CookieConsent objekt:', CookieConsent)
+    console.log('RUN CONFIG:', {
+      current_lang: 'cs',
+      autoclear_cookies: true,
+      page_scripts: true
+    })
     CookieConsent.run({
       current_lang: 'cs',
       autoclear_cookies: true,
@@ -46,34 +51,6 @@ export default {
                 title: 'Využití cookies',
                 description:
                   'Používáme cookies pro zajištění základních funkcí webu a pro analýzu návštěvnosti.'
-              },
-              {
-                title: 'Nezbytné cookies',
-                description: 'Tyto cookies jsou nezbytné pro fungování webu.',
-                toggle: {
-                  value: 'necessary',
-                  enabled: true,
-                  readonly: true
-                }
-              },
-              {
-                title: 'Analytické cookies',
-                description:
-                  'Umožňují nám analyzovat využití webu, abychom mohli měřit a zlepšovat jeho výkon.',
-                toggle: {
-                  value: 'analytics',
-                  enabled: false,
-                  readonly: false
-                },
-                cookie_table: [
-                  {
-                    col1: '^_ga',
-                    col2: 'google.com',
-                    col3: '2 roky',
-                    col4: 'Google Analytics cookies',
-                    is_regex: true
-                  }
-                ]
               }
             ]
           }

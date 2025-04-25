@@ -10,6 +10,14 @@ import { useCart } from '@/stores/stavKosiku'
 // Nejprve vytvořte aplikaci
 const app = createApp(App)
 const pinia = createPinia()
+const originalObjectKeys = Object.keys
+Object.keys = function (obj) {
+  if (obj === null || obj === undefined) {
+    console.warn('Attempted to call Object.keys on null/undefined')
+    return []
+  }
+  return originalObjectKeys(obj)
+}
 
 // Příprava pro Google Analytics - definice globální proměnné
 declare global {

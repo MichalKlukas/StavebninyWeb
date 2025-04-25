@@ -43,6 +43,7 @@
 import { defineComponent, computed } from 'vue'
 import type { PropType } from 'vue'
 import { useUserStore } from '@/stores'
+import { useRouter } from 'vue-router'
 
 export interface Product {
   id: number | string
@@ -64,6 +65,8 @@ export default defineComponent({
   },
   setup(props, { emit }) {
     const userStore = useUserStore()
+    const router = useRouter()
+
     // We'll use a computed to check if user is logged in
     const isAuthenticated = computed(() => userStore.isAuthenticated)
 
@@ -77,29 +80,64 @@ export default defineComponent({
       }
     }
 
-    return {
-      userStore,
-      isAuthenticated,
-      addToCart
-    }
-  },
-  methods: {
-    navigateToProduct() {
+    const navigateToProduct = () => {
       // Navigate to product detail page
-      const productSlug = this.product.slug || this.product.id
-      this.$router.push(`/product/${productSlug}`)
-    },
-    formatPrice(product: Product): string {
+      const productSlug = props.product.slug || props.product.id
+      router.push(`/product/${productSlug}`)
+
+      // Track the event
+      if (window.$gtag) {
+        window.$gtag.event('view_item', {
+          items: [
+            {
+              id: props.product.id,
+              name: props.product.name,
+              price: props.product.price
+            }
+          ]
+        })
+      }
+    }
+
+    const viewProductDetail = (productId: string | number) => {
+      router.push(`/produkt/${productId}`)
+
+      // Track the event
+      if (window.$gtag) {
+        window.$gtag.event('view_item', {
+          items: [
+            {
+              id: productId,
+              name: props.product.name,
+              price: props.product.price
+            }
+          ]
+        })
+      }
+    }
+
+    const formatPrice = (product: Product): string => {
       // If price is already a string with format "XXX Kč/jednotka", return the portion before "Kč/"
       if (typeof product.price === 'string' && product.price.includes('Kč/')) {
         return product.price.split('Kč/')[0] + ' Kč'
       }
       // Otherwise return as is or "XXX Kč"
       return typeof product.price === 'string' ? product.price : `${product.price} Kč`
-    },
-    onImageError(event: Event) {
+    }
+
+    const onImageError = (event: Event) => {
       // Type assertion for TypeScript; change to your preferred placeholder path
       ;(event.target as HTMLImageElement).src = '/placeholder.png'
+    }
+
+    return {
+      userStore,
+      isAuthenticated,
+      addToCart,
+      navigateToProduct,
+      viewProductDetail,
+      formatPrice,
+      onImageError
     }
   }
 })

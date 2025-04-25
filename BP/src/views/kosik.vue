@@ -276,6 +276,22 @@ export default {
     },
     continueShopping() {
       this.$router.push('/')
+    },
+    addToCart(product) {
+      // Původní kód pro přidání do košíku
+      cartStore.addToCart(product)
+
+      // Přidejte sledování události
+      this.$gtag.event('add_to_cart', {
+        items: [
+          {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            quantity: 1
+          }
+        ]
+      })
     }
   }
 }

@@ -1,7 +1,5 @@
-// main.ts
 import { createApp, watch } from 'vue'
 import { createPinia } from 'pinia'
-
 import App from './App.vue'
 import router from './router'
 
@@ -9,13 +7,39 @@ import router from './router'
 import { useUserStore } from '@/stores'
 import { useCart } from '@/stores/stavKosiku'
 
+// Nejprve vytvořte aplikaci
 const app = createApp(App)
 const pinia = createPinia()
 
-app.use(pinia)
-app.use(router)
-app.mount('#app')
+// Příprava pro Google Analytics - definice globální proměnné
+declare global {
+  interface Window {
+    gtag: any
+    $gtag: any
+  }
+}
+
+// Alternativní přístup - přidání Google Analytics přímo do index.html
+// Místo importu knihovny vue-gtag použijme nativní gtag API
+
+// Inicializace funkcí pro sledování
+window.$gtag = {
+  event: (eventName: string, params: any) => {
+    if (window.gtag) {
+      window.gtag('event', eventName, params)
+    }
+  }
+}
+
+// Hook pro sledování změny stránky
 router.afterEach((to) => {
+  if (window.gtag) {
+    window.gtag('config', 'G-KY9ER5K6Z4', {
+      page_path: to.fullPath
+    })
+  }
+
+  // Zbytek vašeho kódu pro title a description
   const defaultTitle = 'Stavebniny Lysá'
   const defaultDescription =
     'Široký sortiment stavebních materiálů v Lysé nad Labem. Hrubá stavba, fasáda, dřevo, železo, barvy, elektro, chemie a další. Osobní odběr, odborné poradenství.'
@@ -48,6 +72,10 @@ router.afterEach((to) => {
       : defaultDescription
   )
 })
+
+app.use(pinia)
+app.use(router)
+app.mount('#app')
 
 // Now that Pinia is created, get the stores:
 const userStore = useUserStore(pinia)

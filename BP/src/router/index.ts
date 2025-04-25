@@ -193,16 +193,6 @@ const router = createRouter({
         title: 'Podkategorie produktů | Stavebniny Lysá',
         description: 'Zobrazit produkty v podkategorii stavebních materiálů.'
       }
-    },
-    // 404 catch-all
-    {
-      path: '/:pathMatch(.*)*',
-      name: 'NotFound',
-      component: NotFound,
-      meta: {
-        title: 'Stránka nenalezena | Stavebniny Lysá',
-        description: 'Tato stránka neexistuje nebo byla odstraněna.'
-      }
     }
   ]
 })

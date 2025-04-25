@@ -4,7 +4,7 @@
 
 <script>
 import 'vanilla-cookieconsent/dist/cookieconsent.css'
-import * as CookieConsent from 'vanilla-cookieconsent'
+import CookieConsent from 'vanilla-cookieconsent'
 
 export default {
   name: 'CookieConsent',
@@ -16,6 +16,7 @@ export default {
         settings_modal: 'obsah skryt'
       }
     })
+    console.log('CookieConsent objekt:', CookieConsent)
 
     CookieConsent.run({
       current_lang: 'cs',

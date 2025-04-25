@@ -4,20 +4,12 @@
 
 <script>
 import 'vanilla-cookieconsent/dist/cookieconsent.css'
-import CookieConsent from 'vanilla-cookieconsent'
+import * as CookieConsent from 'vanilla-cookieconsent' // SPRÁVNĚ pro v3
 
 export default {
   name: 'CookieConsent',
   mounted() {
-    console.log('CookieConsent init...')
-    console.log('languages config', {
-      cs: {
-        consent_modal: 'obsah skryt', // nebo celý objekt, pokud chceš
-        settings_modal: 'obsah skryt'
-      }
-    })
     console.log('CookieConsent objekt:', CookieConsent)
-
     CookieConsent.run({
       current_lang: 'cs',
       autoclear_cookies: true,

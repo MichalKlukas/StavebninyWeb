@@ -3,23 +3,25 @@
 </template>
 
 <script>
+import 'vanilla-cookieconsent/dist/cookieconsent.css'
+
 export default {
   name: 'CookieConsent',
-  mounted() {
-    // Wait for the global CC object to be available
-    if (window.CC && typeof window.CC.run === 'function') {
-      try {
-        window.CC.run({
+  async mounted() {
+    try {
+      // Using require instead of import for better compatibility with bundlers
+      const cookieConsentModule = await import('vanilla-cookieconsent')
+
+      if (cookieConsentModule && cookieConsentModule.run) {
+        cookieConsentModule.run({
           current_lang: 'cs',
           autoclear_cookies: true,
           page_scripts: true,
           languages: {
             cs: {
-              // Your existing configuration...
               consent_modal: {
                 title: 'Používáme cookies',
-                description:
-                  'Tento web používá cookies pro zlepšení vašeho zážitku a analýzu návštěvnosti.',
+                description: 'Tento web používá cookies pro zlepšení vašeho zážitku.',
                 primary_btn: {
                   text: 'Přijmout vše',
                   role: 'accept_all'
@@ -28,16 +30,43 @@ export default {
                   text: 'Pouze nezbytné',
                   role: 'accept_necessary'
                 }
+              },
+              settings_modal: {
+                title: 'Nastavení cookies',
+                save_settings_btn: 'Uložit nastavení',
+                accept_all_btn: 'Přijmout vše',
+                reject_all_btn: 'Odmítnout vše',
+                close_btn_label: 'Zavřít',
+                cookie_table_headers: {
+                  col1: 'Název',
+                  col2: 'Doména',
+                  col3: 'Expirace',
+                  col4: 'Popis'
+                },
+                blocks: [
+                  {
+                    title: 'Využití cookies',
+                    description: 'Používáme cookies pro základní funkce webu.'
+                  },
+                  {
+                    title: 'Nezbytné cookies',
+                    description: 'Tyto cookies jsou nezbytné pro fungování webu.',
+                    toggle: {
+                      value: 'necessary',
+                      enabled: true,
+                      readonly: true
+                    }
+                  }
+                ]
               }
-              // Rest of config...
             }
           }
         })
-      } catch (error) {
-        console.error('Error initializing cookie consent:', error)
+      } else {
+        console.error('Cookie consent module loaded but run method not found')
       }
-    } else {
-      console.warn('Cookie consent library not found. Make sure it is loaded in index.html')
+    } catch (error) {
+      console.error('Error setting up cookie consent:', error)
     }
   }
 }

@@ -3,17 +3,19 @@
 </template>
 
 <script>
+// Only import CSS
 import 'vanilla-cookieconsent/dist/cookieconsent.css'
 
 export default {
   name: 'CookieConsent',
-  async mounted() {
-    try {
-      // Using require instead of import for better compatibility with bundlers
-      const cookieConsentModule = await import('vanilla-cookieconsent')
-
-      if (cookieConsentModule && cookieConsentModule.run) {
-        cookieConsentModule.run({
+  mounted() {
+    // We'll manually create a script element to load the non-ESM version
+    const script = document.createElement('script')
+    script.src = '/vanilla-cookieconsent.js' // This will be a local copy we'll create
+    script.onload = () => {
+      // Wait for script to load, then initialize
+      if (window.CC && typeof window.CC.run === 'function') {
+        window.CC.run({
           current_lang: 'cs',
           autoclear_cookies: true,
           page_scripts: true,
@@ -22,14 +24,8 @@ export default {
               consent_modal: {
                 title: 'Používáme cookies',
                 description: 'Tento web používá cookies pro zlepšení vašeho zážitku.',
-                primary_btn: {
-                  text: 'Přijmout vše',
-                  role: 'accept_all'
-                },
-                secondary_btn: {
-                  text: 'Pouze nezbytné',
-                  role: 'accept_necessary'
-                }
+                primary_btn: { text: 'Přijmout vše', role: 'accept_all' },
+                secondary_btn: { text: 'Pouze nezbytné', role: 'accept_necessary' }
               },
               settings_modal: {
                 title: 'Nastavení cookies',
@@ -51,23 +47,16 @@ export default {
                   {
                     title: 'Nezbytné cookies',
                     description: 'Tyto cookies jsou nezbytné pro fungování webu.',
-                    toggle: {
-                      value: 'necessary',
-                      enabled: true,
-                      readonly: true
-                    }
+                    toggle: { value: 'necessary', enabled: true, readonly: true }
                   }
                 ]
               }
             }
           }
         })
-      } else {
-        console.error('Cookie consent module loaded but run method not found')
       }
-    } catch (error) {
-      console.error('Error setting up cookie consent:', error)
     }
+    document.head.appendChild(script)
   }
 }
 </script>

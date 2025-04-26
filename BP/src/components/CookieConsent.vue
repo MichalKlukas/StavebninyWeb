@@ -4,74 +4,23 @@
 
 <script>
 import 'vanilla-cookieconsent/dist/cookieconsent.css'
-import * as CookieConsent from 'vanilla-cookieconsent' // SPRÁVNĚ pro v3
+import * as CookieConsent from 'vanilla-cookieconsent'
 
 export default {
   name: 'CookieConsent',
   mounted() {
     console.log('CookieConsent objekt:', CookieConsent)
-    console.log('RUN CONFIG:', {
-      current_lang: 'cs',
-      autoclear_cookies: true,
-      page_scripts: true
-    })
-    CookieConsent.run({
-      current_lang: 'cs',
-      autoclear_cookies: true,
-      page_scripts: true,
-      languages: {
-        cs: {
-          consent_modal: {
-            title: 'Používáme cookies',
-            description:
-              'Tento web používá cookies pro zlepšení vašeho zážitku a analýzu návštěvnosti.',
-            primary_btn: {
-              text: 'Přijmout vše',
-              role: 'accept_all'
-            },
-            secondary_btn: {
-              text: 'Pouze nezbytné',
-              role: 'accept_necessary'
-            }
-          },
-          settings_modal: {
-            title: 'Nastavení cookies',
-            save_settings_btn: 'Uložit nastavení',
-            accept_all_btn: 'Přijmout vše',
-            reject_all_btn: 'Odmítnout vše',
-            close_btn_label: 'Zavřít',
-            cookie_table_headers: [
-              {
-                col1: 'Název',
-                col2: 'Doména',
-                col3: 'Expirace',
-                col4: 'Popis'
-              }
-            ],
-            blocks: [
-              {
-                title: 'Využití cookies',
-                description:
-                  'Používáme cookies pro zajištění základních funkcí webu a pro analýzu návštěvnosti.'
-              },
-              {
-                title: 'Nezbytné cookies',
-                description: 'Tyto cookies jsou nezbytné pro fungování webu.',
-                toggle: {
-                  value: 'necessary',
-                  enabled: true,
-                  readonly: true
-                }
-              }
-            ]
-          }
-        }
-      }
-    })
-    console.log(
-      'FINAL config:',
-      JSON.stringify(
-        {
+
+    // Wait for DOM to be fully loaded
+    setTimeout(() => {
+      try {
+        console.log('RUN CONFIG:', {
+          current_lang: 'cs',
+          autoclear_cookies: true,
+          page_scripts: true
+        })
+
+        CookieConsent.run({
           current_lang: 'cs',
           autoclear_cookies: true,
           page_scripts: true,
@@ -79,9 +28,16 @@ export default {
             cs: {
               consent_modal: {
                 title: 'Používáme cookies',
-                description: '...',
-                primary_btn: { text: 'Přijmout vše', role: 'accept_all' },
-                secondary_btn: { text: 'Pouze nezbytné', role: 'accept_necessary' }
+                description:
+                  'Tento web používá cookies pro zlepšení vašeho zážitku a analýzu návštěvnosti.',
+                primary_btn: {
+                  text: 'Přijmout vše',
+                  role: 'accept_all'
+                },
+                secondary_btn: {
+                  text: 'Pouze nezbytné',
+                  role: 'accept_necessary'
+                }
               },
               settings_modal: {
                 title: 'Nastavení cookies',
@@ -89,28 +45,39 @@ export default {
                 accept_all_btn: 'Přijmout vše',
                 reject_all_btn: 'Odmítnout vše',
                 close_btn_label: 'Zavřít',
-                cookie_table_headers: [
-                  { col1: 'Název' },
-                  { col2: 'Doména' },
-                  { col3: 'Expirace' },
-                  { col4: 'Popis' }
-                ],
+                // Fixed cookie_table_headers - should be a single object with four properties, not an array
+                cookie_table_headers: {
+                  col1: 'Název',
+                  col2: 'Doména',
+                  col3: 'Expirace',
+                  col4: 'Popis'
+                },
                 blocks: [
-                  { title: 'Využití cookies', description: '...' },
+                  {
+                    title: 'Využití cookies',
+                    description:
+                      'Používáme cookies pro zajištění základních funkcí webu a pro analýzu návštěvnosti.'
+                  },
                   {
                     title: 'Nezbytné cookies',
-                    description: '...',
-                    toggle: { value: 'necessary', enabled: true, readonly: true }
+                    description: 'Tyto cookies jsou nezbytné pro fungování webu.',
+                    toggle: {
+                      value: 'necessary',
+                      enabled: true,
+                      readonly: true
+                    }
                   }
                 ]
               }
             }
           }
-        },
-        null,
-        2
-      )
-    )
+        })
+
+        console.log('Cookie consent initialized successfully')
+      } catch (error) {
+        console.error('Error initializing cookie consent:', error)
+      }
+    }, 100)
   }
 }
 </script>

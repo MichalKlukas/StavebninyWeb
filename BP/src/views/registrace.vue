@@ -169,7 +169,7 @@
                 />
                 <label for="terms">
                   Souhlasím s
-                  <a href="#" @click.prevent="showTermsModal">obchodními podmínkami</a> *
+                  <a href="/obchodni-podminky" target="_blank">obchodními podmínkami</a> *
                 </label>
               </div>
             </div>
@@ -184,7 +184,7 @@
                 />
                 <label for="privacy">
                   Souhlasím se
-                  <a href="#" @click.prevent="showPrivacyModal">zpracováním osobních údajů</a> *
+                  <a href="/ochrana-osobnich-udaju" target="_blank">zpracováním osobních údajů</a> *
                 </label>
               </div>
             </div>
@@ -392,7 +392,7 @@ export default {
       } finally {
         this.isSubmitting = false
       }
-    },
+    }
 
     //registerWithGoogle() {
     // Zde by byla implementace registrace přes Google OAuth
@@ -416,16 +416,6 @@ export default {
     //     this.formSubmitted = true
     //   }, 1000)
     // },
-
-    showTermsModal() {
-      // Zobrazení modálního okna s obchodními podmínkami
-      alert('Zde by se zobrazily obchodní podmínky.')
-    },
-
-    showPrivacyModal() {
-      // Zobrazení modálního okna se zásadami ochrany osobních údajů
-      alert('Zde by se zobrazily zásady ochrany osobních údajů.')
-    }
   }
 }
 </script>

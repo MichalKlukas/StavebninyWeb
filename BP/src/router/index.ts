@@ -16,6 +16,8 @@ import Kosik from '@/views/kosik.vue'
 import ResetHesla from '@/views/resetHesla.vue'
 import SearchResults from '@/views/searchResults.vue'
 import PotvrzeniObjednavky from '@/views/potvrzeniObjednavky.vue'
+import ObchodniPodminky from '@/views/ObchodniPodminky.vue'
+import OchranaOsobnichUdaju from '@/views/OchranaOsobnichUdaju.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -28,6 +30,24 @@ const router = createRouter({
         title: 'Stavebniny Lysá | Široký sortiment stavebního materiálu',
         description:
           'Stavebniny Lysá nad Labem – vše pro stavbu a rekonstrukci. Hrubá stavba, fasáda, dřevo, železo, barvy, elektro a odborné poradenství.'
+      }
+    },
+    {
+      path: '/obchodni-podminky',
+      name: 'ObchodniPodminky',
+      component: () => import('@/views/ObchodniPodminky.vue'),
+      meta: {
+        title: 'Obchodní podmínky | Stavebniny Lysá',
+        description: 'Obchodní podmínky pro objednávkový systém Stavebniny Lysá nad Labem.'
+      }
+    },
+    {
+      path: '/ochrana-osobnich-udaju',
+      name: 'OchranaOsobnichUdaju',
+      component: () => import('@/views/OchranaOsobnichUdaju.vue'),
+      meta: {
+        title: 'Zásady zpracování osobních údajů | Stavebniny Lysá',
+        description: 'Informace o zpracování osobních údajů ve Stavebninách Lysá nad Labem.'
       }
     },
     {

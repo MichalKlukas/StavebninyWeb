@@ -28,24 +28,14 @@ export default {
     if (cookieConsent === 'all') {
       this.initializeAnalytics()
     }
-
-    // Nastavíme výchozí stav souhlasu (zamítnut)
-    window.dataLayer = window.dataLayer || []
-    function gtag(...params) {
-      dataLayer.push(params)
-    }
-    window.gtag = gtag
-
-    // Nastavíme výchozí hodnotu souhlasu na 'denied'
-    gtag('consent', 'default', {
-      analytics_storage: 'denied'
-    })
   },
   methods: {
     acceptAll() {
       // Uložíme volbu do localStorage
       localStorage.setItem('cookie-consent', 'all')
       this.showBanner = false
+
+      console.log('Cookie consent accepted, updating analytics_storage to granted')
 
       // Aktualizujeme stav souhlasu na 'granted'
       if (window.gtag) {
@@ -55,9 +45,11 @@ export default {
 
         // Zaznamenáme event o udělení souhlasu
         window.gtag('event', 'cookie_consent_granted')
+      } else {
+        console.error('gtag is not defined at consent time!')
       }
 
-      // Inicializujeme Google Analytics (pokud ještě není)
+      // Inicializujeme Google Analytics
       this.initializeAnalytics()
     },
     acceptNecessary() {
@@ -71,28 +63,19 @@ export default {
       }
     },
     initializeAnalytics() {
-      // Zkontrolujeme, zda již není načteno
-      if (typeof window.gtag === 'function' && window.gaInitialized) {
-        return
+      if (window.gtag) {
+        // Povolíme odesílání dat
+        window.gtag('consent', 'update', {
+          analytics_storage: 'granted'
+        })
+
+        // Odešleme page_view událost
+        window.gtag('event', 'page_view')
+
+        console.log('Analytics initialized with consent granted')
+      } else {
+        console.error('gtag is not available for initialization')
       }
-
-      // Nastavíme příznak, že GA již bylo inicializováno
-      window.gaInitialized = true
-
-      // Načteme Google Analytics script
-      const script = document.createElement('script')
-      script.src = 'https://www.googletagmanager.com/gtag/js?id=G-KY9ER5K6Z4'
-      script.async = true
-      document.head.appendChild(script)
-
-      // Inicializujeme Global Site Tag
-      window.dataLayer = window.dataLayer || []
-      function gtag(...params) {
-        dataLayer.push(params)
-      }
-      window.gtag = gtag
-      gtag('js', new Date())
-      gtag('config', 'G-KY9ER5K6Z4')
     }
   }
 }

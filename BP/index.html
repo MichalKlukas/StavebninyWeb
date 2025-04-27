@@ -33,7 +33,14 @@
         dataLayer.push(arguments)
       }
       gtag('js', new Date())
-      gtag('config', 'G-KY9ER5K6Z4')
+
+      // Přidat nastavení výchozího zamítnutí souhlasu
+      gtag('consent', 'default', {
+        analytics_storage: 'denied'
+      })
+
+      // Nastavit konfiguraci, ale neprovádět ještě page_view
+      gtag('config', 'G-KY9ER5K6Z4', { send_page_view: false })
     </script>
   </head>
   <body>

@@ -66,7 +66,8 @@
           <div class="icon-info">ℹ️</div>
           <p>
             Objednávky se na webu neplatí a neodesílají, slouží pouze k vytvoření objednávek, které
-            je potřeba zaplatit na prodejně.
+            je potřeba zaplatit na prodejně. Ceny jsou pouze základní, takže nemusí odpovídat
+            finální částce.
           </p>
         </div>
 
